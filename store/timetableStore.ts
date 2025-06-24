@@ -10,7 +10,7 @@ export const useTimetableStore = create<TimetableState>((set, get) => ({
   isLoading: false,
   error: null,
   rollNumber: null,
-  notificationTime: 15,
+  notificationTime: 0,
   setRollNumber: async (rollNumber: string) => {
     await AsyncStorage.setItem('rollNumber', rollNumber)
     set({ rollNumber })
@@ -70,6 +70,6 @@ export const useTimetableStore = create<TimetableState>((set, get) => ({
   clearTimetable: async () => {
     set({ isLoading: true })
     await AsyncStorage.clear()
-    set({ timetable: {}, rollNumber: null, error: null, isLoading: false, notificationTime: 15 })
+    set({ timetable: {}, rollNumber: null, error: null, isLoading: false, notificationTime: 0 })
   },
 })); 

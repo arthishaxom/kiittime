@@ -1,0 +1,29 @@
+# Vercel-specific
+.vercel
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Expo-specific build/cache folders
+.expo/
+dist/
+web-build/
+
+# Native platform folders (not needed for web deployment)
+android/
+ios/
+
+# Git folder
+.git
+
+# Environment variables (should be set in Vercel UI, not uploaded)
+.env*
+
+# IDE / Editor folders
+.vscode/
+.idea/
+
+# macOS folder
+.DS_Store

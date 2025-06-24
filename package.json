@@ -10,9 +10,11 @@
     "android": "DARK_MODE=media expo start --android",
     "ios": "DARK_MODE=media expo start --ios",
     "web": "DARK_MODE=media expo start --web",
+    "build": "expo export:web",
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.1.0",
     "@gluestack-ui/button": "^1.0.14",
     "@gluestack-ui/fab": "^0.1.28",

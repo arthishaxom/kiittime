@@ -130,6 +130,7 @@ export default function RootLayout() {
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="rollinput" options={{ headerShown: false }} />
                 <Stack.Screen name="timetable" options={{ headerShown: false }} />
+                <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
               </Stack>
               <Toast config={toastConfig} />
             </NotificationProvider>
