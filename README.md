@@ -1,50 +1,59 @@
-# Welcome to your Expo app 👋
+# KiiTime - Timetable App (Minimal Setup)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native timetable application with a minimal, robust architecture.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **AsyncStorage**: Local, persistent storage for roll number and timetable
+- **Simple React State**: For UI and loading
+- **Expo Router**: File-based navigation
+- **Error Handling**: User-friendly alerts for all error cases
 
-   ```bash
-   npm install
-   ```
+## User Flow
 
-2. Start the app
+1. **First time:**
+   - User enters roll number
+   - App fetches timetable from API
+   - If found, both roll number and timetable are stored in AsyncStorage
+   - User is navigated to the timetable page
+2. **Returning:**
+   - On app launch, if both roll number and timetable are present in AsyncStorage, user is navigated directly to the timetable page (no fetching)
+3. **Reset/Logout:**
+   - User can clear stored data and return to the roll input screen
 
-   ```bash
-   npx expo start
-   ```
+## Project Structure
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+kiittime/
+├── app/
+│   ├── _layout.tsx
+│   ├── index.tsx        # Splash screen
+│   ├── rollinput.tsx    # Roll input screen
+│   └── timetable.tsx    # Timetable display
+├── services/
+│   └── supabase.ts      # API fetch logic
+├── assets/
+│   ├── fonts/
+│   └── images/
+...
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## How It Works
 
-## Learn more
+- **All data is stored in AsyncStorage** after the first successful fetch.
+- **No fetching** is done on app start if data is present.
+- **All error cases** (invalid roll, not found, network) are handled with alerts.
+- **No Zustand or Tanstack Query**—just React state and AsyncStorage.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Example Code
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+See `app/index.tsx`, `app/rollinput.tsx`, and `app/timetable.tsx` for the full flow.
 
-## Join the community
+## Installation
 
-Join our community of developers creating universal apps.
+1. `pnpm install`
+2. `pnpm start`
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## License
+
+MIT License
