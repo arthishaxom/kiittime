@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
       <ScrollView
         contentContainerStyle={isWeb ? { alignItems: 'center' } : { paddingHorizontal: 16, paddingVertical: 24 }}
       >
-        <VStack style={isWeb ? { width: '100%', maxWidth: 800, paddingVertical: 100, margin: 80, paddingHorizontal: 20 } : {}}>
+        <VStack className="px-8" style={isWeb ? { width: '100%', maxWidth: 800, paddingVertical: 100, margin: 80, marginVertical: 120, paddingHorizontal: 20 } : {}}>
           <Text className="text-white text-4xl font-bold text-center mb-4">
             Privacy Policy for KIIT TIME
           </Text>
