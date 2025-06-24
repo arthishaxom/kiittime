@@ -25,7 +25,6 @@ export default function PrivacyPolicyPage() {
   return (
     <SafeAreaView className="flex-1 bg-black">
       <ScrollView
-      className="flex-1"
         contentContainerStyle={isWeb ? { alignItems: 'center' } : { paddingHorizontal: 16, paddingVertical: 24 }}
       >
         <VStack className="px-8" style={isWeb ? { width: '100%', maxWidth: 800, paddingVertical: 100, margin: 80, paddingHorizontal: 20 } : {}}>
