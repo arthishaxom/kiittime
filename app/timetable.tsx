@@ -29,7 +29,8 @@ import { useTimetableStore } from "../store/timetableStore";
 import {
   cancelAllNotifications,
   debugNotificationStatus,
-  openAlarmPermissionSettings
+  openAlarmPermissionSettings,
+  scheduleTestNotification
 } from "../utils/notifications";
 
 export default function TimetableScreen() {
@@ -90,8 +91,8 @@ export default function TimetableScreen() {
 
   const handleTestNotification = async () => {
     try {
-      // setTestingNotification(true);
-      // const id = await scheduleTestNotification();
+      setTestingNotification(true);
+      const id = await scheduleTestNotification();
       // const notis = await getScheduledNotifications();
       const status = await debugNotificationStatus();
       console.log(status);
@@ -243,7 +244,7 @@ export default function TimetableScreen() {
                 </Button>
                 <Button
                   onPress={handleClear}
-                  className="flex-1 h-16 p-3 bg-[#E42A33] rounded-lg"
+                  className="flex-1 h-16 p-3 bg-[#E42A33]/90 rounded-lg"
                   action="negative"
                 >
                   <HStack className="items-center gap-2">
@@ -254,7 +255,7 @@ export default function TimetableScreen() {
                 </Button>
               </View>
 
-              <View className="w-full mb-4 px-4">
+              {/* <View className="w-full mb-4 px-4">
                 <Button
                   onPress={handleTestNotification}
                   className="w-full h-14 rounded-lg bg-green-600 items-center justify-center"
@@ -265,7 +266,7 @@ export default function TimetableScreen() {
                     {testingNotification ? "Scheduling..." : "Test Notification"}
                   </Text>
                 </Button>
-              </View>
+              </View> */}
 
               <View className="mb-4 w-full px-4">
                 <Text className="text-white text-lg font-semibold mb-2 ml-1">

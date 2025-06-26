@@ -220,7 +220,7 @@ const scheduleClassNotification = async (
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibrationPattern: [300, 500],
-        smallIcon: 'ic_launcher',
+        smallIcon: 'notification_icon',
         color: '#FFA500', // Orange color
         autoCancel: true,
         pressAction: {
@@ -358,7 +358,7 @@ export const scheduleTestNotification = async (): Promise<string> => {
     
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
-      timestamp: Date.now() + 2 * 60 * 1000, // 2 minutes from now
+      timestamp: Date.now() + 30 * 1000, // 30 seconds from now
       alarmManager: {
         type: 3, // ELAPSED_REALTIME_WAKEUP
         allowWhileIdle: true,
@@ -374,8 +374,8 @@ export const scheduleTestNotification = async (): Promise<string> => {
           importance: AndroidImportance.HIGH,
           sound: 'default',
           vibrationPattern: [300, 500],
-          smallIcon: 'ic_launcher',
-          color: '#00FF00', // Green color
+          smallIcon: 'notification_icon',
+          color: '#ffffff', 
           pressAction: {
             id: 'default',
             launchActivity: 'default',

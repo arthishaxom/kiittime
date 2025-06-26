@@ -41,3 +41,6 @@ app-example
 testing/
 
 .vercel
+
+/keystore/
+credentials.json

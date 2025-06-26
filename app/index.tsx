@@ -23,12 +23,12 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={require("../assets/images/icon.png")} style={styles.logo} resizeMode="contain" />
+      <Image source={require("../assets/splash-icon.png")} style={styles.logo} resizeMode="contain" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000" },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#181818" },
   logo: { width: "80%", height: 100 },
 }); 

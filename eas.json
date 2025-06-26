@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 16.4.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -16,7 +16,13 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "env": {
+        "ANDROID_VERSION_CODE": "11"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "credentialsSource": "local"
+      }
     }
   },
   "submit": {

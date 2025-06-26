@@ -4,6 +4,8 @@ import { ConfigContext, ExpoConfig } from "@expo/config";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
+const versionCode = process.env.ANDROID_VERSION_CODE ? parseInt(process.env.ANDROID_VERSION_CODE) : 13;
+
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) {
@@ -12,7 +14,7 @@ const getUniqueIdentifier = () => {
   if (IS_PREVIEW) {
     return "com.justashish.kiittime.preview";
   }
-  return "com.justashish.kiittime";
+  return "com.ashish.kiittime";
 };
 
 const getAppName = () => {
@@ -29,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: getAppName(),
   slug: "kiittime",
-  version: "1.0.0",
+  version: process.env.APP_VERSION || "1.1.1",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "kiittime",
@@ -46,6 +48,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
+    versionCode: versionCode,
     edgeToEdgeEnabled: true,
     package: getUniqueIdentifier(),
   },
@@ -62,7 +65,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#181818",
       },
     ],
     [
@@ -76,6 +79,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         "ios": {}
       }
     ],
+    [
+      "expo-notifications",
+      {
+        "icon": "./assets/notification_icon.png",
+        "color": "#ffffff"
+      }
+    ]
   ],
   experiments: {
     typedRoutes: true,
