@@ -8,7 +8,7 @@ import {
 import { router } from "expo-router";
 import { LogOut, Settings, Share2 } from "lucide-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Linking, Share, StyleSheet, Text, View } from "react-native";
+import { Linking, Share, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Fab, FabIcon } from "@/components/ui/fab";
@@ -23,15 +23,12 @@ import {
 	cancelAllNotifications,
 	debugNotificationStatus,
 	openAlarmPermissionSettings,
-	scheduleTestNotification,
 } from "../utils/notifications";
 
 export default function TimetableScreen() {
 	const [_testingNotification, setTestingNotification] = useState(false);
 
-	const _timetable = useTimetableStore((state) => state.timetable);
 	const isLoading = useTimetableStore((state) => state.isLoading);
-	const error = useTimetableStore((state) => state.error);
 	const clearTimetable = useTimetableStore((state) => state.clearTimetable);
 	const notificationTime = useTimetableStore((state) => state.notificationTime);
 	const setNotificationTime = useTimetableStore(
@@ -90,7 +87,7 @@ export default function TimetableScreen() {
 	const _handleTestNotification = async () => {
 		try {
 			setTestingNotification(true);
-			const _id = await scheduleTestNotification();
+			// const _id = await scheduleTestNotification();
 			// const notis = await getScheduledNotifications();
 			const status = await debugNotificationStatus();
 			console.log(status);
@@ -148,58 +145,6 @@ export default function TimetableScreen() {
 			}
 		}
 	};
-
-	if (error) {
-		return (
-			<SafeAreaView className="flex-1 bg-background-0">
-				<View
-					style={styles.centerContainer}
-					className="flex-col gap-3"
-				>
-					<Text className="text-white font-bold text-3xl">404 Not Found</Text>
-					<Text className="text-white text-lg">
-						It looks like either your roll number doesn't exist or we don't have
-						your timetable in our system yet.
-						{"\n\n"}
-						This could happen if:
-						{"\n"}• You entered an incorrect roll number
-						{"\n"}• Your timetable hasn't been added to our database
-						{"\n"}• There's a temporary issue with our servers
-						{"\n\n"}
-						Please check your roll number and try again, or share your timetable
-						with us if you believe your roll number is correct.
-					</Text>
-					<HStack className="gap-3">
-						<Button
-							onPress={async () => {
-								const url =
-									"mailto:pothal.builds@gmail.com?subject=Query%20Regarding%20KIIT%20Time";
-								try {
-									await Linking.openURL(url);
-								} catch (err) {
-									console.error("Could not open email client:", err);
-								}
-							}}
-							className="h-min flex-1 bg-background-100/30 border border-background-100 p-3 rounded-lg mt-4"
-							action="secondary"
-						>
-							<Text className="font-semibold text-white">Send Email</Text>
-						</Button>
-						<Button
-							onPress={() => {
-								useTimetableStore.setState({ error: null });
-								router.replace("/rollinput");
-							}}
-							className="flex-1 h-min bg-[#E42A33]/90 p-3 rounded-lg mt-4"
-							action="negative"
-						>
-							<Text className="text-white font-semibold">Retry</Text>
-						</Button>
-					</HStack>
-				</View>
-			</SafeAreaView>
-		);
-	}
 
 	return (
 		<SafeAreaView className="flex-1 bg-background-0">
@@ -271,20 +216,20 @@ export default function TimetableScreen() {
 
 							{/* <View className="w-full mb-4 px-4">
                 <Button
-                  onPress={handleTestNotification}
+                  onPress={_handleTestNotification}
                   className="w-full h-14 rounded-lg bg-green-600 items-center justify-center"
                   variant="solid"
-                  disabled={testingNotification}
+                  disabled={_testingNotification}
                 >
                   <Text className="text-white font-semibold text-center">
-                    {testingNotification ? "Scheduling..." : "Test Notification"}
+                    {_testingNotification ? "Scheduling..." : "Test Notification"}
                   </Text>
                 </Button>
               </View> */}
 
 							<View className="mb-4 w-full px-4">
 								<Text className="text-white text-lg font-semibold mb-2 ml-1">
-									Notification Time
+									Reminder Time Before Class
 								</Text>
 								<VStack
 									space="md"
@@ -351,16 +296,3 @@ export default function TimetableScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	centerContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 20,
-	},
-	errorText: {
-		color: "white",
-		fontSize: 16,
-		textAlign: "center",
-	},
-});

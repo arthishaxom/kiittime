@@ -153,6 +153,10 @@ export default function RootLayout() {
 									name="privacy-policy"
 									options={{ headerShown: false }}
 								/>
+								<Stack.Screen
+									name="not-found"
+									options={{ headerShown: false }}
+								/>
 							</Stack>
 							<Toast config={toastConfig} />
 						</NotificationProvider>

@@ -20,7 +20,7 @@
     },
     "production": {
       "env": {
-        "ANDROID_VERSION_CODE": "13"
+        "ANDROID_VERSION_CODE": "14"
       },
       "android": {
         "buildType": "app-bundle",
