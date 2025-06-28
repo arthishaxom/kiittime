@@ -24,7 +24,7 @@ const NotFoundPage = () => {
 					Please check your roll number and try again, or share your timetable
 					with us if you believe your roll number is correct.
 				</Text>
-				<HStack className="gap-3">
+				<HStack className="gap-3 w-full">
 					<Button
 						onPress={async () => {
 							const url =
