@@ -11,23 +11,18 @@ export default function IndexRedirect() {
   const [redirect, setRedirect] = useState<RedirectPath | null>(null);
   const [isReady, setIsReady] = useState(false);
   
-  // Get the rehydration state from Zustand persist
-  const hasHydrated = useTimetableStore.persist.hasHydrated();
   const { timetable, rollNumber } = useTimetableStore();
 
   useEffect(() => {
-    // Wait for Zustand to rehydrate from storage
-    if (hasHydrated) {
-      // Check if we have a valid timetable and roll number
-      if (timetable && Object.keys(timetable).length > 0 && rollNumber) {
-        setRedirect(TIMETABLE);
-      } else {
-        setRedirect(ROLLINPUT);
-      }
-      setIsReady(true);
-      SplashScreen.hideAsync();
+    // Check if we have a valid timetable and roll number
+    if (timetable && Object.keys(timetable).length > 0 && rollNumber) {
+      setRedirect(TIMETABLE);
+    } else {
+      setRedirect(ROLLINPUT);
     }
-  }, [hasHydrated, timetable, rollNumber]);
+    setIsReady(true);
+    SplashScreen.hideAsync();
+  }, [timetable, rollNumber]);
 
   if (!redirect || !isReady) return null;
   return <Redirect href={redirect} />;

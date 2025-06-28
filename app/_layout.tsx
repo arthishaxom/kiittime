@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Check, CircleAlert, CircleCheck, CircleX } from "lucide-react-native";
 import type { JSX } from "react";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -17,6 +18,7 @@ import { Box } from "~/components/ui/box";
 import { HStack } from "~/components/ui/hstack";
 import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
+import { initializeStore } from "~/store/timetableStore";
 import "../global.css";
 import useFonts from "../hooks/useFonts";
 
@@ -124,6 +126,13 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
 	const fontsLoaded = useFonts();
+
+	// Initialize store from storage when app starts
+	useEffect(() => {
+		if (fontsLoaded) {
+			initializeStore().catch(console.error);
+		}
+	}, [fontsLoaded]);
   
 	if (!fontsLoaded) {
 		return null;
