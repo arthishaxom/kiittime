@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { supabase } from "~/services/supabase";
 import { calculateAcademicYear } from "~/utils/helpers";
 import { getNotificationSettings, updateNotificationSettings } from '~/utils/notifications';
-import { GroupedSchedule, ScheduleSlot, TimetableState } from './timetableState';
+import type { GroupedSchedule, ScheduleSlot, TimetableState } from './timetableState';
 
 export const useTimetableStore = create<TimetableState>((set, get) => ({
   timetable: {},
@@ -22,11 +22,7 @@ export const useTimetableStore = create<TimetableState>((set, get) => ({
     
     // Update notifications if timetable exists
     if (Object.keys(timetable).length > 0) {
-      try {
-        await updateNotificationSettings(minutes, timetable);
-      } catch (error) {
-        throw error
-      }
+      await updateNotificationSettings(minutes, timetable);
     }
   },
   fetchTimetable: async (rollNumber: string) => {
@@ -53,6 +49,10 @@ export const useTimetableStore = create<TimetableState>((set, get) => ({
       if (error) {
         throw new Error(error.message);
       }
+      
+      if (!data || data.length === 0) {
+        throw new Error('No timetable found for this roll number');
+      }
 
       const groupedSchedule = data.reduce((acc: GroupedSchedule, slot: ScheduleSlot) => {
         const day = slot.Day; // Capitalized
@@ -64,7 +64,8 @@ export const useTimetableStore = create<TimetableState>((set, get) => ({
       await AsyncStorage.setItem('timetable', JSON.stringify(groupedSchedule))
       set({ timetable: groupedSchedule || [], isLoading: false });
     } catch (error) {
-      set({ error, isLoading: false });
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      set({ error: errorMessage, isLoading: false });
     }
   },
   clearTimetable: async () => {

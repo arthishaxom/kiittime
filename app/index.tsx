@@ -1,34 +1,45 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
-import React, { useEffect } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Redirect, SplashScreen } from "expo-router";
+import { useEffect, useState } from "react";
 import { useTimetableStore } from "~/store/timetableStore";
 import { getNotificationSettings } from "~/utils/notifications";
 
-export default function SplashScreen() {
-  const fetchTimetable = useTimetableStore((state) => state.fetchTimetable)
+// Only allow the two possible redirect destinations
+const TIMETABLE = "/timetable" as const;
+const ROLLINPUT = "/rollinput" as const;
+type RedirectPath = typeof TIMETABLE | typeof ROLLINPUT;
+
+export default function IndexRedirect() {
+  const [redirect, setRedirect] = useState<RedirectPath | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
   useEffect(() => {
     const checkSavedData = async () => {
-      const timetable = await AsyncStorage.getItem("timetable");
-      const notiTime = (await getNotificationSettings()).minutesBefore
-      if (timetable) {
-        useTimetableStore.setState({ timetable: JSON.parse(timetable), notificationTime: notiTime })
-        router.replace("/timetable");
-      } else {
-        router.replace("/rollinput");
+      try {
+        const timetable = await AsyncStorage.getItem("timetable");
+        const notiTime = (await getNotificationSettings()).minutesBefore;
+        
+        if (timetable) {
+          useTimetableStore.setState({ 
+            timetable: JSON.parse(timetable), 
+            notificationTime: notiTime 
+          });
+          setRedirect(TIMETABLE);
+        } else {
+          setRedirect(ROLLINPUT);
+        }
+      } catch (error) {
+        console.error("Error checking saved data:", error);
+        setRedirect(ROLLINPUT); // Fallback to roll input
+      } finally {
+        setIsReady(true);
+        // Hide splash screen once we know where to redirect
+        SplashScreen.hideAsync();
       }
     };
-    setTimeout(checkSavedData, 1000);
+    checkSavedData();
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <Image source={require("../assets/splash-icon.png")} style={styles.logo} resizeMode="contain" />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#181818" },
-  logo: { width: "80%", height: 100 },
-}); 
+  if (!redirect || !isReady) return null;
+  return <Redirect href={redirect} />;
+} 

@@ -1,28 +1,32 @@
-import React, { useEffect } from 'react';
-import { initializeNotificationService, setupNotificationListeners } from '~/utils/notifications';
+import type React from "react";
+import { useEffect } from "react";
+import {
+	initializeNotificationService,
+	setupNotificationListeners,
+} from "~/utils/notifications";
 
 interface NotificationProviderProps {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }
 
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
-  useEffect(() => {
-    const initializeNotifications = async () => {
-      try {
-        // Initialize notification service
-        await initializeNotificationService();
-        
-        // Setup event listeners
-        setupNotificationListeners();
-        
-        console.log('Notification service initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize notification service:', error);
-      }
-    };
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({
+	children,
+}) => {
+	useEffect(() => {
+		const initializeNotifications = async () => {
+			try {
+				// Initialize notification service
+				await initializeNotificationService();
 
-    initializeNotifications();
-  }, []);
+				// Setup event listeners
+				setupNotificationListeners();
+			} catch (error) {
+				console.error("Failed to initialize notification service:", error);
+			}
+		};
 
-  return <>{children}</>;
-}; 
+		initializeNotifications();
+	}, []);
+
+	return <>{children}</>;
+};

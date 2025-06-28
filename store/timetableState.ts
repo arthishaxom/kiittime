@@ -1,7 +1,7 @@
 export interface TimetableState {
   timetable: GroupedSchedule;
   isLoading: boolean;
-  error: any;
+  error: string | null;
   rollNumber: string | null;
   notificationTime: number;
   setRollNumber: (rollNumber: string) => Promise<void>;
