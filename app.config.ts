@@ -6,7 +6,7 @@ const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 const versionCode = process.env.ANDROID_VERSION_CODE
 	? parseInt(process.env.ANDROID_VERSION_CODE)
-	: 14;
+	: 15;
 
 const getUniqueIdentifier = () => {
 	if (IS_DEV) {
@@ -32,7 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
 	name: getAppName(),
 	slug: "kiittime",
-	version: process.env.APP_VERSION || "1.1.3",
+	version: process.env.APP_VERSION || "1.1.4",
 	orientation: "portrait",
 	icon: "./assets/images/icon.png",
 	scheme: "kiittime",

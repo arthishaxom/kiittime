@@ -21,7 +21,14 @@ import { Text } from "~/components/ui/text";
 import { VStack } from "~/components/ui/vstack";
 import { useTimetableStore } from "~/store/timetableStore";
 import "../global.css";
+import { Analytics } from "@vercel/analytics/react";
+import { vexo } from "vexo-analytics";
 import useFonts from "../hooks/useFonts";
+
+if (Platform.OS !== "web") {
+	// biome-ignore lint/style/noNonNullAssertion: API KEY
+	vexo(process.env.EXPO_PUBLIC_VEXO_API!);
+}
 
 const toastConfig = {
 	success: (props: JSX.IntrinsicAttributes & BaseToastProps) => (
@@ -134,7 +141,7 @@ export default function RootLayout() {
 			useTimetableStore.persist.rehydrate();
 		}
 	}, []);
-  
+
 	if (!fontsLoaded) {
 		return null;
 	}
@@ -169,6 +176,7 @@ export default function RootLayout() {
 								/>
 							</Stack>
 							<Toast config={toastConfig} />
+							{Platform.OS === 'web' && <Analytics/>}
 						</NotificationProvider>
 					</KeyboardProvider>
 				</SafeAreaProvider>

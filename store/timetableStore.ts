@@ -66,7 +66,7 @@ export const useTimetableStore = create<TimetableState>()(
 					);
 
 					set({
-						timetable: groupedSchedule || [],
+						timetable: groupedSchedule || {},
 						rollNumber,
 						isLoading: false,
 					});
