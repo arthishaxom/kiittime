@@ -19,9 +19,6 @@
       }
     },
     "production": {
-      "env": {
-        "ANDROID_VERSION_CODE": "15"
-      },
       "android": {
         "buildType": "app-bundle",
         "credentialsSource": "local"

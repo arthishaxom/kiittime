@@ -3,7 +3,6 @@ import {
 	ActivityIndicator,
 	type NativeSyntheticEvent,
 	Platform,
-	TouchableWithoutFeedback,
 } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Input, InputField } from "@/components/ui/input";
@@ -50,63 +49,57 @@ export const RollInputSection = forwardRef<
 		}
 	};
 
-	const handleTapOutside = () => {
-		inputRef.current?.blur();
-	};
-
 	return (
-		<TouchableWithoutFeedback onPress={handleTapOutside}>
-			<VStack className="w-full">
-				<Text className="mb-2 text-neutral-100">Enter Roll Number</Text>
-				<Input
-					variant="outline"
-					size="md"
-					isDisabled={isLoading}
-					isInvalid={rollNumber.length > 0 && rollNumber.length < 7}
-					isReadOnly={false}
-					className="mb-4 rounded-lg h-16 border-background-50"
-				>
-					<InputField
-						placeholder="Enter your roll"
-						value={rollNumber}
-						onChangeText={handleChange}
-						onKeyPress={handleKeyPress}
-						maxLength={8}
-						textAlign="center"
-						caretHidden={Platform.OS !== "web"}
-						keyboardType={Platform.OS === "web" ? "default" : "numeric"}
-						inputMode={Platform.OS === "web" ? "numeric" : undefined}
-						className="text-xl"
-						editable={!isLoading}
-						ref={inputRef}
-						style={
-							Platform.OS === "web"
-								? {
-										outline: "none",
-										fontSize: 20,
-										textAlign: "center",
-									}
-								: {}
-						}
+		<VStack className="w-full">
+			<Text className="mb-2 text-neutral-100">Enter Roll Number</Text>
+			<Input
+				variant="outline"
+				size="md"
+				isDisabled={isLoading}
+				isInvalid={rollNumber.length > 0 && rollNumber.length < 7}
+				isReadOnly={false}
+				className="mb-4 rounded-lg h-16 border-background-50"
+			>
+				<InputField
+					placeholder="Enter your roll"
+					value={rollNumber}
+					onChangeText={handleChange}
+					onKeyPress={handleKeyPress}
+					maxLength={8}
+					textAlign="center"
+					caretHidden={Platform.OS !== "web"}
+					keyboardType={Platform.OS === "web" ? "default" : "numeric"}
+					inputMode={Platform.OS === "web" ? "numeric" : undefined}
+					className="text-xl"
+					editable={!isLoading}
+					ref={inputRef}
+					style={
+						Platform.OS === "web"
+							? {
+								outline: "none",
+								fontSize: 20,
+								textAlign: "center",
+							}
+							: {}
+					}
+				/>
+			</Input>
+			<Button
+				size="lg"
+				onPress={handleSubmit}
+				disabled={rollNumber.length < 7 || isLoading}
+				variant="solid"
+				className={`h-16 rounded-lg bg-orange-500 ${isLoading || rollNumber.length < 7 ? "opacity-50" : ""} mt-2`}
+			>
+				{isLoading ? (
+					<ActivityIndicator
+						size="small"
+						color="#ffffff"
 					/>
-				</Input>
-				<Button
-					size="lg"
-					onPress={handleSubmit}
-					disabled={rollNumber.length < 7 || isLoading}
-					variant="solid"
-					className={`h-16 rounded-lg bg-orange-500 ${isLoading || rollNumber.length < 7 ? "opacity-50" : ""} mt-2`}
-				>
-					{isLoading ? (
-						<ActivityIndicator
-							size="small"
-							color="#ffffff"
-						/>
-					) : (
-						<Text className="text-white text-base">Submit</Text>
-					)}
-				</Button>
-			</VStack>
-		</TouchableWithoutFeedback>
+				) : (
+					<Text className="text-white text-base">Submit</Text>
+				)}
+			</Button>
+		</VStack>
 	);
 });

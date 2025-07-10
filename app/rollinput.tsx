@@ -63,8 +63,8 @@ export default function RollInputScreen() {
 				style={
 					Platform.OS === "web"
 						? {
-								height: 400,
-							}
+							height: 400,
+						}
 						: {}
 				}
 			>
@@ -75,10 +75,10 @@ export default function RollInputScreen() {
 					style={
 						Platform.OS === "web"
 							? {
-									maxWidth: "80%",
-									height: 100,
-									objectFit: "contain",
-								}
+								maxWidth: "80%",
+								height: 100,
+								objectFit: "contain",
+							}
 							: {}
 					}
 				/>
@@ -89,10 +89,10 @@ export default function RollInputScreen() {
 				style={
 					Platform.OS === "web"
 						? {
-								maxWidth: 400,
-								alignSelf: "center",
-								width: "90%",
-							}
+							maxWidth: 400,
+							alignSelf: "center",
+							width: "90%",
+						}
 						: {}
 				}
 			>
@@ -103,11 +103,11 @@ export default function RollInputScreen() {
 					style={
 						Platform.OS === "web"
 							? {
-									width: 60,
-									height: 60,
-									objectFit: "contain",
-									borderRadius: 8,
-								}
+								width: 60,
+								height: 60,
+								objectFit: "contain",
+								borderRadius: 8,
+							}
 							: {}
 					}
 				/>
@@ -131,15 +131,13 @@ export default function RollInputScreen() {
 		return (
 			<View
 				className="flex-1 bg-black"
-				// style={{ minHeight: '100vh' as any }}
+			// style={{ minHeight: '100vh' as any }}
 			>
 				<SafeAreaView
 					className="flex-1"
 					style={{ minHeight: 1 }}
 				>
-					<TouchableWithoutFeedback onPress={handleTapOutside}>
-						{MainContent}
-					</TouchableWithoutFeedback>
+					{MainContent}
 				</SafeAreaView>
 			</View>
 		);
