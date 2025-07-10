@@ -29,7 +29,7 @@ export const getCurrentTimeSlot = () => {
 
 export const calculateAcademicYear = (rollNumber: string) => {
   // Extract the first two digits from roll number (admission year)
-  const admissionYear = parseInt('20' + rollNumber.substring(0, 2));
+  const admissionYear = parseInt(`20${rollNumber.substring(0, 2)}`);
   
   // Get current date
   const currentDate = new Date();
@@ -43,6 +43,10 @@ export const calculateAcademicYear = (rollNumber: string) => {
   // This accounts for the new semester starting
   if (currentMonth >= 7) {
     academicYear += 1;
+  }
+
+  if (rollNumber.substring(4,5) === '7') {
+    academicYear+=1
   }
   
   return academicYear;

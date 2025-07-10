@@ -6,6 +6,7 @@ export interface TimetableState {
   notificationTime: number;
   setRollNumber: (rollNumber: string) => Promise<void>;
   fetchTimetable: (rollNumber: string) => Promise<void>;
+  fetchTimetableBySections: (sections: string[], academic_year: string) => Promise<void>;
   clearTimetable: () => Promise<void>;
   setNotificationTime: (minutes: number) => Promise<void>;
 }

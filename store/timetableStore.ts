@@ -79,6 +79,46 @@ export const useTimetableStore = create<TimetableState>()(
 				}
 			},
 
+			fetchTimetableBySections: async (sections: string[], academicYear: string) => {
+				set({ isLoading: true, error: null });
+				try {
+					const tableName = `year${academicYear}_tt`;
+					const { data, error } = await supabase
+						.from(tableName)
+						.select('Day,Room,Subject,Time,Time_Sort,Section')
+						.in('Section', sections);
+
+					if (error) {
+						throw new Error(error.message);
+					}
+
+					if (!data || data.length === 0) {
+						throw new Error("No timetable found for these sections");
+					}
+
+					const groupedSchedule = data.reduce(
+						(acc: GroupedSchedule, slot: ScheduleSlot) => {
+							const day = slot.Day; // Capitalized
+							if (!acc[day]) acc[day] = [];
+							acc[day].push(slot);
+							return acc;
+						},
+						{},
+					);
+
+					set({
+						timetable: groupedSchedule || {},
+						isLoading: false,
+					});
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error
+							? error.message
+							: "An unknown error occurred";
+					set({ error: errorMessage, isLoading: false });
+				}
+			},
+
 			clearTimetable: async () => {
 				set({ isLoading: true });
 				// Clear notifications

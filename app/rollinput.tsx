@@ -1,67 +1,58 @@
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
-	ActivityIndicator,
 	Image,
 	ImageBackground,
-	type NativeSyntheticEvent,
 	Platform,
-	type TextInputKeyPressEventData,
 	TouchableWithoutFeedback,
 	View,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text } from "@/components/ui/text";
+import {
+	RollInputSection,
+	type RollInputSectionHandle,
+} from "@/components/RollInputSection";
 import { Box } from "~/components/ui/box";
-import { Button } from "~/components/ui/button";
-import { Input, InputField } from "~/components/ui/input";
 import { VStack } from "~/components/ui/vstack";
 import { useTimetableStore } from "~/store/timetableStore";
 
 export default function RollInputScreen() {
-	const [rollNumber, setRollNumber] = useState("");
 	const {
 		isLoading,
 		fetchTimetable,
 		setRollNumber: setStoreRollNumber,
+		fetchTimetableBySections,
 	} = useTimetableStore();
-	// biome-ignore lint/suspicious/noExplicitAny: No Other Option, GLuestack InputField ref doesn't accept TextInput
-	const inputRef = useRef<any>(null);
 
-	const handleChange = (text: string) => {
-		setRollNumber(text);
+	const rollInputRef = useRef<RollInputSectionHandle>(null);
+
+	const handleValidSubmitRoll = async (rollNumber: string) => {
+		await setStoreRollNumber(rollNumber);
+		await fetchTimetable(rollNumber);
+		const currentError = useTimetableStore.getState().error;
+		if (!currentError) {
+			router.replace("/timetable");
+		} else {
+			router.push("/not-found");
+		}
 	};
 
-	const handleSubmit = async () => {
-		if (rollNumber.length > 6) {
-			await setStoreRollNumber(rollNumber);
-			await fetchTimetable(rollNumber);
-			// Check for error after fetch completes
-			const currentError = useTimetableStore.getState().error;
-			if (!currentError) {
-				router.replace("/timetable");
-			} else {
-        router.push('/not-found')
-      }
+	const _handleValidSubmit = async (
+		sections: string[],
+		academic_year: string,
+	) => {
+		await fetchTimetableBySections(sections, academic_year);
+		const currentError = useTimetableStore.getState().error;
+		if (!currentError) {
+			router.replace("/timetable");
+		} else {
+			router.push("/not-found");
 		}
 	};
 
 	const handleTapOutside = () => {
-		if (Platform.OS === "web") {
-			inputRef.current?.blur();
-		} else {
-			inputRef.current?.blur();
-		}
-	};
-
-	// Web-specific keyboard handling
-	const handleKeyPress = (
-		event: NativeSyntheticEvent<TextInputKeyPressEventData>,
-	) => {
-		if (Platform.OS === "web" && event.nativeEvent.key === "Enter") {
-			handleSubmit();
-		}
+		rollInputRef.current?.blurInput();
 	};
 
 	// Main content (shared between web and mobile)
@@ -121,57 +112,16 @@ export default function RollInputScreen() {
 					}
 				/>
 
-				<VStack className="w-full">
-					<Text className="mb-2 text-neutral-100">Enter Roll Number</Text>
-					<Input
-						variant="outline"
-						size="md"
-						isDisabled={isLoading}
-						isInvalid={rollNumber.length > 0 && rollNumber.length < 7}
-						isReadOnly={false}
-						className="mb-4 rounded-lg h-16 border-background-50"
-					>
-						<InputField
-							placeholder="Enter your roll"
-							value={rollNumber}
-							onChangeText={handleChange}
-							onKeyPress={handleKeyPress}
-							maxLength={8}
-							textAlign="center"
-							caretHidden={Platform.OS !== "web"}
-							keyboardType={Platform.OS === "web" ? "default" : "numeric"}
-							inputMode={Platform.OS === "web" ? "numeric" : undefined}
-							className="text-xl"
-							editable={!isLoading}
-							ref={inputRef}
-							style={
-								Platform.OS === "web"
-									? {
-											outline: "none",
-											fontSize: 20,
-											textAlign: "center",
-										}
-									: {}
-							}
-						/>
-					</Input>
-					<Button
-						size="lg"
-						onPress={handleSubmit}
-						disabled={rollNumber.length < 7 || isLoading}
-						variant="solid"
-						className={`h-16 rounded-lg bg-orange-500 ${isLoading || rollNumber.length < 7 ? "opacity-50" : ""} mt-2`}
-					>
-						{isLoading ? (
-							<ActivityIndicator
-								size="small"
-								color="#ffffff"
-							/>
-						) : (
-							<Text className="text-white text-base">Submit</Text>
-						)}
-					</Button>
-				</VStack>
+				<RollInputSection
+					ref={rollInputRef}
+					isLoading={isLoading}
+					onValidSubmit={handleValidSubmitRoll}
+				/>
+
+				{/* <SectionSelector
+					onSubmit={handleValidSubmit}
+					isLoading={isLoading}
+				/> */}
 			</Box>
 		</VStack>
 	);
@@ -187,7 +137,9 @@ export default function RollInputScreen() {
 					className="flex-1"
 					style={{ minHeight: 1 }}
 				>
-					{MainContent}
+					<TouchableWithoutFeedback onPress={handleTapOutside}>
+						{MainContent}
+					</TouchableWithoutFeedback>
 				</SafeAreaView>
 			</View>
 		);
