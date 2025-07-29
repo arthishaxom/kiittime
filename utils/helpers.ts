@@ -45,7 +45,7 @@ export const calculateAcademicYear = (rollNumber: string) => {
     academicYear += 1;
   }
 
-  if (rollNumber.substring(4,5) === '7') {
+  if (rollNumber.substring(4,5) === '7' && rollNumber.length > 7) {
     academicYear+=1
   }
   

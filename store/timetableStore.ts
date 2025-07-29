@@ -5,161 +5,174 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { supabase } from "~/services/supabase";
 import { calculateAcademicYear } from "~/utils/helpers";
 import {
-	getNotificationSettings,
-	updateNotificationSettings,
+  getNotificationSettings,
+  updateNotificationSettings,
 } from "~/utils/notifications";
 import type {
-	GroupedSchedule,
-	ScheduleSlot,
-	TimetableState,
+  GroupedSchedule,
+  ScheduleSlot,
+  TimetableState,
 } from "./timetableState";
 
 export const useTimetableStore = create<TimetableState>()(
-	persist(
-		(set, get) => ({
-			timetable: {},
-			isLoading: false,
-			error: null,
-			rollNumber: null,
-			notificationTime: 0,
+  persist(
+    (set, get) => ({
+      timetable: {},
+      isLoading: false,
+      error: null,
+      rollNumber: null,
+      notificationTime: 0,
+      selectedSections: [],
+      selectedYear: null,
 
-			setRollNumber: async (rollNumber: string) => {
-				set({ rollNumber });
-			},
+      setRollNumber: async (rollNumber: string) => {
+        set({ rollNumber });
+      },
 
-			setNotificationTime: async (minutes: number) => {
-				const { timetable } = get();
-				set({ notificationTime: minutes });
+      setSelectedSections: (sections: string[]) => {
+        set({ selectedSections: sections });
+      },
 
-				// Update notifications if timetable exists
-				if (Object.keys(timetable).length > 0) {
-					await updateNotificationSettings(minutes, timetable);
-				}
-			},
+      setSelectedYear: (year: string | null) => {
+        set({ selectedYear: year });
+      },
 
-			fetchTimetable: async (rollNumber: string) => {
-				set({ isLoading: true, error: null });
-				try {
-					const academicYear = calculateAcademicYear(rollNumber);
+      setNotificationTime: async (minutes: number) => {
+        const { timetable } = get();
+        set({ notificationTime: minutes });
 
-					const { data, error } = await supabase.rpc("get_complete_schedule", {
-						student_roll: rollNumber,
-						academic_year: academicYear,
-					});
+        // Update notifications if timetable exists
+        if (Object.keys(timetable).length > 0) {
+          await updateNotificationSettings(minutes, timetable);
+        }
+      },
 
-					if (error) {
-						throw new Error(error.message);
-					}
+      fetchTimetable: async (rollNumber: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const academicYear = calculateAcademicYear(rollNumber);
 
-					if (!data || data.length === 0) {
-						throw new Error("No timetable found for this roll number");
-					}
+          const { data, error } = await supabase.rpc("get_complete_schedule", {
+            student_roll: rollNumber,
+            academic_year: academicYear,
+          });
 
-					const groupedSchedule = data.reduce(
-						(acc: GroupedSchedule, slot: ScheduleSlot) => {
-							const day = slot.Day; // Capitalized
-							if (!acc[day]) acc[day] = [];
-							acc[day].push(slot);
-							return acc;
-						},
-						{},
-					);
+          if (error) {
+            throw new Error(error.message);
+          }
 
-					set({
-						timetable: groupedSchedule || {},
-						rollNumber,
-						isLoading: false,
-					});
-				} catch (error) {
-					const errorMessage =
-						error instanceof Error
-							? error.message
-							: "An unknown error occurred";
-					set({ error: errorMessage, isLoading: false });
-				}
-			},
+          if (!data || data.length === 0) {
+            throw new Error("No timetable found for this roll number");
+          }
 
-			fetchTimetableBySections: async (sections: string[], academicYear: string) => {
-				set({ isLoading: true, error: null });
-				try {
-					const tableName = `year${academicYear}_tt`;
-					const { data, error } = await supabase
-						.from(tableName)
-						.select('Day,Room,Subject,Time,Time_Sort,Section')
-						.in('Section', sections);
+          const groupedSchedule = data.reduce(
+            (acc: GroupedSchedule, slot: ScheduleSlot) => {
+              const day = slot.Day; // Capitalized
+              if (!acc[day]) acc[day] = [];
+              acc[day].push(slot);
+              return acc;
+            },
+            {}
+          );
 
-					if (error) {
-						throw new Error(error.message);
-					}
+          set({
+            timetable: groupedSchedule || {},
+            rollNumber,
+            isLoading: false,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred";
+          set({ error: errorMessage, isLoading: false });
+        }
+      },
 
-					if (!data || data.length === 0) {
-						throw new Error("No timetable found for these sections");
-					}
+      fetchTimetableBySections: async (
+        sections: string[],
+        academicYear: string
+      ) => {
+        set({ isLoading: true, error: null });
+        try {
+          const tableName = `year${academicYear}_tt`;
+          const { data, error } = await supabase
+            .from(tableName)
+            .select("Day,Room,Subject,Time,Time_Sort,Section")
+            .in("Section", sections);
 
-					const groupedSchedule = data.reduce(
-						(acc: GroupedSchedule, slot: ScheduleSlot) => {
-							const day = slot.Day; // Capitalized
-							if (!acc[day]) acc[day] = [];
-							acc[day].push(slot);
-							return acc;
-						},
-						{},
-					);
+          if (error) {
+            throw new Error(error.message);
+          }
 
-					set({
-						timetable: groupedSchedule || {},
-						isLoading: false,
-					});
-				} catch (error) {
-					const errorMessage =
-						error instanceof Error
-							? error.message
-							: "An unknown error occurred";
-					set({ error: errorMessage, isLoading: false });
-				}
-			},
+          if (!data || data.length === 0) {
+            throw new Error("No timetable found for these sections");
+          }
 
-			clearTimetable: async () => {
-				set({ isLoading: true });
-				// Clear notifications
-				try {
-					await updateNotificationSettings(0, {});
-				} catch (error) {
-					console.error("Failed to clear notifications:", error);
-				}
-				set({
-					timetable: {},
-					rollNumber: null,
-					error: null,
-					isLoading: false,
-					notificationTime: 0,
-				});
-			},
-		}),
-		{
-			name: "timetable-storage", // unique name for the storage key
-			storage: createJSONStorage(() => AsyncStorage),
-			// Only persist these fields
-			partialize: (state) => ({
-				timetable: state.timetable,
-				rollNumber: state.rollNumber,
-				notificationTime: state.notificationTime,
-			}),
-			// Skip hydration on web to avoid Vercel issues
-			skipHydration: Platform.OS === "web",
-			// Optional: migrate old storage format if needed
-			onRehydrateStorage: () => (state) => {
-				if (state) {
-					// Rehydrate notification settings from storage
-					getNotificationSettings()
-						.then((settings) => {
-							if (settings.minutesBefore !== state.notificationTime) {
-								state.notificationTime = settings.minutesBefore || 0;
-							}
-						})
-						.catch(console.error);
-				}
-			},
-		},
-	),
+          const groupedSchedule = data.reduce(
+            (acc: GroupedSchedule, slot: ScheduleSlot) => {
+              const day = slot.Day; // Capitalized
+              if (!acc[day]) acc[day] = [];
+              acc[day].push(slot);
+              return acc;
+            },
+            {}
+          );
+
+          set({
+            timetable: groupedSchedule || {},
+            isLoading: false,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred";
+          set({ error: errorMessage, isLoading: false });
+        }
+      },
+
+      clearTimetable: async () => {
+        set({ isLoading: true });
+        // Clear notifications
+        try {
+          await updateNotificationSettings(0, {});
+        } catch (error) {
+          console.error("Failed to clear notifications:", error);
+        }
+        set({
+          timetable: {},
+          rollNumber: null,
+          error: null,
+          isLoading: false,
+          notificationTime: 0,
+        });
+      },
+    }),
+    {
+      name: "timetable-storage", // unique name for the storage key
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only persist these fields
+      partialize: (state) => ({
+        timetable: state.timetable,
+        rollNumber: state.rollNumber,
+        notificationTime: state.notificationTime,
+      }),
+      // Skip hydration on web to avoid Vercel issues
+      skipHydration: Platform.OS === "web",
+      // Optional: migrate old storage format if needed
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Rehydrate notification settings from storage
+          getNotificationSettings()
+            .then((settings) => {
+              if (settings.minutesBefore !== state.notificationTime) {
+                state.notificationTime = settings.minutesBefore || 0;
+              }
+            })
+            .catch(console.error);
+        }
+      },
+    }
+  )
 );

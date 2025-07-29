@@ -27,3 +27,4 @@ ios/
 
 # macOS folder
 .DS_Store
+*.apk

@@ -4,11 +4,18 @@ export interface TimetableState {
   error: string | null;
   rollNumber: string | null;
   notificationTime: number;
+  selectedSections: string[];
+  selectedYear: string | null;
   setRollNumber: (rollNumber: string) => Promise<void>;
   fetchTimetable: (rollNumber: string) => Promise<void>;
-  fetchTimetableBySections: (sections: string[], academic_year: string) => Promise<void>;
+  fetchTimetableBySections: (
+    sections: string[],
+    academic_year: string
+  ) => Promise<void>;
   clearTimetable: () => Promise<void>;
   setNotificationTime: (minutes: number) => Promise<void>;
+  setSelectedSections: (sections: string[]) => void;
+  setSelectedYear: (year: string | null) => void;
 }
 
 export type ScheduleSlot = {
