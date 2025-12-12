@@ -57,6 +57,6 @@ export const showToast = (type: string, text1: string, text2: string) => {
     type,
     text1,
     text2,
-    visibilityTime: 3000,
+    visibilityTime: 1500,
   });
 };

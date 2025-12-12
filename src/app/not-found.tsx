@@ -1,11 +1,10 @@
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "~/components/ui/button";
-import { Center } from "~/components/ui/center";
-import { HStack } from "~/components/ui/hstack";
-import { Text } from "~/components/ui/text";
-import { useTimetableStore } from "~/store/timetableStore";
+import { Button } from "~/src/components/ui/button";
+import { Center } from "~/src/components/ui/center";
+import { HStack } from "~/src/components/ui/hstack";
+import { Text } from "~/src/components/ui/text";
 
 const NotFoundPage = () => {
 	return (
@@ -42,7 +41,6 @@ const NotFoundPage = () => {
 					</Button>
 					<Button
 						onPress={() => {
-							useTimetableStore.setState({ error: null });
 							router.back();
 						}}
 						className="flex-1 h-min bg-[#E42A33]/90 p-3 rounded-lg mt-4"

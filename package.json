@@ -2,7 +2,7 @@
   "name": "kiittime",
   "main": "expo-router/entry",
   "version": "1.0.0",
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@10.17.0",
   "scripts": {
     "start": "expo start",
     "setup": "node ./scripts/setup.js",
@@ -33,6 +33,9 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "@supabase/supabase-js": "^2.50.0",
+    "@tanstack/query-async-storage-persister": "^5.89.0",
+    "@tanstack/react-query": "^5.89.0",
+    "@tanstack/react-query-persist-client": "^5.89.0",
     "@vercel/analytics": "^1.5.0",
     "babel-plugin-module-resolver": "^5.0.2",
     "expo": "~53.0.20",
@@ -50,6 +53,7 @@
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.9",
+    "expo-updates": "~0.28.17",
     "expo-web-browser": "~14.2.0",
     "lucide-react-native": "^0.522.0",
     "nativewind": "^4.1.23",
@@ -70,7 +74,6 @@
     "react-native-webview": "13.13.5",
     "tailwindcss": "3.4.17",
     "use-debounce": "^10.0.5",
-    "vexo-analytics": "^1.4.11",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

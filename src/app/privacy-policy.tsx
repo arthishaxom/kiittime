@@ -2,8 +2,8 @@ import { Link } from "expo-router";
 import type React from "react";
 import { Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text } from "@/components/ui/text";
-import { VStack } from "@/components/ui/vstack";
+import { Text } from "~/src/components/ui/text";
+import { VStack } from "~/src/components/ui/vstack";
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 	<Text className="text-white text-2xl font-bold mt-6 mb-3">{children}</Text>

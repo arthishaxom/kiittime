@@ -9,7 +9,7 @@ import notifee, {
 } from "@notifee/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
-import type { GroupedSchedule, ScheduleSlot } from "~/store/timetableState";
+import type { GroupedSchedule, ScheduleSlot } from "~/src/store/timetableState";
 
 // Storage keys
 const NOTIFICATION_SETTINGS_KEY = "notification_settings";
