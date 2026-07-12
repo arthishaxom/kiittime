@@ -51,3 +51,4 @@ android
 __pycache__/
 backend/data
 
+backend/src/backend/pipeline/scratch_explore.ipynb
