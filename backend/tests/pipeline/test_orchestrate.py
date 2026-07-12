@@ -1,6 +1,4 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 from backend.db.models import SnapshotStatus
 from backend.pipeline.orchestrate import process_upload
@@ -8,24 +6,15 @@ from backend.pipeline.schemas import SessionRow
 from backend.pipeline.validate import ValidationError
 
 
-@pytest.fixture
-def db():
-    import os
-    database_url = os.getenv("DATABASE_URL")
-    engine = create_engine(database_url)
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = Session(bind=connection)
-    yield session
-    session.close()
-    transaction.rollback()
-    connection.close()
-
-
 def make_row(**overrides) -> SessionRow:
     defaults = dict(
-        year=2026, section="CSE1", day="Mon", period_number=1,
-        start_time="08:00", course_code="DBMS", faculty_name="Dr. Test",
+        year=2026,
+        section="CSE1",
+        day="Mon",
+        period_number=1,
+        start_time="08:00",
+        course_code="DBMS",
+        faculty_name="Dr. Test",
         room_number="C25-B001",
     )
     defaults.update(overrides)
@@ -51,5 +40,6 @@ def test_validation_failure_marks_snapshot_rejected_but_keeps_it(db):
 
     # bronze snapshot should still exist and be marked rejected, not vanished
     from backend.db.models import BronzeSnapshot
+
     snapshot = db.query(BronzeSnapshot).filter_by(source_filename="bad.xlsx").one()
     assert snapshot.status == SnapshotStatus.rejected

@@ -1,33 +1,17 @@
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-
 from backend.db.models import Course, Faculty, Room, Section
 from backend.pipeline.resolve import resolve_all
 from backend.pipeline.schemas import SessionRow
 
 
-@pytest.fixture
-def db():
-    """Fresh transactional session per test, rolled back after — never commits."""
-    import os
-    database_url = os.getenv("DATABASE_URL")
-    engine = create_engine(database_url)
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = Session(bind=connection)
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
-
-
 def make_row(**overrides) -> SessionRow:
     defaults = dict(
-        year=1, section="CSE1", day="Mon", period_number=1,
-        start_time="08:00", course_code="DBMS", faculty_name="Dr. Test",
+        year=1,
+        section="CSE1",
+        day="Mon",
+        period_number=1,
+        start_time="08:00",
+        course_code="DBMS",
+        faculty_name="Dr. Test",
         room_number="C25-B001",
     )
     defaults.update(overrides)

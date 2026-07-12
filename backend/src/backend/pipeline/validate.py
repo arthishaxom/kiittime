@@ -15,14 +15,11 @@ def validate_resolved_sessions(sessions: list[ResolvedSession]) -> None:
     Currently checks:
     - No two sessions claim the same (section_id, day, period_number) slot.
     """
-    slot_counts = Counter(
-        (s.section_id, s.day, s.period_number) for s in sessions
-    )
+    slot_counts = Counter((s.section_id, s.day, s.period_number) for s in sessions)
     conflicts = [slot for slot, count in slot_counts.items() if count > 1]
 
     if conflicts:
         details = "; ".join(
-            f"section_id={sid}, day={day}, period={period}"
-            for sid, day, period in conflicts
+            f"section_id={sid}, day={day}, period={period}" for sid, day, period in conflicts
         )
         raise ValidationError(f"Duplicate session slots found: {details}")
