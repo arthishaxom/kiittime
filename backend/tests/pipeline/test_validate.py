@@ -1,5 +1,6 @@
-import pytest
 from datetime import time
+
+import pytest
 
 from backend.pipeline.resolve import ResolvedSession
 from backend.pipeline.validate import ValidationError, validate_resolved_sessions
@@ -7,8 +8,13 @@ from backend.pipeline.validate import ValidationError, validate_resolved_session
 
 def make_resolved(**overrides) -> ResolvedSession:
     defaults = dict(
-        section_id=1, course_id=1, faculty_id=1, room_id=1,
-        day="Mon", period_number=1, start_time=time(8, 0),
+        section_id=1,
+        course_id=1,
+        faculty_id=1,
+        room_id=1,
+        day="Mon",
+        period_number=1,
+        start_time=time(8, 0),
     )
     defaults.update(overrides)
     return ResolvedSession(**defaults)

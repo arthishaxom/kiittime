@@ -28,4 +28,13 @@ build-backend = "uv_build"
 dev = [
     "ipykernel>=7.3.0",
     "pytest>=9.1.1",
+    "ruff>=0.15.21",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"   # match whatever Python version you're actually running
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+# E/F = pyflakes+pycodestyle core errors, I = isort (import sorting), UP = pyupgrade (modern syntax)

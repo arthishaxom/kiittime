@@ -19,7 +19,10 @@ def parse_period_column(col_name: str) -> tuple[int, time]:
 
 
 def parse_cell(raw: str) -> tuple[str, str, str]:
-    """Parse a raw cell like 'DL\\nDr. X\\nC25-B006' into (course_code, faculty_name, room_number)."""
+    """Parse a raw cell like 'DL\\nDr. X\\nC25-B006'.
+
+    Into (course_code, faculty_name, room_number).
+    """
     parts = raw.split("\n")
     assert len(parts) == 3, f"Unexpected cell format: {raw!r}"
     course_code, faculty_name, room_number = parts
@@ -48,12 +51,16 @@ def parse_section_grid(df: pd.DataFrame, year: int) -> list[SessionRow]:
 
     period_cols = [c for c in df_clean.columns if c not in ("Section", "Day")]
 
-    long_df = df_clean.melt(
-        id_vars=["Section", "Day"],
-        value_vars=period_cols,
-        var_name="Period",
-        value_name="Cell",
-    ).dropna(subset=["Cell"]).reset_index(drop=True)
+    long_df = (
+        df_clean.melt(
+            id_vars=["Section", "Day"],
+            value_vars=period_cols,
+            var_name="Period",
+            value_name="Cell",
+        )
+        .dropna(subset=["Cell"])
+        .reset_index(drop=True)
+    )
 
     long_df["Year"] = year
 
