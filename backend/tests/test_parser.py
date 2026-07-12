@@ -15,13 +15,13 @@ def make_mock_grid() -> pd.DataFrame:
 
 def test_parse_section_grid_row_count():
     df = make_mock_grid()
-    sessions = parse_section_grid(df)
+    sessions = parse_section_grid(df, year=2)
     assert len(sessions) == 2
 
 
 def test_parse_section_grid_monday_session():
     df = make_mock_grid()
-    sessions = parse_section_grid(df)
+    sessions = parse_section_grid(df, year=2)
     monday = next(s for s in sessions if s.day == "Monday")
     assert monday.course_code == "DL"
     assert monday.faculty_name == "Dr. Test Faculty"
