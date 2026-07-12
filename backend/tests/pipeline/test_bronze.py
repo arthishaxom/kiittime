@@ -1,30 +1,17 @@
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-
 from backend.db.models import BronzeSnapshot, SnapshotStatus
 from backend.pipeline.bronze import write_bronze_snapshot
 from backend.pipeline.schemas import SessionRow
 
 
-@pytest.fixture
-def db():
-    import os
-    database_url = os.getenv("DATABASE_URL")
-    engine = create_engine(database_url)
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = Session(bind=connection)
-    yield session
-    session.close()
-    transaction.rollback()
-    connection.close()
-
-
 def make_row(**overrides) -> SessionRow:
     defaults = dict(
-        year=2026, section="CSE1", day="Mon", period_number=1,
-        start_time="08:00", course_code="DBMS", faculty_name="Dr. Test",
+        year=2026,
+        section="CSE1",
+        day="Mon",
+        period_number=1,
+        start_time="08:00",
+        course_code="DBMS",
+        faculty_name="Dr. Test",
         room_number="C25-B001",
     )
     defaults.update(overrides)
@@ -33,9 +20,7 @@ def make_row(**overrides) -> SessionRow:
 
 def test_writes_snapshot_with_pending_status(db):
     rows = [make_row()]
-    snapshot = write_bronze_snapshot(
-        db, rows, source_filename="test.xlsx", uploaded_by="tester"
-    )
+    snapshot = write_bronze_snapshot(db, rows, source_filename="test.xlsx", uploaded_by="tester")
 
     assert snapshot.id is not None
     assert snapshot.status == SnapshotStatus.pending

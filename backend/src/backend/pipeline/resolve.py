@@ -34,9 +34,7 @@ def resolve_all(db: Session, rows: list[SessionRow]) -> list[ResolvedSession]:
 
     existing_courses = {
         c.course_code: c
-        for c in db.execute(
-            select(Course).where(Course.course_code.in_(course_codes))
-        ).scalars()
+        for c in db.execute(select(Course).where(Course.course_code.in_(course_codes))).scalars()
     }
     missing_course_codes = course_codes - existing_courses.keys()
     if missing_course_codes:
@@ -60,9 +58,7 @@ def resolve_all(db: Session, rows: list[SessionRow]) -> list[ResolvedSession]:
 
     existing_rooms = {
         r.room_number: r
-        for r in db.execute(
-            select(Room).where(Room.room_number.in_(room_numbers))
-        ).scalars()
+        for r in db.execute(select(Room).where(Room.room_number.in_(room_numbers))).scalars()
     }
     missing_room_numbers = room_numbers - existing_rooms.keys()
     if missing_room_numbers:
@@ -72,9 +68,7 @@ def resolve_all(db: Session, rows: list[SessionRow]) -> list[ResolvedSession]:
         existing_rooms.update({r.room_number: r for r in new_rooms})
 
     existing_sections_list = db.execute(
-        select(Section).where(
-            Section.year.in_({y for (_, y) in section_keys})
-        )
+        select(Section).where(Section.year.in_({y for (_, y) in section_keys}))
     ).scalars()
     existing_sections = {
         (s.section_name, s.year): s
