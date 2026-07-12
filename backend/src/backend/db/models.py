@@ -21,7 +21,7 @@ class Course(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     course_code: Mapped[str] = mapped_column(unique=True)
-    course_name: Mapped[str]
+    course_name: Mapped[str | None] = mapped_column(nullable=True)
 
     class_sessions: Mapped[list["ClassSession"]] = relationship(back_populates="course")
 
