@@ -30,6 +30,7 @@ def _row_to_session(row: pd.Series) -> SessionRow:
     period_number, start_time = parse_period_column(row["Period"])
     course_code, faculty_name, room_number = parse_cell(row["Cell"])
     return SessionRow(
+        year=row["Year"],
         section=row["Section"],
         day=row["Day"],
         period_number=period_number,
@@ -40,7 +41,7 @@ def _row_to_session(row: pd.Series) -> SessionRow:
     )
 
 
-def parse_section_grid(df: pd.DataFrame) -> list[SessionRow]:
+def parse_section_grid(df: pd.DataFrame, year: int) -> list[SessionRow]:
     """Parse a wide-format section grid sheet into a list of SessionRow."""
     is_title_row = ~df["Day"].isin(WEEKDAYS)
     df_clean = df[~is_title_row].reset_index(drop=True)
@@ -53,5 +54,7 @@ def parse_section_grid(df: pd.DataFrame) -> list[SessionRow]:
         var_name="Period",
         value_name="Cell",
     ).dropna(subset=["Cell"]).reset_index(drop=True)
+
+    long_df["Year"] = year
 
     return [_row_to_session(row) for _, row in long_df.iterrows()]
