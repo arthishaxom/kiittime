@@ -1,6 +1,15 @@
-from datetime import time
+from datetime import datetime, time
+from enum import Enum as PyEnum
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base
@@ -8,16 +17,18 @@ from backend.db.base import Base
 
 class Course(Base):
     __tablename__ = "courses"
+    __table_args__ = {"schema": "kiittime"}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     course_code: Mapped[str] = mapped_column(unique=True)
-    course_name: Mapped[str]
+    course_name: Mapped[str | None] = mapped_column(nullable=True)
 
     class_sessions: Mapped[list["ClassSession"]] = relationship(back_populates="course")
 
 
 class Faculty(Base):
     __tablename__ = "faculty"
+    __table_args__ = {"schema": "kiittime"}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     faculty_name: Mapped[str] = mapped_column(unique=True)
@@ -27,6 +38,7 @@ class Faculty(Base):
 
 class Room(Base):
     __tablename__ = "rooms"
+    __table_args__ = {"schema": "kiittime"}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     room_number: Mapped[str] = mapped_column(unique=True)
@@ -41,7 +53,10 @@ class Section(Base):
     section_name: Mapped[str]
     year: Mapped[int]
 
-    __table_args__ = (UniqueConstraint("section_name", "year"),)
+    __table_args__ = (
+        UniqueConstraint("section_name", "year"),
+        {"schema": "kiittime"},
+    )
 
     class_sessions: Mapped[list["ClassSession"]] = relationship(back_populates="section")
 
@@ -51,10 +66,10 @@ class ClassSession(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    section_id: Mapped[int] = mapped_column(ForeignKey("sections.id"))
-    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
-    faculty_id: Mapped[int] = mapped_column(ForeignKey("faculty.id"))
-    room_id: Mapped[int] = mapped_column(ForeignKey("rooms.id"))
+    section_id: Mapped[int] = mapped_column(ForeignKey("kiittime.sections.id"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("kiittime.courses.id"))
+    faculty_id: Mapped[int] = mapped_column(ForeignKey("kiittime.faculty.id"))
+    room_id: Mapped[int] = mapped_column(ForeignKey("kiittime.rooms.id"))
 
     day: Mapped[str]
     period_number: Mapped[int]
@@ -62,9 +77,42 @@ class ClassSession(Base):
 
     __table_args__ = (
         UniqueConstraint("section_id", "day", "period_number"),
+        {"schema": "kiittime"},
     )
 
     section: Mapped["Section"] = relationship(back_populates="class_sessions")
     course: Mapped["Course"] = relationship(back_populates="class_sessions")
     faculty: Mapped["Faculty"] = relationship(back_populates="class_sessions")
     room: Mapped["Room"] = relationship(back_populates="class_sessions")
+
+
+class SnapshotStatus(PyEnum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class BronzeSnapshot(Base):
+    __tablename__ = "bronze_snapshots"
+    __table_args__ = {"schema": "kiittime"}
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    uploaded_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    source_filename: Mapped[str] = mapped_column(String, nullable=False)
+    storage_path: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    scope_section_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    parsed_data: Mapped[list[dict]] = mapped_column(JSONB, nullable=False)
+
+    status: Mapped[SnapshotStatus] = mapped_column(
+        Enum(SnapshotStatus, name="snapshot_status", schema="kiittime"),
+        default=SnapshotStatus.pending,
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<BronzeSnapshot id={self.id} file={self.source_filename} status={self.status}>"
