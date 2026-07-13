@@ -3,6 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from dotenv import load_dotenv
+import sqlalchemy as sa
 from sqlalchemy import engine_from_config, pool
 
 from backend.db import models  # noqa: F401
@@ -75,6 +76,9 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        connection.execute(sa.text("CREATE SCHEMA IF NOT EXISTS kiittime"))
+        connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
