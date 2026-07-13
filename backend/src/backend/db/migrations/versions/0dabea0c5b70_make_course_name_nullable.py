@@ -20,9 +20,21 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.alter_column("courses", "course_name", existing_type=sa.VARCHAR(), nullable=True)
+    op.alter_column(
+        "courses",
+        "course_name",
+        existing_type=sa.VARCHAR(),
+        nullable=True,
+        schema="kiittime",
+    )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.alter_column("courses", "course_name", existing_type=sa.VARCHAR(), nullable=False)
+    op.alter_column(
+        "courses",
+        "course_name",
+        existing_type=sa.VARCHAR(),
+        nullable=False,
+        schema="kiittime",
+    )
