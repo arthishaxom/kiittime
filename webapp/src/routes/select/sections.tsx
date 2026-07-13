@@ -5,6 +5,7 @@ import { useSections } from '#/hooks/useSections'
 import { Input } from '#/components/ui/input'
 import { Badge } from '#/components/ui/badge'
 import { saveSectionIds } from '#/lib/storage'
+import { buildMailto } from '#/lib/mailto'
 
 const searchSchema = z.object({
   year: z.number().int().min(1).max(4).catch(1),
@@ -92,8 +93,25 @@ function SectionSearch() {
       <div className="flex-1 overflow-y-auto flex flex-col gap-2">
         {isLoading && <p className="text-text-muted text-sm">Loading sections…</p>}
         {isError && <p className="text-danger text-sm">Failed to load sections.</p>}
-        {!isLoading && !isError && filtered.length === 0 && (
-          <p className="text-text-muted text-sm">No sections found. Try adjusting your search.</p>
+        {!isLoading && !isError && (!sections || sections.length === 0) && (
+          <div className="text-center text-text-muted py-8">
+            <p>No sections available for Year {year} yet.</p>
+            <a
+              href={buildMailto({
+                subject: `KIIT Time - No sections for Year ${year}`,
+                body: `Hi, I noticed there are no sections listed yet for Year ${year}. Could you add them?`,
+              })}
+              className="text-brand underline"
+            >
+              Email me to request it
+            </a>
+          </div>
+        )}
+        {!isLoading && !isError && sections && sections.length > 0 && filtered.length === 0 && (
+          <div className="text-center text-text-muted py-8">
+            <p>No sections match "{search}".</p>
+            <p className="text-sm">Try a different search term.</p>
+          </div>
         )}
         {filtered.map((s) => {
           const isSelected = selectedIds.includes(s.id)

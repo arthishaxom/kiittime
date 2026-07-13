@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import pkg from './package.json'
 
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
@@ -9,6 +10,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   preview: {
     allowedHosts: ['.trycloudflare.com'],
   },

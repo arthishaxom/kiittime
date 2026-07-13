@@ -3,12 +3,14 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 import { motion, useMotionValue, animate } from 'motion/react'
-import { Settings, Share2, RotateCcw } from 'lucide-react'
+import { Settings, Share2, RotateCcw, Mail } from 'lucide-react'
 import { useTimetable } from '#/hooks/useTimetable'
 import type { Session } from '#/lib/api'
 import { formatTime } from '#/lib/api'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '#/components/ui/sheet'
 import { shareTimetable } from '#/lib/share'
+import { buildMailto } from '#/lib/mailto'
+import { AboutDialog } from '#/components/AboutDialog'
 
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const
 
@@ -42,6 +44,7 @@ function TimetablePage() {
 
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   function handleReset() {
     localStorage.removeItem('kiit-time:selected-sections')
@@ -184,26 +187,47 @@ function TimetablePage() {
           <SheetHeader>
             <SheetTitle className="text-white text-center">Settings</SheetTitle>
           </SheetHeader>
-          <div className="flex gap-4 p-4">
+          <div className="flex flex-col gap-4 p-4">
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => shareTimetable()}
+                className="flex-1 h-16 rounded-lg bg-surface border border-border flex items-center justify-center gap-2 text-white font-medium"
+              >
+                <Share2 size={20} />
+                Share
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="flex-1 h-16 rounded-lg bg-danger/90 flex items-center justify-center gap-2 text-white font-medium"
+              >
+                <RotateCcw size={20} />
+                Reset
+              </button>
+            </div>
+            <a
+              href={buildMailto({
+                subject: 'KIIT Time - Contact',
+                body: '',
+              })}
+              className="h-16 rounded-lg bg-surface border border-border flex items-center justify-center gap-2 text-white font-medium"
+            >
+              <Mail size={20} />
+              Contact / Report an Issue
+            </a>
             <button
               type="button"
-              onClick={() => shareTimetable()}
-              className="flex-1 h-16 rounded-lg bg-surface border border-border flex items-center justify-center gap-2 text-white font-medium"
+              onClick={() => setAboutOpen(true)}
+              className="h-16 rounded-lg bg-surface border border-border flex items-center justify-center gap-2 text-white font-medium"
             >
-              <Share2 size={20} />
-              Share
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="flex-1 h-16 rounded-lg bg-danger/90 flex items-center justify-center gap-2 text-white font-medium"
-            >
-              <RotateCcw size={20} />
-              Reset Sections
+              About
             </button>
           </div>
         </SheetContent>
       </Sheet>
+
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   )
 }

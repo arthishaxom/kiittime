@@ -1,7 +1,8 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Info } from 'lucide-react'
 import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { getSavedSectionIds } from '#/lib/storage'
+import { AboutDialog } from '#/components/AboutDialog'
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/')({
 
 function Landing() {
   const [year, setYear] = useState<number | undefined>(undefined)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const navigate = useNavigate()
 
   return (
@@ -56,6 +58,17 @@ function Landing() {
           <ChevronRight size={20} className="text-white" />
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setAboutOpen(true)}
+        className="mt-4 flex items-center justify-center gap-2 text-text-muted text-sm"
+      >
+        <Info size={16} />
+        About
+      </button>
+
+      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   )
 }
