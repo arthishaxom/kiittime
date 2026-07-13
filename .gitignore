@@ -53,3 +53,4 @@ backend/data
 
 backend/src/backend/pipeline/scratch_explore.ipynb
 .env
+.vscode
