@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.18.5",
+    "fastapi[standard]>=0.139.0",
     "openpyxl>=3.1.5",
     "pandas>=3.0.3",
     "psycopg[binary]>=3.3.4",
@@ -38,3 +39,6 @@ target-version = "py312"   # match whatever Python version you're actually runni
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 # E/F = pyflakes+pycodestyle core errors, I = isort (import sorting), UP = pyupgrade (modern syntax)
+
+[tool.fastapi]
+entrypoint = "backend.main:app"
