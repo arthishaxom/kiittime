@@ -1,6 +1,7 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import '../styles.css'
 
@@ -21,6 +22,7 @@ function RootComponent() {
             name: 'TanStack Router',
             render: <TanStackRouterDevtoolsPanel />,
           },
+          TanStackQueryDevtools,
         ]}
       />
     </>

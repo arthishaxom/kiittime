@@ -12,8 +12,11 @@
   "envVarValues": {},
   "routerOnly": true,
   "version": 1,
+  "addOns": true,
   "framework": "react",
   "chosenAddOns": [
-    "biome"
+    "biome",
+    "tanstack-query",
+    "shadcn"
   ]
 }
