@@ -44,7 +44,7 @@ def process_upload(
     resolved = resolve_all(db, rows)
 
     try:
-        validate_resolved_sessions(resolved)
+        validate_resolved_sessions(resolved, rows=rows)
     except ValidationError:
         snapshot.status = SnapshotStatus.rejected
         db.flush()

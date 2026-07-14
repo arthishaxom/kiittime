@@ -1,0 +1,22 @@
+{
+  "projectName": "admin-webapp",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "pnpm",
+  "git": false,
+  "install": true,
+  "intent": true,
+  "addOnOptions": {},
+  "includeExamples": false,
+  "envVarValues": {},
+  "routerOnly": true,
+  "version": 1,
+  "addOns": true,
+  "framework": "react",
+  "chosenAddOns": [
+    "biome",
+    "tanstack-query",
+    "shadcn"
+  ]
+}

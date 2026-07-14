@@ -116,3 +116,15 @@ class BronzeSnapshot(Base):
 
     def __repr__(self) -> str:
         return f"<BronzeSnapshot id={self.id} file={self.source_filename} status={self.status}>"
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    __table_args__ = {"schema": "kiittime"}
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

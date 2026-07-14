@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from backend.api.routers import sections, timetable
+from backend.api.routers import admin, auth, sections, timetable
 from backend.db.session import get_db
 
 load_dotenv()
@@ -18,10 +18,12 @@ allowed_origins = os.environ["ALLOWED_ORIGINS"].split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
+app.include_router(admin.router)
+app.include_router(auth.router)
 app.include_router(sections.router)
 app.include_router(timetable.router)
 

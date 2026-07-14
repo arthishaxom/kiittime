@@ -5,17 +5,39 @@ import pandas as pd
 
 from backend.pipeline.schemas import SessionRow
 
-PERIOD_COLUMN_PATTERN = re.compile(r"P(\d+)\n(\d{2}):(\d{2})")
+_PERIOD_V2 = re.compile(
+    r"P(\d+) \((\d{1,2}):(\d{2}) (AM|PM)-\d{1,2}:\d{2} (?:AM|PM)\)"
+)
+_PERIOD_V1 = re.compile(r"P(\d+)\n(\d{2}):(\d{2})")
 WEEKDAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
 
 
 def parse_period_column(col_name: str) -> tuple[int, time]:
-    """Parse a raw period column header like 'P1\\n08:00' into (1, time(8, 0))."""
-    match = PERIOD_COLUMN_PATTERN.match(col_name)
-    assert match, f"Unexpected period column format: {col_name!r}"
-    period_number = int(match.group(1))
-    hour, minute = int(match.group(2)), int(match.group(3))
-    return period_number, time(hour, minute)
+    """Parse a raw period column header into (period_number, start_time).
+
+    Supported formats:
+      v1: ``P1\\n08:00``           — 24hr, newline-separated
+      v2: ``P1 (8:00 AM-9:00 AM)`` — 12hr AM/PM, space-separated
+    """
+    match = _PERIOD_V2.match(col_name)
+    if match:
+        period_number = int(match.group(1))
+        hour = int(match.group(2))
+        minute = int(match.group(3))
+        meridiem = match.group(4)
+        if meridiem == "AM" and hour == 12:
+            hour = 0
+        elif meridiem == "PM" and hour != 12:
+            hour += 12
+        return period_number, time(hour, minute)
+
+    match = _PERIOD_V1.match(col_name)
+    if match:
+        period_number = int(match.group(1))
+        hour, minute = int(match.group(2)), int(match.group(3))
+        return period_number, time(hour, minute)
+
+    raise ValueError(f"Unrecognized period column format: {col_name!r}")
 
 
 def parse_cell(raw: str) -> tuple[str, str, str]:
