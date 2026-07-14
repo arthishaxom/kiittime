@@ -39,3 +39,8 @@ class SessionOut(BaseModel):
 class TimetableOut(BaseModel):
     sections_requested: list[str]
     sessions: list[SessionOut]
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str
