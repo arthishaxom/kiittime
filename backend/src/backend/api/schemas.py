@@ -1,4 +1,5 @@
 from datetime import time
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -46,9 +47,21 @@ class TokenOut(BaseModel):
     token_type: str
 
 
+class SessionDetail(BaseModel):
+    section: str
+    day: str
+    period_number: int
+    course_code: str
+    faculty_name: str
+    room_number: str
+    change_type: Literal["added", "changed", "removed", "unchanged"] | None = None
+    previous: "SessionDetail | None" = None
+
+
 class DiffSummary(BaseModel):
     session_count: int
     sections: list[str]
+    session_details: list[SessionDetail]
 
 
 class UploadResponse(BaseModel):
