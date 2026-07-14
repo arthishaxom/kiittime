@@ -44,3 +44,28 @@ class TimetableOut(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str
+
+
+class DiffSummary(BaseModel):
+    session_count: int
+    sections: list[str]
+
+
+class UploadResponse(BaseModel):
+    upload_id: int
+    diff: DiffSummary
+    status: str
+
+
+class ApproveResponse(BaseModel):
+    status: str
+    upload_id: int
+
+
+class RejectResponse(BaseModel):
+    status: str
+    upload_id: int
+
+
+class InspectResponse(BaseModel):
+    sheet_names: list[str]
