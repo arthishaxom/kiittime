@@ -63,7 +63,10 @@ function TimetablePage() {
 
     function measure() {
       if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth)
+        const w = containerRef.current.offsetWidth
+        setContainerWidth(w)
+        // Sync x to the initial day index so the carousel is not stuck at index 0 on mount
+        x.set(-initialIndex * w)
       }
     }
     measure()
