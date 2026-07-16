@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState, memo, useCallback } from 'react';
-import { Linking, Pressable, FlatList, View } from 'react-native';
+import { Linking, Pressable, FlatList, ScrollView, View } from 'react-native';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -45,15 +45,32 @@ export default function SectionSearch() {
 
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedPrefix, setSelectedPrefix] = useState('All');
 
   const { data: sections, isLoading, isError } = useSections(year);
+
+  const prefixes = useMemo(() => {
+    if (!sections) return [];
+    const unique = new Set<string>();
+    for (const s of sections) {
+      const match = /^[A-Z]+/i.exec(s.section_name);
+      if (match) unique.add(match[0].toUpperCase());
+    }
+    return ['All', ...Array.from(unique).sort()];
+  }, [sections]);
 
   const filtered = useMemo(() => {
     if (!sections) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return sections;
-    return sections.filter((s) => s.section_name.toLowerCase().includes(q));
-  }, [sections, search]);
+    return sections
+      .filter((s) => (q ? s.section_name.toLowerCase().includes(q) : true))
+      .filter((s) => {
+        if (selectedPrefix === 'All') return true;
+        const match = /^[A-Z]+/i.exec(s.section_name);
+        return match?.[0].toUpperCase() === selectedPrefix;
+      })
+      .sort((a, b) => a.section_name.localeCompare(b.section_name, undefined, { numeric: true }));
+  }, [sections, search, selectedPrefix]);
 
   const selectedSections = useMemo(
     () => sections?.filter((s) => selectedIds.includes(s.id)) ?? [],
@@ -105,6 +122,24 @@ export default function SectionSearch() {
           onChangeText={setSearch}
           className="mb-4"
         />
+
+        {prefixes.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-2 mb-4"
+            keyboardShouldPersistTaps="handled">
+            {prefixes.map((prefix) => (
+              <Pressable key={prefix} onPress={() => setSelectedPrefix(prefix)}>
+                <Badge className={selectedPrefix === prefix ? 'bg-brand border-transparent' : ''}>
+                  <Text className={selectedPrefix === prefix ? 'text-white' : 'text-text'}>
+                    {prefix}
+                  </Text>
+                </Badge>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
         {selectedSections.length > 0 && (
           <View className="mb-2">
