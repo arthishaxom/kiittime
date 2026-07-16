@@ -16,7 +16,7 @@ interface AboutDialogProps {
 export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-sheet border-border">
+      <DialogContent className="bg-sheet border-border pr-15 pl-15">
         <DialogHeader>
           <DialogTitle className="text-text text-center text-xl">About KIIT Time</DialogTitle>
         </DialogHeader>

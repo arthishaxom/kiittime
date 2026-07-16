@@ -59,19 +59,21 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
           <View className="px-4 pt-2 pb-8 gap-3">
             <Text className="text-text text-center text-lg font-semibold mb-1">Settings</Text>
 
-            <Pressable
-              onPress={() => shareTimetable(sectionIds)}
-              className="h-14 rounded-lg bg-surface border border-border flex-row items-center gap-3 px-4">
-              <Icon as={Share2} size={20} className="text-text" />
-              <Text className="text-text font-medium">Share</Text>
-            </Pressable>
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={() => shareTimetable(sectionIds)}
+                className="flex-1 h-14 rounded-lg bg-surface border border-border flex-row items-center justify-center gap-3 px-4">
+                <Icon as={Share2} size={20} className="text-text" />
+                <Text className="text-text font-medium">Share</Text>
+              </Pressable>
 
-            <Pressable
-              onPress={handleReset}
-              className="h-14 rounded-lg bg-surface border border-border flex-row items-center gap-3 px-4">
-              <Icon as={RotateCcw} size={20} className="text-text" />
-              <Text className="text-text font-medium">Reset</Text>
-            </Pressable>
+              <Pressable
+                onPress={handleReset}
+                className="flex-1 h-14 rounded-lg bg-danger/90 flex-row items-center justify-center gap-3 px-4">
+                <Icon as={RotateCcw} size={20} className="text-white" />
+                <Text className="text-white font-medium">Reset</Text>
+              </Pressable>
+            </View>
 
             <Pressable
               onPress={handleContact}

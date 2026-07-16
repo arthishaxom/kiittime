@@ -1,11 +1,19 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState, memo, useCallback } from 'react';
-import { Linking, Pressable, FlatList, ScrollView, View } from 'react-native';
+import { Linking, Pressable, FlatList, View } from 'react-native';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
 import { useSections } from '@/hooks/useSections';
 import { buildMailto } from '@/lib/mailto';
+import { extractPrefixes, filterSections } from '@/lib/sections';
 import { saveSectionIds } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,28 +57,12 @@ export default function SectionSearch() {
 
   const { data: sections, isLoading, isError } = useSections(year);
 
-  const prefixes = useMemo(() => {
-    if (!sections) return [];
-    const unique = new Set<string>();
-    for (const s of sections) {
-      const match = /^[A-Z]+/i.exec(s.section_name);
-      if (match) unique.add(match[0].toUpperCase());
-    }
-    return ['All', ...Array.from(unique).sort()];
-  }, [sections]);
+  const prefixes = useMemo(() => extractPrefixes(sections ?? []), [sections]);
 
-  const filtered = useMemo(() => {
-    if (!sections) return [];
-    const q = search.trim().toLowerCase();
-    return sections
-      .filter((s) => (q ? s.section_name.toLowerCase().includes(q) : true))
-      .filter((s) => {
-        if (selectedPrefix === 'All') return true;
-        const match = /^[A-Z]+/i.exec(s.section_name);
-        return match?.[0].toUpperCase() === selectedPrefix;
-      })
-      .sort((a, b) => a.section_name.localeCompare(b.section_name, undefined, { numeric: true }));
-  }, [sections, search, selectedPrefix]);
+  const filtered = useMemo(
+    () => filterSections(sections ?? [], { search, prefix: selectedPrefix }),
+    [sections, search, selectedPrefix],
+  );
 
   const selectedSections = useMemo(
     () => sections?.filter((s) => selectedIds.includes(s.id)) ?? [],
@@ -124,21 +116,18 @@ export default function SectionSearch() {
         />
 
         {prefixes.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerClassName="gap-2 mb-4"
-            keyboardShouldPersistTaps="handled">
-            {prefixes.map((prefix) => (
-              <Pressable key={prefix} onPress={() => setSelectedPrefix(prefix)}>
-                <Badge className={selectedPrefix === prefix ? 'bg-brand border-transparent' : ''}>
-                  <Text className={selectedPrefix === prefix ? 'text-white' : 'text-text'}>
-                    {prefix}
-                  </Text>
-                </Badge>
-              </Pressable>
-            ))}
-          </ScrollView>
+          <Select
+            value={{ value: selectedPrefix, label: selectedPrefix }}
+            onValueChange={(option) => option && setSelectedPrefix(option.value)}>
+            <SelectTrigger className="mb-4">
+              <SelectValue placeholder="All" className="text-text" />
+            </SelectTrigger>
+            <SelectContent>
+              {prefixes.map((prefix) => (
+                <SelectItem key={prefix} value={prefix} label={prefix} />
+              ))}
+            </SelectContent>
+          </Select>
         )}
 
         {selectedSections.length > 0 && (
