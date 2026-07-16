@@ -41,19 +41,16 @@ def gold_upsert(
     propagate so the caller's rollback handles them.
     """
 
-    # 1. Pre-flight scope check (look up department only if department scoping).
-    section_departments: dict[int, str | None] = {}
-    if scope.department is not None:
+    # 1. Pre-flight scope check (look up year only if year scoping).
+    section_years: dict[int, int] = {}
+    if scope.year is not None:
         ids = {r.section_id for r in resolved_sessions}
-        # NOTE: Section is expected to gain a `department` column (department
-        # scoping is forward-looking). Until then getattr returns None, so
-        # department scoping degrades to "nothing matches" rather than crashing.
         for s in session.execute(select(Section).where(Section.id.in_(ids))).scalars():
-            section_departments[s.id] = getattr(s, "department", None)
+            section_years[s.id] = s.year
 
     for r in resolved_sessions:
-        dept = section_departments.get(r.section_id)
-        if not scope.matches(r.section_id, dept):
+        year = section_years.get(r.section_id)
+        if not scope.matches(r.section_id, year):
             raise ScopeViolationError(
                 f"Row for section_id={r.section_id} is outside upsert scope (scope={scope!r})"
             )
@@ -61,12 +58,11 @@ def gold_upsert(
     # 2. Determine which sections the DELETE targets.
     if scope.section_ids is not None:
         target_ids: set[int] | None = set(scope.section_ids)
-    elif scope.department is not None:
-        # All sections (across the upload) whose department matches the scope.
+    elif scope.year is not None:
+        # All sections (across the upload) whose year matches the scope.
         target_ids = {
             s.id
-            for s in session.execute(select(Section)).scalars().all()
-            if getattr(s, "department", None) == scope.department
+            for s in session.execute(select(Section).where(Section.year == scope.year)).scalars()
         }
     else:
         target_ids = None  # full semester: delete every class_sessions row.

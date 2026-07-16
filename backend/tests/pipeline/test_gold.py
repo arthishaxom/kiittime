@@ -71,6 +71,40 @@ def test_single_section_scope_only_deletes_that_section(db):
     assert db.query(ClassSession).filter_by(section_id=s1).count() == 1
 
 
+def test_year_scope_only_deletes_that_year(db):
+    r1 = resolve_all(db, [make_row(section="CSE1", year=1, period_number=1)])
+    r2 = resolve_all(db, [make_row(section="CSE2", year=2, period_number=1)])
+    s1, s2 = r1[0].section_id, r2[0].section_id
+
+    seed_gold(db, r1[0], "Tue", 9, time(9, 0))
+    seed_gold(db, r2[0], "Tue", 9, time(9, 0))
+
+    result = gold_upsert(db, r1, UpsertScope(year=1))
+
+    assert result.deleted_count == 1
+    # other year's section untouched
+    assert db.query(ClassSession).filter_by(section_id=s2).count() == 1
+    # this section now holds exactly the newly inserted row
+    assert db.query(ClassSession).filter_by(section_id=s1).count() == 1
+
+
+def test_year_scope_violation_raises_and_no_db_change(db):
+    r1 = resolve_all(db, [make_row(section="CSE1", year=1, period_number=1)])
+    r2 = resolve_all(db, [make_row(section="CSE2", year=2, period_number=1)])
+    s2 = r2[0].section_id
+    seed_gold(db, r2[0], "Wed", 3, time(11, 0))
+
+    # scope only allows year 1, but we feed it a row from year 2
+    combined = r1 + r2
+    before = db.query(ClassSession).count()
+
+    with pytest.raises(ScopeViolationError):
+        gold_upsert(db, combined, UpsertScope(year=1))
+
+    assert db.query(ClassSession).count() == before
+    assert db.query(ClassSession).filter_by(section_id=s2).count() == 1
+
+
 def test_scope_violation_raises_and_no_db_change(db):
     r1 = resolve_all(db, [make_row(section="CSE1", period_number=1)])
     r2 = resolve_all(db, [make_row(section="CSE2", period_number=1)])
