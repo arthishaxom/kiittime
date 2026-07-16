@@ -1,4 +1,4 @@
-export type ScopeMode = "full" | "year" | "sections"
+export type ScopeMode = "year" | "sections"
 
 export function buildScopeBody(
 	mode: ScopeMode,
@@ -15,7 +15,5 @@ export function buildScopeBody(
 				.filter((n) => !Number.isNaN(n))
 			return { section_ids: ids.length > 0 ? ids : null, year: null }
 		}
-		default:
-			return { section_ids: null, year: null }
 	}
 }

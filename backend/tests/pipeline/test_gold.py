@@ -42,18 +42,6 @@ def seed_gold(db: Session, resolved, day: str, period: int, start_time: time) ->
     db.flush()
 
 
-def test_full_semester_scope_deletes_and_inserts(db):
-    resolved = resolve_all(db, [make_row(period_number=1), make_row(period_number=2)])
-    seed_gold(db, resolved[0], "Tue", 5, time(10, 0))
-    before = db.query(ClassSession).count()
-
-    result = gold_upsert(db, resolved, UpsertScope())
-
-    assert result.deleted_count == before
-    assert result.inserted_count == len(resolved)
-    assert db.query(ClassSession).count() == len(resolved)
-
-
 def test_single_section_scope_only_deletes_that_section(db):
     r1 = resolve_all(db, [make_row(section="CSE1", period_number=1)])
     r2 = resolve_all(db, [make_row(section="CSE2", period_number=1)])
@@ -141,7 +129,9 @@ def test_orchestrate_round_trip_moves_class(db):
         make_row(section="CSE1", period_number=1),
         make_row(section="CSE1", period_number=2),
     ]
-    snapshot1, _ = process_upload_and_apply(db, rows_v1, UpsertScope(), source_filename="v1.xlsx")
+    snapshot1, _ = process_upload_and_apply(
+        db, rows_v1, UpsertScope(year=1), source_filename="v1.xlsx"
+    )
     assert snapshot1.status == SnapshotStatus.approved
 
     section_id = db.query(Section).filter_by(section_name="CSE1", year=1).one().id

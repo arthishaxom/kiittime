@@ -70,7 +70,7 @@ function RouteComponent() {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 
-	const [scopeMode, setScopeMode] = useState<ScopeMode>("full")
+	const [scopeMode, setScopeMode] = useState<ScopeMode>("year")
 	const [year, setYear] = useState<number | null>(null)
 	const [sectionIdsInput, setSectionIdsInput] = useState("")
 	const [error, setError] = useState<string | null>(null)
@@ -307,7 +307,6 @@ function RouteComponent() {
 										<SelectValue placeholder="Select scope" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="full">Full semester</SelectItem>
 										<SelectItem value="year">By year</SelectItem>
 										<SelectItem value="sections">By sections</SelectItem>
 									</SelectContent>

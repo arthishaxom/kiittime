@@ -16,8 +16,4 @@ describe("buildScopeBody", () => {
 			year: null,
 		})
 	})
-
-	it("returns a null scope for full-mode", () => {
-		expect(buildScopeBody("full", 4, "1, 2")).toEqual({ section_ids: null, year: null })
-	})
 })
