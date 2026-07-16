@@ -2,9 +2,21 @@ import { useState, useRef } from "react"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useMutation } from "@tanstack/react-query"
 import { Upload } from "lucide-react"
+import { toast } from "sonner"
 
 import { useAuth } from "../../lib/auth"
 import { apiFetch } from "../../lib/api"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "../../components/ui/alert-dialog"
 import { Alert, AlertDescription } from "../../components/ui/alert"
 import { Button } from "../../components/ui/button"
 import {
@@ -14,6 +26,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../../components/ui/card"
+import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import {
 	Select,
@@ -23,6 +36,8 @@ import {
 	SelectValue,
 } from "../../components/ui/select"
 import { Skeleton } from "../../components/ui/skeleton"
+
+const CLEAR_ALL_CONFIRMATION = "CLEAR"
 
 export const Route = createFileRoute("/_authenticated/")({
 	component: RouteComponent,
@@ -46,6 +61,8 @@ function RouteComponent() {
 	const [sheetName, setSheetName] = useState<string>("")
 	const [year, setYear] = useState<number | null>(null)
 	const [error, setError] = useState<string | null>(null)
+	const [clearAllOpen, setClearAllOpen] = useState(false)
+	const [clearAllConfirmText, setClearAllConfirmText] = useState("")
 
 	const inspectMutation = useMutation({
 		mutationFn: async (f: File) => {
@@ -92,6 +109,24 @@ function RouteComponent() {
 		},
 		onError: (e) => {
 			setError(e instanceof Error ? e.message : "Upload failed")
+		},
+	})
+
+	const clearAllMutation = useMutation({
+		mutationFn: async () => {
+			const res = await apiFetch("/admin/clear-all", { method: "POST" }, auth.token ?? undefined)
+			if (!res.ok) {
+				const detail = await res.json().then((d) => d.detail).catch(() => res.statusText)
+				throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail))
+			}
+			return res.json()
+		},
+		onSuccess: () => {
+			setClearAllConfirmText("")
+			toast.success("All data cleared")
+		},
+		onError: (e) => {
+			toast.error(e instanceof Error ? e.message : "Clear all failed")
 		},
 	})
 
@@ -201,6 +236,62 @@ function RouteComponent() {
 							</Button>
 						</>
 					)}
+				</CardContent>
+			</Card>
+
+			<Card className="mt-6 border-destructive/50">
+				<CardHeader>
+					<CardTitle>Danger Zone</CardTitle>
+					<CardDescription>
+						Irreversibly wipes all sections, courses, faculty, rooms, class
+						sessions, and upload history. Use at the start of a new semester.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<AlertDialog
+						open={clearAllOpen}
+						onOpenChange={(open) => {
+							setClearAllOpen(open)
+							if (!open) setClearAllConfirmText("")
+						}}
+					>
+						<AlertDialogTrigger asChild>
+							<Button variant="destructive">Clear all data</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>Clear all data?</AlertDialogTitle>
+								<AlertDialogDescription>
+									This permanently deletes every section, course, faculty
+									member, room, class session, and upload record. This cannot
+									be undone. Type{" "}
+									<span className="font-mono font-semibold">
+										{CLEAR_ALL_CONFIRMATION}
+									</span>{" "}
+									to confirm.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<Input
+								autoFocus
+								value={clearAllConfirmText}
+								onChange={(e) => setClearAllConfirmText(e.target.value)}
+								placeholder={CLEAR_ALL_CONFIRMATION}
+							/>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction
+									className="bg-destructive text-white hover:bg-destructive/90"
+									disabled={
+										clearAllConfirmText !== CLEAR_ALL_CONFIRMATION ||
+										clearAllMutation.isPending
+									}
+									onClick={() => clearAllMutation.mutate()}
+								>
+									{clearAllMutation.isPending ? "Clearing..." : "Clear all data"}
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</CardContent>
 			</Card>
 		</div>

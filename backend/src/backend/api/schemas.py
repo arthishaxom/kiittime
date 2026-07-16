@@ -82,3 +82,13 @@ class RejectResponse(BaseModel):
 
 class InspectResponse(BaseModel):
     sheet_names: list[str]
+
+
+class ClearAllResponse(BaseModel):
+    status: str
+    class_sessions_deleted: int
+    sections_deleted: int
+    courses_deleted: int
+    faculty_deleted: int
+    rooms_deleted: int
+    bronze_snapshots_deleted: int

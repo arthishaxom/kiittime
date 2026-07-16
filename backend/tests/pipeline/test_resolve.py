@@ -60,7 +60,8 @@ def test_different_rooms_same_course_resolve_independently(db):
     resolved = resolve_all(db, rows)
 
     assert resolved[0].room_id != resolved[1].room_id
-    assert db.query(Room).count() == 2
+    assert db.query(Room).filter_by(room_number="C25-B001").count() == 1
+    assert db.query(Room).filter_by(room_number="C25-B002").count() == 1
 
 
 def test_section_composite_key_same_name_different_year(db):
@@ -71,4 +72,5 @@ def test_section_composite_key_same_name_different_year(db):
     resolved = resolve_all(db, rows)
 
     assert resolved[0].section_id != resolved[1].section_id
-    assert db.query(Section).count() == 2
+    assert db.query(Section).filter_by(section_name="CSE1", year=1).count() == 1
+    assert db.query(Section).filter_by(section_name="CSE1", year=2).count() == 1

@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "../../lib/auth"
 import { apiFetch } from "../../lib/api"
+import { buildScopeBody, type ScopeMode } from "../../lib/scope"
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
@@ -63,16 +64,14 @@ interface UploadData {
 	status: string
 }
 
-type ScopeMode = "full" | "department" | "sections"
-
 function RouteComponent() {
 	const { uploadId } = Route.useParams()
 	const auth = useAuth()
 	const router = useRouter()
 	const queryClient = useQueryClient()
 
-	const [scopeMode, setScopeMode] = useState<ScopeMode>("full")
-	const [department, setDepartment] = useState("")
+	const [scopeMode, setScopeMode] = useState<ScopeMode>("year")
+	const [year, setYear] = useState<number | null>(null)
 	const [sectionIdsInput, setSectionIdsInput] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const [page, setPage] = useState(0)
@@ -109,7 +108,7 @@ function RouteComponent() {
 
 	const approveMutation = useMutation({
 		mutationFn: async () => {
-			const body = buildScopeBody(scopeMode, department, sectionIdsInput)
+			const body = buildScopeBody(scopeMode, year, sectionIdsInput)
 			const res = await apiFetch(
 				`/admin/uploads/${uploadId}/approve`,
 				{
@@ -308,22 +307,28 @@ function RouteComponent() {
 										<SelectValue placeholder="Select scope" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="full">Full semester</SelectItem>
-										<SelectItem value="department">By department</SelectItem>
+										<SelectItem value="year">By year</SelectItem>
 										<SelectItem value="sections">By sections</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
 
-							{scopeMode === "department" && (
+							{scopeMode === "year" && (
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="department">Department</Label>
-									<Input
-										id="department"
-										placeholder="e.g. CSE"
-										value={department}
-										onChange={(e) => setDepartment(e.target.value)}
-									/>
+									<Label>Year</Label>
+									<div className="flex gap-2">
+										{[1, 2, 3, 4].map((y) => (
+											<Button
+												key={y}
+												type="button"
+												variant={year === y ? "default" : "outline"}
+												className="flex-1"
+												onClick={() => setYear(y)}
+											>
+												{y}
+											</Button>
+										))}
+									</div>
 								</div>
 							)}
 
@@ -384,25 +389,5 @@ class ApiError extends Error {
 	constructor(message: string, status: number) {
 		super(message)
 		this.status = status
-	}
-}
-
-function buildScopeBody(
-	mode: ScopeMode,
-	department: string,
-	sectionIdsInput: string,
-): { section_ids: number[] | null; department: string | null } {
-	switch (mode) {
-		case "department":
-			return { section_ids: null, department: department || null }
-		case "sections": {
-			const ids = sectionIdsInput
-				.split(",")
-				.map((s) => Number.parseInt(s.trim(), 10))
-				.filter((n) => !Number.isNaN(n))
-			return { section_ids: ids.length > 0 ? ids : null, department: null }
-		}
-		default:
-			return { section_ids: null, department: null }
 	}
 }

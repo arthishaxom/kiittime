@@ -1,0 +1,9 @@
+{
+  "watchFiles": ["/path/to/your/allowed/projects/**"],
+  "blockFiles": [
+    "**/.env*",
+    "**/config.secret*",
+    "~/.ssh/**"
+  ],
+  "maxBackgroundAgents": 1
+}
