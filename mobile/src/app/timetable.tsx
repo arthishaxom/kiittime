@@ -113,7 +113,7 @@ export default function TimetablePage() {
 
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View className="p-4 pb-2">
+      <View className="p-4 pb-2 items-center">
         <Text className="text-text text-lg font-bold">{data?.sections_requested.join(', ')}</Text>
       </View>
 

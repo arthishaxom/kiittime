@@ -114,7 +114,7 @@ function TimetablePage() {
 
   return (
     <div className="h-dvh bg-bg text-text flex flex-col">
-      <div className="p-4 pb-2">
+      <div className="p-4 pb-2 text-center">
         <h1 className="text-lg font-bold">{data?.sections_requested.join(', ')}</h1>
       </div>
 

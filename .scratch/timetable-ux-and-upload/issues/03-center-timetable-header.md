@@ -4,8 +4,12 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Add centering classes (e.g., `text-center` or `items-center`) to the container holding the section name header in the Mobile app (`mobile/src/app/timetable.tsx`).
-- [ ] Add centering classes to the container holding the section name header in the Webapp (`webapp/src/routes/timetable.tsx`).
-- [ ] Ensure the header is perfectly centered horizontally across the screen width.
+- [x] Add centering classes (e.g., `text-center` or `items-center`) to the container holding the section name header in the Mobile app (`mobile/src/app/timetable.tsx`).
+- [x] Add centering classes to the container holding the section name header in the Webapp (`webapp/src/routes/timetable.tsx`).
+- [x] Ensure the header is perfectly centered horizontally across the screen width.
+
+## Comments
+
+Added `items-center` to the header wrapper `View` in `mobile/src/app/timetable.tsx` and `text-center` to the header wrapper `div` in `webapp/src/routes/timetable.tsx`.
