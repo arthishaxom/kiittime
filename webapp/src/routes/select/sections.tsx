@@ -22,15 +22,32 @@ function SectionSearch() {
 
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [selectedPrefix, setSelectedPrefix] = useState('All')
 
   const { data: sections, isLoading, isError } = useSections(year)
+
+  const prefixes = useMemo(() => {
+    if (!sections) return []
+    const unique = new Set<string>()
+    for (const s of sections) {
+      const match = /^[A-Z]+/i.exec(s.section_name)
+      if (match) unique.add(match[0].toUpperCase())
+    }
+    return ['All', ...Array.from(unique).sort()]
+  }, [sections])
 
   const filtered = useMemo(() => {
     if (!sections) return []
     const q = search.trim().toLowerCase()
-    if (!q) return sections
-    return sections.filter((s) => s.section_name.toLowerCase().includes(q))
-  }, [sections, search])
+    return sections
+      .filter((s) => (q ? s.section_name.toLowerCase().includes(q) : true))
+      .filter((s) => {
+        if (selectedPrefix === 'All') return true
+        const match = /^[A-Z]+/i.exec(s.section_name)
+        return match?.[0].toUpperCase() === selectedPrefix
+      })
+      .sort((a, b) => a.section_name.localeCompare(b.section_name, undefined, { numeric: true }))
+  }, [sections, search, selectedPrefix])
 
   const selectedSections = useMemo(
     () => sections?.filter((s) => selectedIds.includes(s.id)) ?? [],
@@ -72,6 +89,22 @@ function SectionSearch() {
         onChange={(e) => setSearch(e.target.value)}
         className="mb-4"
       />
+
+      {prefixes.length > 1 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto">
+          {prefixes.map((prefix) => (
+            <Badge
+              key={prefix}
+              className={`cursor-pointer shrink-0 ${
+                selectedPrefix === prefix ? 'bg-brand text-white' : 'bg-surface text-text border border-border'
+              }`}
+              onClick={() => setSelectedPrefix(prefix)}
+            >
+              {prefix}
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {selectedSections.length > 0 && (
         <div className="mb-4">

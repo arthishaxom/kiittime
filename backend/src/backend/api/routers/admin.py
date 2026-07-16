@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.api.schemas import (
     ApproveResponse,
+    ClearAllResponse,
     DiffSummary,
     InspectResponse,
     RejectResponse,
@@ -15,6 +16,7 @@ from backend.api.schemas import (
 from backend.auth.dependencies import get_current_admin
 from backend.db.models import AdminUser, BronzeSnapshot, SnapshotStatus
 from backend.db.session import get_db
+from backend.pipeline.clear import clear_all
 from backend.pipeline.diff import compute_diff
 from backend.pipeline.gold import ScopeViolationError, gold_upsert
 from backend.pipeline.orchestrate import process_upload
@@ -179,3 +181,15 @@ def reject_upload(
     db.commit()
 
     return {"status": "rejected", "upload_id": upload_id}
+
+
+@router.post("/clear-all", response_model=ClearAllResponse)
+def clear_all_route(
+    current_admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Irreversibly wipe every gold and bronze table. No upload attached."""
+    result = clear_all(db)
+    db.commit()
+
+    return {"status": "cleared", **result.model_dump()}

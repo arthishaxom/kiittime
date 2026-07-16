@@ -1,0 +1,5 @@
+allowBuilds:
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - jest-expo@57.0.2
+nodeLinker: hoisted
