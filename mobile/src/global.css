@@ -1,2 +1,59 @@
 @import 'tailwindcss';
 @import 'uniwind';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@theme {
+  /* Fixed dark palette, ported 1:1 from the webapp — no light/dark switching */
+  --color-bg: #121212;
+  --color-surface: #1e1e1e;
+  --color-sheet: #181818;
+  --color-pill: #161616;
+  --color-border: #414040;
+  --color-border-subtle: #272625;
+
+  --color-brand: #f57c00;
+  --color-brand-active: #ff8000;
+
+  --color-text: #ffffff;
+  --color-text-muted: #d4d4d4;
+
+  --color-danger: #e42a33;
+  --color-success: #42f548;
+  --color-info: #4287f5;
+
+  /* shadcn v4 semantic slots, mapped onto the same fixed dark palette so
+     existing ui/* primitives (button, dialog, input, badge…) stay themed */
+  --color-background: #121212;
+  --color-foreground: #ffffff;
+  --color-card: #1e1e1e;
+  --color-card-foreground: #ffffff;
+  --color-popover: #181818;
+  --color-popover-foreground: #ffffff;
+  --color-primary: #f57c00;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1e1e1e;
+  --color-secondary-foreground: #ffffff;
+  --color-muted: #1e1e1e;
+  --color-muted-foreground: #d4d4d4;
+  --color-accent: #1e1e1e;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #e42a33;
+  --color-destructive-foreground: #ffffff;
+  --color-border-slot: #414040;
+  --color-input: #1e1e1e;
+  --color-ring: #f57c00;
+
+  --radius-sm: 0.325rem;
+  --radius-md: 0.425rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 1.025rem;
+}
+
+@layer base {
+  * {
+    @apply border-border-slot;
+  }
+}

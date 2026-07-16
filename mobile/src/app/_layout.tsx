@@ -1,16 +1,26 @@
-import { Stack } from "expo-router";
-import { View, Text } from "react-native";
-import "../global.css"
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { PortalHost } from '@rn-primitives/portal';
+import { Stack } from 'expo-router';
+import { ThemeProvider } from 'expo-router/react-navigation';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { QueryProvider } from '@/lib/query-client';
+import { NAV_THEME } from '@/lib/theme';
+import '../global.css';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   return (
-    <View className="flex-1">
-      <Stack />
-      <View className="bg-green-500 p-2">
-        <Text className="text-red-500 text-center font-bold">
-          ✅ uniwind is working
-        </Text>
-      </View>
-    </View>
+    <GestureHandlerRootView className="flex-1">
+      <ThemeProvider value={NAV_THEME}>
+        <QueryProvider>
+          <SafeAreaProvider className="flex-1">
+            <BottomSheetModalProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+              <PortalHost />
+            </BottomSheetModalProvider>
+          </SafeAreaProvider>
+        </QueryProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
