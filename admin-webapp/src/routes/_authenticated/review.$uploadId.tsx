@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { useAuth } from "../../lib/auth"
 import { apiFetch } from "../../lib/api"
+import { buildScopeBody, type ScopeMode } from "../../lib/scope"
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert"
 import { Badge } from "../../components/ui/badge"
 import { Button } from "../../components/ui/button"
@@ -63,8 +64,6 @@ interface UploadData {
 	status: string
 }
 
-type ScopeMode = "full" | "year" | "sections"
-
 function RouteComponent() {
 	const { uploadId } = Route.useParams()
 	const auth = useAuth()
@@ -72,7 +71,7 @@ function RouteComponent() {
 	const queryClient = useQueryClient()
 
 	const [scopeMode, setScopeMode] = useState<ScopeMode>("full")
-	const [year, setYear] = useState("")
+	const [year, setYear] = useState<number | null>(null)
 	const [sectionIdsInput, setSectionIdsInput] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const [page, setPage] = useState(0)
@@ -317,16 +316,20 @@ function RouteComponent() {
 
 							{scopeMode === "year" && (
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="year">Year</Label>
-									<Input
-										id="year"
-										type="number"
-										min={1}
-										max={4}
-										placeholder="e.g. 4"
-										value={year}
-										onChange={(e) => setYear(e.target.value)}
-									/>
+									<Label>Year</Label>
+									<div className="flex gap-2">
+										{[1, 2, 3, 4].map((y) => (
+											<Button
+												key={y}
+												type="button"
+												variant={year === y ? "default" : "outline"}
+												className="flex-1"
+												onClick={() => setYear(y)}
+											>
+												{y}
+											</Button>
+										))}
+									</div>
 								</div>
 							)}
 
@@ -387,27 +390,5 @@ class ApiError extends Error {
 	constructor(message: string, status: number) {
 		super(message)
 		this.status = status
-	}
-}
-
-function buildScopeBody(
-	mode: ScopeMode,
-	year: string,
-	sectionIdsInput: string,
-): { section_ids: number[] | null; year: number | null } {
-	switch (mode) {
-		case "year": {
-			const parsed = Number.parseInt(year, 10)
-			return { section_ids: null, year: Number.isNaN(parsed) ? null : parsed }
-		}
-		case "sections": {
-			const ids = sectionIdsInput
-				.split(",")
-				.map((s) => Number.parseInt(s.trim(), 10))
-				.filter((n) => !Number.isNaN(n))
-			return { section_ids: ids.length > 0 ? ids : null, year: null }
-		}
-		default:
-			return { section_ids: null, year: null }
 	}
 }
