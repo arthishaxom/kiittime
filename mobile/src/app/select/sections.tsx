@@ -14,6 +14,7 @@ import { Text } from '@/components/ui/text';
 import { useSections } from '@/hooks/useSections';
 import { buildMailto } from '@/lib/mailto';
 import { extractPrefixes, filterSections } from '@/lib/sections';
+import { timetableHref } from '@/lib/search-params';
 import { saveSectionIds } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,10 +82,7 @@ export default function SectionSearch() {
 
   async function handleDone() {
     await saveSectionIds(selectedIds);
-    router.replace({
-      pathname: '/timetable',
-      params: { section_id: selectedIds.map(String) },
-    });
+    router.replace(timetableHref(selectedIds));
   }
 
   const insets = useSafeAreaInsets();

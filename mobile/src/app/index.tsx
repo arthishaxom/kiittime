@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AboutDialog } from '@/components/about-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { timetableHref } from '@/lib/search-params';
 import { getSavedSectionIds } from '@/lib/storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,10 +27,7 @@ export default function Index() {
       const saved = await getSavedSectionIds();
       if (cancelled) return;
       if (saved && saved.length > 0) {
-        router.replace({
-          pathname: '/timetable',
-          params: { section_id: saved.map(String) },
-        });
+        router.replace(timetableHref(saved));
       } else {
         setCheckingSaved(false);
       }
@@ -49,7 +47,7 @@ export default function Index() {
     <View className="flex-1 bg-bg px-6 py-6">
       <View className="flex-1 items-center justify-center">
         <Image
-          source={require('@/assets/images/logo-no-bg.png')}
+          source={require('@/assets/images/logo_fg.png')}
           className="h-25 w-4/5 max-w-70"
           resizeMode="contain"
         />
