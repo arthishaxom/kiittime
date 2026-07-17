@@ -16,14 +16,22 @@ interface AboutDialogProps {
 export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+<<<<<<< HEAD
+      <DialogContent className="bg-sheet border-border">
+=======
       <DialogContent className="bg-sheet border-border pr-15 pl-15">
+>>>>>>> origin/dev
         <DialogHeader>
           <DialogTitle className="text-text text-center text-xl">About KIIT Time</DialogTitle>
         </DialogHeader>
 
         <View className="items-center gap-4">
           <Image
+<<<<<<< HEAD
+            source={require('@/assets/images/logo_fg.png')}
+=======
             source={require('@/assets/images/logo-no-bg.png')}
+>>>>>>> origin/dev
             className="h-16 w-40"
             resizeMode="contain"
           />
