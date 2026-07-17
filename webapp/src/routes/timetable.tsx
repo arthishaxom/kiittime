@@ -1,16 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 import { motion, useMotionValue, animate } from 'motion/react'
-import { Settings, Share2, RotateCcw, Mail } from 'lucide-react'
+import { Settings, Share2, RotateCcw, Mail, Megaphone } from 'lucide-react'
 import { useTimetable } from '#/hooks/useTimetable'
+import { useAnnouncement } from '#/hooks/useAnnouncement'
 import type { Session } from '#/lib/api'
 import { formatTime } from '#/lib/api'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '#/components/ui/sheet'
 import { shareTimetable } from '#/lib/share'
 import { buildMailto } from '#/lib/mailto'
 import { AboutDialog } from '#/components/AboutDialog'
+import { AnnouncementDialog } from '#/components/AnnouncementDialog'
+import { isAnnouncementUnseen } from '#/lib/announcements'
+import { getLastSeenAnnouncementId, setLastSeenAnnouncementId } from '#/lib/storage'
 
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const
 
@@ -45,6 +49,31 @@ function TimetablePage() {
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+
+  const { data: announcement } = useAnnouncement()
+  const [lastSeenAnnouncementId, setLastSeenAnnouncementIdState] = useState<number | null>(() =>
+    getLastSeenAnnouncementId(),
+  )
+  const [announcementOpen, setAnnouncementOpen] = useState(false)
+  const announcementUnseen = isAnnouncementUnseen(
+    announcement?.id ?? null,
+    lastSeenAnnouncementId,
+  )
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on announcement?.id only — the full object changes identity on every staleTime:0 refetch, and including lastSeenAnnouncementId would reopen the dialog right after dismissal marks it seen
+  useEffect(() => {
+    if (announcement && isAnnouncementUnseen(announcement.id, lastSeenAnnouncementId)) {
+      setAnnouncementOpen(true)
+    }
+  }, [announcement?.id])
+
+  function handleMarkAnnouncementRead() {
+    setAnnouncementOpen(false)
+    if (announcement) {
+      setLastSeenAnnouncementId(announcement.id)
+      setLastSeenAnnouncementIdState(announcement.id)
+    }
+  }
 
   function handleReset() {
     localStorage.removeItem('kiit-time:selected-sections')
@@ -114,7 +143,7 @@ function TimetablePage() {
 
   return (
     <div className="h-dvh bg-bg text-text flex flex-col">
-      <div className="p-4 pb-2">
+      <div className="p-4 pb-2 text-center">
         <h1 className="text-lg font-bold">{data?.sections_requested.join(', ')}</h1>
       </div>
 
@@ -184,6 +213,9 @@ function TimetablePage() {
             className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-surface border border-border flex items-center justify-center shadow-lg"
           >
             <Settings className="text-white" size={22} />
+            {announcementUnseen && (
+              <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-brand" />
+            )}
           </button>
         </SheetTrigger>
         <SheetContent side="bottom" className="bg-sheet border-border">
@@ -219,6 +251,17 @@ function TimetablePage() {
               <Mail size={20} />
               Contact / Report an Issue
             </a>
+            {announcement && (
+              <button
+                type="button"
+                onClick={() => setAnnouncementOpen(true)}
+                className="h-16 rounded-lg bg-surface border border-border flex items-center justify-center gap-2 text-white font-medium"
+              >
+                <Megaphone size={20} />
+                Announcement
+                {announcementUnseen && <span className="h-2 w-2 rounded-full bg-brand" />}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setAboutOpen(true)}
@@ -231,6 +274,15 @@ function TimetablePage() {
       </Sheet>
 
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      {announcement && (
+        <AnnouncementDialog
+          announcement={announcement}
+          open={announcementOpen}
+          onOpenChange={setAnnouncementOpen}
+          onMarkAsRead={handleMarkAnnouncementRead}
+          unseen={announcementUnseen}
+        />
+      )}
     </div>
   )
 }

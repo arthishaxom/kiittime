@@ -1,7 +1,7 @@
-from datetime import time
+from datetime import datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SectionOut(BaseModel):
@@ -82,3 +82,38 @@ class RejectResponse(BaseModel):
 
 class InspectResponse(BaseModel):
     sheet_names: list[str]
+
+
+<<<<<<< HEAD
+class AnnouncementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    body: str
+    link_label: str | None
+    link_url: str | None
+    created_at: datetime
+
+
+class CreateAnnouncementRequest(BaseModel):
+    title: str = Field(max_length=80)
+    body: str = Field(max_length=500)
+    link_label: str | None = Field(default=None, max_length=30)
+    link_url: str | None = None
+
+
+class ClearAnnouncementResponse(BaseModel):
+    status: str
+
+
+=======
+>>>>>>> origin/dev
+class ClearAllResponse(BaseModel):
+    status: str
+    class_sessions_deleted: int
+    sections_deleted: int
+    courses_deleted: int
+    faculty_deleted: int
+    rooms_deleted: int
+    bronze_snapshots_deleted: int

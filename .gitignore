@@ -56,4 +56,6 @@ backend/src/backend/pipeline/scratch_explore.ipynb
 .vscode
 backend/scratch
 
+# Claude Code local (per-developer) settings
+.claude/settings.local.json
 routeTree.gen.ts
