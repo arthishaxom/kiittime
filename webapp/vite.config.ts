@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -15,6 +16,9 @@ const config = defineConfig({
   },
   preview: {
     allowedHosts: ['.trycloudflare.com'],
+  },
+  test: {
+    environment: 'jsdom',
   },
   plugins: [
     devtools(),
