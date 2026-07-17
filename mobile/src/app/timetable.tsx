@@ -1,7 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams } from 'expo-router';
 import { Settings } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -12,12 +12,16 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { AboutDialog } from '@/components/about-dialog';
+import { AnnouncementDialog } from '@/components/announcement-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { SettingsSheet } from '@/components/settings-sheet';
+import { useAnnouncement } from '@/hooks/useAnnouncement';
 import { useTimetable } from '@/hooks/useTimetable';
+import { isAnnouncementUnseen } from '@/lib/announcements';
 import { formatTime } from '@/lib/api';
 import { parseSectionIds } from '@/lib/search-params';
+import { getLastSeenAnnouncementId, setLastSeenAnnouncementId } from '@/lib/storage';
 import { DAYS, groupSessionsByDay, todayIndex } from '@/lib/timetable';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,6 +98,47 @@ export default function TimetablePage() {
   const settingsSheetRef = useRef<BottomSheetModal>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const { data: announcement } = useAnnouncement();
+  const [lastSeenAnnouncementId, setLastSeenAnnouncementIdState] = useState<number | null>(null);
+  const [lastSeenLoaded, setLastSeenLoaded] = useState(false);
+  const [announcementOpen, setAnnouncementOpen] = useState(false);
+  const [autoOpenedForId, setAutoOpenedForId] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    getLastSeenAnnouncementId().then((id) => {
+      setLastSeenAnnouncementIdState(id);
+      setLastSeenLoaded(true);
+    });
+  }, []);
+
+  // Gated on lastSeenLoaded: AsyncStorage is async, so on the very first
+  // render(s) lastSeenAnnouncementId is still its initial null — treating
+  // that as "nothing seen yet" would flash a false-unseen state (and could
+  // wrongly auto-open the dialog below) before the real persisted value has
+  // loaded.
+  const announcementUnseen =
+    lastSeenLoaded && isAnnouncementUnseen(announcement?.id ?? null, lastSeenAnnouncementId);
+
+  // Adjust state during render rather than in an effect (React's recommended
+  // pattern for "state that depends on a changed prop"): reacts to
+  // announcement?.id changing without re-triggering on every
+  // lastSeenAnnouncementId update, which would otherwise reopen the dialog
+  // right after dismissal marks it seen.
+  if (lastSeenLoaded && announcement && announcement.id !== autoOpenedForId) {
+    setAutoOpenedForId(announcement.id);
+    if (isAnnouncementUnseen(announcement.id, lastSeenAnnouncementId)) {
+      setAnnouncementOpen(true);
+    }
+  }
+
+  function handleMarkAnnouncementRead() {
+    setAnnouncementOpen(false);
+    if (announcement) {
+      setLastSeenAnnouncementId(announcement.id);
+      setLastSeenAnnouncementIdState(announcement.id);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -178,15 +223,35 @@ export default function TimetablePage() {
         onPress={() => settingsSheetRef.current?.present()}
         className="absolute bottom-6 right-6 h-14 w-14 rounded-full bg-surface border border-border items-center justify-center shadow-lg">
         <Icon as={Settings} size={22} className="text-text" />
+        {announcementUnseen && (
+          <View className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-brand" />
+        )}
       </Pressable>
 
       <SettingsSheet
         ref={settingsSheetRef}
         sectionIds={sectionIds}
         onAboutPress={() => setAboutOpen(true)}
+        onAnnouncementPress={
+          announcement
+            ? () => {
+                setAnnouncementOpen(true);
+              }
+            : undefined
+        }
+        announcementUnseen={announcementUnseen}
       />
 
       <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+      {announcement && (
+        <AnnouncementDialog
+          announcement={announcement}
+          open={announcementOpen}
+          onOpenChange={setAnnouncementOpen}
+          onMarkAsRead={handleMarkAnnouncementRead}
+          unseen={announcementUnseen}
+        />
+      )}
     </View>
   );
 }

@@ -48,6 +48,25 @@ export async function fetchTimetable(sectionIds: number[]): Promise<Timetable> {
   return res.json();
 }
 
+export type Announcement = {
+  id: number;
+  title: string;
+  body: string;
+  link_label: string | null;
+  link_url: string | null;
+  created_at: string;
+};
+
+export async function fetchCurrentAnnouncement(): Promise<Announcement | null> {
+  const url = new URL('/announcements/current', API_BASE_URL);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch current announcement: ${res.status}`);
+  }
+  return res.json();
+}
+
 export function formatTime(time: string): string {
   // time comes as "HH:MM:SS" from the API
   const [hours, minutes] = time.split(':').map(Number);
