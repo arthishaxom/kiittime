@@ -1,15 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams } from 'expo-router';
 import { Settings } from 'lucide-react-native';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { useEffect, useMemo, useRef, useState } from 'react';
-=======
-import { useMemo, useRef, useState } from 'react';
->>>>>>> origin/dev
-=======
-import { useMemo, useRef, useState } from 'react';
->>>>>>> origin/main
 import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -20,8 +12,6 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { AboutDialog } from '@/components/about-dialog';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { AnnouncementDialog } from '@/components/announcement-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -32,19 +22,6 @@ import { isAnnouncementUnseen } from '@/lib/announcements';
 import { formatTime } from '@/lib/api';
 import { parseSectionIds } from '@/lib/search-params';
 import { getLastSeenAnnouncementId, setLastSeenAnnouncementId } from '@/lib/storage';
-=======
-=======
->>>>>>> origin/main
-import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
-import { SettingsSheet } from '@/components/settings-sheet';
-import { useTimetable } from '@/hooks/useTimetable';
-import { formatTime } from '@/lib/api';
-import { parseSectionIds } from '@/lib/search-params';
-<<<<<<< HEAD
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
 import { DAYS, groupSessionsByDay, todayIndex } from '@/lib/timetable';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -122,8 +99,6 @@ export default function TimetablePage() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   const { data: announcement } = useAnnouncement();
   const [lastSeenAnnouncementId, setLastSeenAnnouncementIdState] = useState<number | null>(null);
   const [lastSeenLoaded, setLastSeenLoaded] = useState(false);
@@ -165,10 +140,6 @@ export default function TimetablePage() {
     }
   }
 
-=======
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
   if (isLoading) {
     return (
       <View className="flex-1 bg-bg p-4">
@@ -252,23 +223,15 @@ export default function TimetablePage() {
         onPress={() => settingsSheetRef.current?.present()}
         className="absolute bottom-6 right-6 h-14 w-14 rounded-full bg-surface border border-border items-center justify-center shadow-lg">
         <Icon as={Settings} size={22} className="text-text" />
-<<<<<<< HEAD
-<<<<<<< HEAD
         {announcementUnseen && (
           <View className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-brand" />
         )}
-=======
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
       </Pressable>
 
       <SettingsSheet
         ref={settingsSheetRef}
         sectionIds={sectionIds}
         onAboutPress={() => setAboutOpen(true)}
-<<<<<<< HEAD
-<<<<<<< HEAD
         onAnnouncementPress={
           announcement
             ? () => {
@@ -289,16 +252,6 @@ export default function TimetablePage() {
           unseen={announcementUnseen}
         />
       )}
-=======
-      />
-
-      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
->>>>>>> origin/dev
-=======
-      />
-
-      <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
->>>>>>> origin/main
     </View>
   );
 }

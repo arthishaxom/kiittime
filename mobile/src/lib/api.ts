@@ -48,8 +48,6 @@ export async function fetchTimetable(sectionIds: number[]): Promise<Timetable> {
   return res.json();
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 export type Announcement = {
   id: number;
   title: string;
@@ -69,10 +67,6 @@ export async function fetchCurrentAnnouncement(): Promise<Announcement | null> {
   return res.json();
 }
 
-=======
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
 export function formatTime(time: string): string {
   // time comes as "HH:MM:SS" from the API
   const [hours, minutes] = time.split(':').map(Number);

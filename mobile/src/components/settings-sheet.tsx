@@ -6,15 +6,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { Info, Mail, Megaphone, RotateCcw, Share2 } from 'lucide-react-native';
-=======
-import { Info, Mail, RotateCcw, Share2 } from 'lucide-react-native';
->>>>>>> origin/dev
-=======
-import { Info, Mail, RotateCcw, Share2 } from 'lucide-react-native';
->>>>>>> origin/main
 import { forwardRef, useCallback } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
@@ -27,25 +19,12 @@ import { THEME } from '@/lib/theme';
 type SettingsSheetProps = {
   sectionIds: number[];
   onAboutPress?: () => void;
-<<<<<<< HEAD
-<<<<<<< HEAD
   onAnnouncementPress?: () => void;
   announcementUnseen?: boolean;
 };
 
 export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
   function SettingsSheet({ sectionIds, onAboutPress, onAnnouncementPress, announcementUnseen }, ref) {
-=======
-=======
->>>>>>> origin/main
-};
-
-export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
-  function SettingsSheet({ sectionIds, onAboutPress }, ref) {
-<<<<<<< HEAD
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -105,8 +84,6 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
               <Text className="text-text font-medium">Contact / Report an Issue</Text>
             </Pressable>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
             {onAnnouncementPress && (
               <Pressable
                 onPress={onAnnouncementPress}
@@ -119,10 +96,6 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
               </Pressable>
             )}
 
-=======
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
             <Pressable
               onPress={onAboutPress}
               className="h-14 rounded-lg bg-surface border border-border flex-row items-center gap-3 px-4">

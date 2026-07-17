@@ -39,15 +39,7 @@ function DialogOverlay({
     <FullWindowOverlay>
       <DialogPrimitive.Overlay
         className={cn(
-<<<<<<< HEAD
-<<<<<<< HEAD
           'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/50 px-4',
-=======
-          'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/50 p-1',
->>>>>>> origin/dev
-=======
-          'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/50 p-1',
->>>>>>> origin/main
           Platform.select({
             web: 'animate-in fade-in-0 fixed cursor-default [&>*]:cursor-auto',
           }),
@@ -59,25 +51,12 @@ function DialogOverlay({
         <NativeOnlyAnimatedView
           entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
           exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
-<<<<<<< HEAD
-<<<<<<< HEAD
           className="w-full items-center"
           as="Pressable">
           <NativeOnlyAnimatedView
             entering={FadeIn.delay(50).reduceMotion(ReduceMotion.System)}
             exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
             className="w-full items-center">
-=======
-=======
->>>>>>> origin/main
-          as="Pressable">
-          <NativeOnlyAnimatedView
-            entering={FadeIn.delay(50).reduceMotion(ReduceMotion.System)}
-            exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}>
-<<<<<<< HEAD
->>>>>>> origin/dev
-=======
->>>>>>> origin/main
             <>{children}</>
           </NativeOnlyAnimatedView>
         </NativeOnlyAnimatedView>
