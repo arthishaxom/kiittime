@@ -1,3 +1,4 @@
+import packageJson from "./package.json";
 const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
@@ -25,7 +26,7 @@ module.exports = ({ config }) => ({
   ...config,
   name: getAppName(),
   slug: "kiittime",
-  version: process.env.APP_VERSION || "1.0.0",
+  version: process.env.APP_VERSION || packageJson.version,
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "kiittime",
