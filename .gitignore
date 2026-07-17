@@ -58,4 +58,7 @@ backend/scratch
 
 # Claude Code local (per-developer) settings
 .claude/settings.local.json
+<<<<<<< HEAD
 routeTree.gen.ts
+=======
+>>>>>>> origin/main

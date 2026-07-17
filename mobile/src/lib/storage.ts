@@ -2,9 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'kiit-time:selected-sections';
 <<<<<<< HEAD
+<<<<<<< HEAD
 const LAST_SEEN_ANNOUNCEMENT_KEY = 'kiit-time:last-seen-announcement';
 =======
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main
 
 export async function getSavedSectionIds(): Promise<number[] | null> {
   try {
@@ -26,6 +29,7 @@ export async function clearSavedSectionIds(): Promise<void> {
   await AsyncStorage.removeItem(STORAGE_KEY);
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 export async function getLastSeenAnnouncementId(): Promise<number | null> {
   try {
@@ -44,3 +48,5 @@ export async function setLastSeenAnnouncementId(id: number): Promise<void> {
 }
 =======
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main

@@ -20,6 +20,7 @@
       "computedHash": "96718e0a89e48c7d76cc9759c7094a82ff34eb89ddc46a30388063fa9812356f"
     },
 <<<<<<< HEAD
+<<<<<<< HEAD
     "grilling": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -28,6 +29,8 @@
     },
 =======
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main
     "handoff": {
       "source": "mattpocock/skills",
       "sourceType": "github",

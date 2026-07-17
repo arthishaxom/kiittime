@@ -85,6 +85,7 @@ class InspectResponse(BaseModel):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class AnnouncementOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -109,6 +110,8 @@ class ClearAnnouncementResponse(BaseModel):
 
 =======
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main
 class ClearAllResponse(BaseModel):
     status: str
     class_sessions_deleted: int

@@ -7,10 +7,14 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { Info, Mail, Megaphone, RotateCcw, Share2 } from 'lucide-react-native';
 =======
 import { Info, Mail, RotateCcw, Share2 } from 'lucide-react-native';
 >>>>>>> origin/dev
+=======
+import { Info, Mail, RotateCcw, Share2 } from 'lucide-react-native';
+>>>>>>> origin/main
 import { forwardRef, useCallback } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
@@ -24,6 +28,7 @@ type SettingsSheetProps = {
   sectionIds: number[];
   onAboutPress?: () => void;
 <<<<<<< HEAD
+<<<<<<< HEAD
   onAnnouncementPress?: () => void;
   announcementUnseen?: boolean;
 };
@@ -31,11 +36,16 @@ type SettingsSheetProps = {
 export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
   function SettingsSheet({ sectionIds, onAboutPress, onAnnouncementPress, announcementUnseen }, ref) {
 =======
+=======
+>>>>>>> origin/main
 };
 
 export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
   function SettingsSheet({ sectionIds, onAboutPress }, ref) {
+<<<<<<< HEAD
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -96,6 +106,7 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
             </Pressable>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             {onAnnouncementPress && (
               <Pressable
                 onPress={onAnnouncementPress}
@@ -110,6 +121,8 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
 
 =======
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main
             <Pressable
               onPress={onAboutPress}
               className="h-14 rounded-lg bg-surface border border-border flex-row items-center gap-3 px-4">

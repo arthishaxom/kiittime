@@ -1,16 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { focusManager, QueryClient } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useEffect, type ReactNode } from 'react';
 import { AppState, type AppStateStatus, Platform } from 'react-native';
 =======
+=======
+>>>>>>> origin/main
 import { QueryClient } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import type { ReactNode } from 'react';
+<<<<<<< HEAD
 >>>>>>> origin/dev
+=======
+>>>>>>> origin/main
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
@@ -26,6 +32,7 @@ const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
 });
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 function onAppStateChange(status: AppStateStatus) {
   // TanStack Query's refetch-on-focus relies on a browser's window focus
@@ -46,6 +53,9 @@ export function QueryProvider({ children }: { children: ReactNode }) {
 =======
 export function QueryProvider({ children }: { children: ReactNode }) {
 >>>>>>> origin/dev
+=======
+export function QueryProvider({ children }: { children: ReactNode }) {
+>>>>>>> origin/main
   return (
     <PersistQueryClientProvider
       client={queryClient}
