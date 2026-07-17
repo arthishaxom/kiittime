@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedReviewUploadIdRouteImport } from './routes/_authenticated/review.$uploadId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -28,6 +29,12 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAnnouncementsRoute =
+  AuthenticatedAnnouncementsRouteImport.update({
+    id: '/announcements',
+    path: '/announcements',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedReviewUploadIdRoute =
   AuthenticatedReviewUploadIdRouteImport.update({
     id: '/review/$uploadId',
@@ -38,10 +45,12 @@ const AuthenticatedReviewUploadIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
+  '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/review/$uploadId': typeof AuthenticatedReviewUploadIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/': typeof AuthenticatedIndexRoute
   '/review/$uploadId': typeof AuthenticatedReviewUploadIdRoute
 }
@@ -49,18 +58,20 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/review/$uploadId': typeof AuthenticatedReviewUploadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/review/$uploadId'
+  fullPaths: '/' | '/login' | '/announcements' | '/review/$uploadId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/review/$uploadId'
+  to: '/login' | '/announcements' | '/' | '/review/$uploadId'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
+    | '/_authenticated/announcements'
     | '/_authenticated/'
     | '/_authenticated/review/$uploadId'
   fileRoutesById: FileRoutesById
@@ -93,6 +104,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/announcements': {
+      id: '/_authenticated/announcements'
+      path: '/announcements'
+      fullPath: '/announcements'
+      preLoaderRoute: typeof AuthenticatedAnnouncementsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/review/$uploadId': {
       id: '/_authenticated/review/$uploadId'
       path: '/review/$uploadId'
@@ -104,11 +122,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedReviewUploadIdRoute: typeof AuthenticatedReviewUploadIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedReviewUploadIdRoute: AuthenticatedReviewUploadIdRoute,
 }

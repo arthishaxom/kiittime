@@ -118,6 +118,25 @@ class BronzeSnapshot(Base):
         return f"<BronzeSnapshot id={self.id} file={self.source_filename} status={self.status}>"
 
 
+class Announcement(Base):
+    __tablename__ = "announcements"
+    __table_args__ = {"schema": "kiittime"}
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    body: Mapped[str] = mapped_column(String, nullable=False)
+    link_label: Mapped[str | None] = mapped_column(String, nullable=True)
+    link_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<Announcement id={self.id} title={self.title!r} is_active={self.is_active}>"
+
+
 class AdminUser(Base):
     __tablename__ = "admin_users"
     __table_args__ = {"schema": "kiittime"}

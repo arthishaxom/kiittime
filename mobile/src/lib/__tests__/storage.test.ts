@@ -1,5 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { clearSavedSectionIds, getSavedSectionIds, saveSectionIds } from '@/lib/storage';
+import {
+  clearSavedSectionIds,
+  getLastSeenAnnouncementId,
+  getSavedSectionIds,
+  saveSectionIds,
+  setLastSeenAnnouncementId,
+} from '@/lib/storage';
 
 afterEach(async () => {
   await AsyncStorage.clear();
@@ -38,5 +44,21 @@ describe('clearSavedSectionIds', () => {
     await saveSectionIds([1, 2]);
     await clearSavedSectionIds();
     await expect(getSavedSectionIds()).resolves.toBeNull();
+  });
+});
+
+describe('setLastSeenAnnouncementId / getLastSeenAnnouncementId round-trip', () => {
+  it('returns the previously seen announcement id', async () => {
+    await setLastSeenAnnouncementId(42);
+    await expect(getLastSeenAnnouncementId()).resolves.toBe(42);
+  });
+
+  it('returns null when nothing has been seen', async () => {
+    await expect(getLastSeenAnnouncementId()).resolves.toBeNull();
+  });
+
+  it('returns null for unparseable JSON', async () => {
+    await AsyncStorage.setItem('kiit-time:last-seen-announcement', 'not json');
+    await expect(getLastSeenAnnouncementId()).resolves.toBeNull();
   });
 });

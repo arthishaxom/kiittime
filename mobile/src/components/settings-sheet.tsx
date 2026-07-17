@@ -6,7 +6,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Info, Mail, RotateCcw, Share2 } from 'lucide-react-native';
+import { Info, Mail, Megaphone, RotateCcw, Share2 } from 'lucide-react-native';
 import { forwardRef, useCallback } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
@@ -19,10 +19,12 @@ import { THEME } from '@/lib/theme';
 type SettingsSheetProps = {
   sectionIds: number[];
   onAboutPress?: () => void;
+  onAnnouncementPress?: () => void;
+  announcementUnseen?: boolean;
 };
 
 export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
-  function SettingsSheet({ sectionIds, onAboutPress }, ref) {
+  function SettingsSheet({ sectionIds, onAboutPress, onAnnouncementPress, announcementUnseen }, ref) {
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -81,6 +83,18 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
               <Icon as={Mail} size={20} className="text-text" />
               <Text className="text-text font-medium">Contact / Report an Issue</Text>
             </Pressable>
+
+            {onAnnouncementPress && (
+              <Pressable
+                onPress={onAnnouncementPress}
+                className="h-14 rounded-lg bg-surface border border-border flex-row items-center gap-3 px-4">
+                <Icon as={Megaphone} size={20} className="text-text" />
+                <Text className="text-text font-medium">Announcement</Text>
+                {announcementUnseen && (
+                  <View className="h-2 w-2 rounded-full bg-brand ml-auto" />
+                )}
+              </Pressable>
+            )}
 
             <Pressable
               onPress={onAboutPress}

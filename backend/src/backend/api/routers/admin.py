@@ -1,12 +1,17 @@
 from io import BytesIO
+from typing import Any
 
 import pandas as pd
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from backend.api.dao.announcement_dao import create_announcement, deactivate_current
 from backend.api.schemas import (
+    AnnouncementOut,
     ApproveResponse,
     ClearAllResponse,
+    ClearAnnouncementResponse,
+    CreateAnnouncementRequest,
     DiffSummary,
     InspectResponse,
     RejectResponse,
@@ -181,6 +186,35 @@ def reject_upload(
     db.commit()
 
     return {"status": "rejected", "upload_id": upload_id}
+
+
+@router.post("/announcements", response_model=AnnouncementOut)
+def create_announcement_route(
+    payload: CreateAnnouncementRequest,
+    current_admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    announcement = create_announcement(
+        db,
+        title=payload.title,
+        body=payload.body,
+        link_label=payload.link_label,
+        link_url=payload.link_url,
+        created_by=current_admin.username,
+    )
+    db.commit()
+    db.refresh(announcement)
+    return announcement
+
+
+@router.post("/announcements/clear", response_model=ClearAnnouncementResponse)
+def clear_announcement_route(
+    current_admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    deactivate_current(db)
+    db.commit()
+    return {"status": "cleared"}
 
 
 @router.post("/clear-all", response_model=ClearAllResponse)
