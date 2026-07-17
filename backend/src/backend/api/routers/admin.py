@@ -10,11 +10,8 @@ from backend.api.schemas import (
     AnnouncementOut,
     ApproveResponse,
     ClearAllResponse,
-<<<<<<< HEAD
     ClearAnnouncementResponse,
     CreateAnnouncementRequest,
-=======
->>>>>>> origin/dev
     DiffSummary,
     InspectResponse,
     RejectResponse,
@@ -191,7 +188,6 @@ def reject_upload(
     return {"status": "rejected", "upload_id": upload_id}
 
 
-<<<<<<< HEAD
 @router.post("/announcements", response_model=AnnouncementOut)
 def create_announcement_route(
     payload: CreateAnnouncementRequest,
@@ -221,8 +217,6 @@ def clear_announcement_route(
     return {"status": "cleared"}
 
 
-=======
->>>>>>> origin/dev
 @router.post("/clear-all", response_model=ClearAllResponse)
 def clear_all_route(
     current_admin: AdminUser = Depends(get_current_admin),

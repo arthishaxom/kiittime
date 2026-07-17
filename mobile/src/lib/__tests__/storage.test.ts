@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-<<<<<<< HEAD
 import {
   clearSavedSectionIds,
   getLastSeenAnnouncementId,
@@ -7,9 +6,6 @@ import {
   saveSectionIds,
   setLastSeenAnnouncementId,
 } from '@/lib/storage';
-=======
-import { clearSavedSectionIds, getSavedSectionIds, saveSectionIds } from '@/lib/storage';
->>>>>>> origin/dev
 
 afterEach(async () => {
   await AsyncStorage.clear();
@@ -50,7 +46,6 @@ describe('clearSavedSectionIds', () => {
     await expect(getSavedSectionIds()).resolves.toBeNull();
   });
 });
-<<<<<<< HEAD
 
 describe('setLastSeenAnnouncementId / getLastSeenAnnouncementId round-trip', () => {
   it('returns the previously seen announcement id', async () => {
@@ -67,5 +62,3 @@ describe('setLastSeenAnnouncementId / getLastSeenAnnouncementId round-trip', () 
     await expect(getLastSeenAnnouncementId()).resolves.toBeNull();
   });
 });
-=======
->>>>>>> origin/dev
