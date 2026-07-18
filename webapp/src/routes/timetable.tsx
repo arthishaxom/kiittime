@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 import { motion, useMotionValue, animate } from 'motion/react'
-import { Settings, Share2, RotateCcw, Mail, Megaphone } from 'lucide-react'
+import { Settings, Share2, RotateCcw, Mail, Megaphone, Smartphone } from 'lucide-react'
 import { useTimetable } from '#/hooks/useTimetable'
 import { useAnnouncement } from '#/hooks/useAnnouncement'
 import type { Session } from '#/lib/api'
@@ -19,7 +19,10 @@ import { getLastSeenAnnouncementId, setLastSeenAnnouncementId } from '#/lib/stor
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const
 
 const searchSchema = z.object({
-  section_id: z.array(z.number()).catch([]),
+  section_id: z
+    .union([z.number(), z.array(z.number())])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .catch([]),
 })
 
 export const Route = createFileRoute('/timetable')({
@@ -223,10 +226,32 @@ function TimetablePage() {
             <SheetTitle className="text-white text-center">Settings</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-4 p-4">
+            {/android/i.test(navigator.userAgent) && (
+              <a
+                href="https://play.google.com/store/apps/details?id=com.ashish.kiittime"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-brand/20 flex items-center justify-center">
+                    <Smartphone className="text-brand" size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">Get the Android App</h3>
+                    <p className="text-text-muted text-xs">For a faster, native experience</p>
+                  </div>
+                </div>
+                <span className="bg-brand text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                  Download
+                </span>
+              </a>
+            )}
+            
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => shareTimetable()}
+                onClick={() => shareTimetable(section_id)}
                 className="flex-1 h-16 rounded-lg bg-surface border border-border flex items-center justify-center gap-2 text-white font-medium"
               >
                 <Share2 size={20} />

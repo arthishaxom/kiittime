@@ -48,6 +48,17 @@ module.exports = ({ config }) => ({
       backgroundColor: "#181818",
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
+    intentFilters: [
+      {
+        action: "VIEW",
+        autoVerify: true,
+        data: [
+          { scheme: "https", host: "kiittime.apothal.dev", pathPrefix: "/" },
+          { scheme: "https", host: "kiittime.vercel.app", pathPrefix: "/" },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
   },
 
   web: {
