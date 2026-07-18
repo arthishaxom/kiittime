@@ -228,7 +228,7 @@ function TimetablePage() {
           <div className="flex flex-col gap-4 p-4">
             {/android/i.test(navigator.userAgent) && (
               <a
-                href="https://github.com/justashish/kiittime/releases"
+                href="https://play.google.com/store/apps/details?id=com.ashish.kiittime"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30"
