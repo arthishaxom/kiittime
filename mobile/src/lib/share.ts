@@ -1,6 +1,6 @@
 import { Share } from 'react-native';
 
-const WEBAPP_URL = 'https://kiittime.vercel.app';
+const WEBAPP_URL = process.env.EXPO_PUBLIC_WEBAPP_URL || 'https://kiittime.apothal.dev';
 
 export function buildShareUrl(sectionIds: number[]): string {
   const url = new URL('/timetable', WEBAPP_URL);
@@ -11,7 +11,7 @@ export function buildShareUrl(sectionIds: number[]): string {
 }
 
 export function buildShareMessage(sectionIds: number[]): string {
-  return `Check out my class schedule\n${buildShareUrl(sectionIds)}`;
+  return `Check out my class schedule\n${buildShareUrl(sectionIds)}\n\nGet the Android app: https://github.com/justashish/kiittime/releases`;
 }
 
 export async function shareTimetable(sectionIds: number[]): Promise<void> {

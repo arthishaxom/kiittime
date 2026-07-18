@@ -1,9 +1,13 @@
-export async function shareTimetable() {
-  const url = window.location.href
+export async function shareTimetable(sectionIds: number[]) {
+  const url = new URL('/timetable', window.location.origin)
+  for (const id of sectionIds) {
+    url.searchParams.append('section_id', String(id))
+  }
+  
   const shareData = {
     title: 'My KIIT Time Timetable',
-    text: 'Check out my class schedule',
-    url,
+    text: 'Check out my class schedule\n\nGet the Android app: https://github.com/justashish/kiittime/releases',
+    url: url.toString(),
   }
 
   if (navigator.share) {
