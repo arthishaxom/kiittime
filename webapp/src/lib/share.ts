@@ -6,7 +6,7 @@ export async function shareTimetable(sectionIds: number[]) {
   
   const shareData = {
     title: 'My KIIT Time Timetable',
-    text: 'Check out my class schedule\n\nGet the Android app: https://github.com/justashish/kiittime/releases',
+    text: `Check out my class schedule\n${url.toString()}\n\nGet the Android app: https://play.google.com/store/apps/details?id=com.ashish.kiittime`,
     url: url.toString(),
   }
 

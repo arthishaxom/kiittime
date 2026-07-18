@@ -37,7 +37,7 @@ describe('shareTimetable', () => {
     // Verify navigator.share was called with the correctly formatted URL
     expect(navigator.share).toHaveBeenCalledWith({
       title: 'My KIIT Time Timetable',
-      text: 'Check out my class schedule\n\nGet the Android app: https://github.com/justashish/kiittime/releases',
+      text: 'Check out my class schedule\nhttps://kiittime.apothal.dev/timetable?section_id=12&section_id=34\n\nGet the Android app: https://play.google.com/store/apps/details?id=com.ashish.kiittime',
       url: 'https://kiittime.apothal.dev/timetable?section_id=12&section_id=34',
     })
   })

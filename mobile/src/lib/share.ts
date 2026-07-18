@@ -11,7 +11,7 @@ export function buildShareUrl(sectionIds: number[]): string {
 }
 
 export function buildShareMessage(sectionIds: number[]): string {
-  return `Check out my class schedule\n${buildShareUrl(sectionIds)}\n\nGet the Android app: https://github.com/justashish/kiittime/releases`;
+  return `Check out my class schedule\n${buildShareUrl(sectionIds)}\n\nGet the Android app: https://play.google.com/store/apps/details?id=com.ashish.kiittime`;
 }
 
 export async function shareTimetable(sectionIds: number[]): Promise<void> {
