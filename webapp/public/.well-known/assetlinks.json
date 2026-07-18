@@ -1,0 +1,32 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ashish.kiittime",
+      "sha256_cert_fingerprints": [
+        "FB:7D:85:D9:9E:E7:FA:C5:94:5B:14:E4:B3:33:32:06:F8:45:98:6B:3C:1F:D9:3C:48:3B:D9:37:6D:E4:A8:FD"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.justashish.kiittime.dev",
+      "sha256_cert_fingerprints": [
+        "FA:C6:17:45:D6:12:7A:D3:5F:8B:2E:7C:98:B1:A4:E0:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.justashish.kiittime.preview",
+      "sha256_cert_fingerprints": [
+        "16:C8:58:4F:7C:3E:B5:2A:98:66:25:73:58:0E:65:E3:C6:88:9D:DC:FD:23:11:CE:D2:47:C8:ED:AC:AD:14:26"
+      ]
+    }
+  }
+]
