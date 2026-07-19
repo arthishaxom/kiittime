@@ -12,5 +12,11 @@ services:
     volumes:
       - kiittime_pgdata:/var/lib/postgresql/data
 
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: kiittime-redis
+    ports:
+      - "6379:6379"
+
 volumes:
   kiittime_pgdata:

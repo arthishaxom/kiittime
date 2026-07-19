@@ -24,9 +24,7 @@ def get_current_admin(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = db.execute(
-        select(AdminUser).where(AdminUser.username == subject)
-    ).scalar_one_or_none()
+    user = db.execute(select(AdminUser).where(AdminUser.username == subject)).scalar_one_or_none()
 
     if user is None:
         raise HTTPException(

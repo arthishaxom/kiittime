@@ -128,9 +128,7 @@ class Announcement(Base):
     link_label: Mapped[str | None] = mapped_column(String, nullable=True)
     link_url: Mapped[str | None] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)
 
     def __repr__(self) -> str:
@@ -144,6 +142,22 @@ class AdminUser(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RollNumberMapping(Base):
+    __tablename__ = "roll_number_mappings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    roll_no: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    section_id: Mapped[int] = mapped_column(ForeignKey("kiittime.sections.id"), nullable=False)
+    academic_year: Mapped[int] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("roll_no", "section_id"),
+        {"schema": "kiittime"},
     )
+
+    section: Mapped["Section"] = relationship()
+
+

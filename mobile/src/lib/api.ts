@@ -67,6 +67,77 @@ export async function fetchCurrentAnnouncement(): Promise<Announcement | null> {
   return res.json();
 }
 
+export type RollNumberMappingOut = {
+  roll_no: string;
+  academic_year: number;
+  sections: Section[];
+};
+
+export async function fetchRollNumberMapping(rollNo: string): Promise<RollNumberMappingOut> {
+  const url = new URL(`/api/roll-numbers/${rollNo}`, API_BASE_URL);
+  const res = await fetch(url);
+  if (!res.ok) {
+    let detail = `Failed to fetch roll number mapping: ${res.status}`;
+    let detailMessage = '';
+    try {
+      const body = await res.json();
+      if (body && body.detail) {
+        detailMessage = body.detail;
+      }
+    } catch {}
+    const error = new Error(detailMessage || detail);
+    (error as any).status = res.status;
+    (error as any).detail = detailMessage;
+    throw error;
+  }
+  return res.json();
+}
+
+export async function sendOtp(rollNo: string, sectionIds: number[]): Promise<{ status: string; message: string }> {
+  const url = new URL('/api/auth/otp/send', API_BASE_URL);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roll_no: rollNo, section_ids: sectionIds }),
+  });
+  if (!res.ok) {
+    let detailMessage = '';
+    try {
+      const body = await res.json();
+      if (body && body.detail) {
+        detailMessage = body.detail;
+      }
+    } catch {}
+    const error = new Error(detailMessage || `Failed to send OTP: ${res.status}`);
+    (error as any).status = res.status;
+    throw error;
+  }
+  return res.json();
+}
+
+export async function verifyOtp(rollNo: string, otpCode: string): Promise<RollNumberMappingOut> {
+  const url = new URL('/api/auth/otp/verify', API_BASE_URL);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roll_no: rollNo, otp_code: otpCode }),
+  });
+  if (!res.ok) {
+    let detailMessage = '';
+    try {
+      const body = await res.json();
+      if (body && body.detail) {
+        detailMessage = body.detail;
+      }
+    } catch {}
+    const error = new Error(detailMessage || `Failed to verify OTP: ${res.status}`);
+    (error as any).status = res.status;
+    throw error;
+  }
+  return res.json();
+}
+
+
 export function formatTime(time: string): string {
   // time comes as "HH:MM:SS" from the API
   const [hours, minutes] = time.split(':').map(Number);

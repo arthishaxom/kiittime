@@ -1,4 +1,4 @@
-import { fetchSections, fetchTimetable, formatTime } from '@/lib/api';
+import { fetchSections, fetchTimetable, formatTime, fetchRollNumberMapping } from '@/lib/api';
 
 const originalFetch = globalThis.fetch;
 
@@ -65,6 +65,49 @@ describe('fetchTimetable', () => {
     globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404 }) as unknown as typeof fetch;
 
     await expect(fetchTimetable([1])).rejects.toThrow('Failed to fetch timetable: 404');
+  });
+});
+
+describe('fetchRollNumberMapping', () => {
+  it('requests /api/roll-numbers/{roll_no} and returns parsed JSON', async () => {
+    const mapping = {
+      roll_no: '2105123',
+      academic_year: 3,
+      sections: [{ id: 42, section_name: 'CS1', year: 3 }],
+    };
+    const mockFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mapping),
+    });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const result = await fetchRollNumberMapping('2105123');
+
+    expect(result).toEqual(mapping);
+    const requestedUrl = new URL(mockFetch.mock.calls[0][0] as string);
+    expect(requestedUrl.pathname).toBe('/api/roll-numbers/2105123');
+  });
+
+  it('throws with the detail message when response is not ok', async () => {
+    const errorBody = { detail: 'Roll number not found' };
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve(errorBody),
+    }) as unknown as typeof fetch;
+
+    await expect(fetchRollNumberMapping('2105123')).rejects.toThrow('Roll number not found');
+  });
+
+  it('throws "No timetables uploaded yet" detail when DB is empty', async () => {
+    const errorBody = { detail: 'No timetables uploaded yet' };
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve(errorBody),
+    }) as unknown as typeof fetch;
+
+    await expect(fetchRollNumberMapping('2105123')).rejects.toThrow('No timetables uploaded yet');
   });
 });
 

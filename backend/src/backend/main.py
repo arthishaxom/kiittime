@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from backend.api.routers import admin, announcements, auth, sections, timetable
+from backend.api.routers import admin, announcements, auth, otp, roll_numbers, sections, timetable
 from backend.db.session import get_db
 
 load_dotenv()
@@ -25,8 +25,10 @@ app.add_middleware(
 app.include_router(admin.router)
 app.include_router(announcements.router)
 app.include_router(auth.router)
+app.include_router(otp.router)
 app.include_router(sections.router)
 app.include_router(timetable.router)
+app.include_router(roll_numbers.router)
 
 
 @app.get("/health")
