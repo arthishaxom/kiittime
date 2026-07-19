@@ -286,7 +286,7 @@ export default function Index() {
               <Pressable className="bg-surface rounded-2xl p-6 border border-border">
                 <Text className="text-white text-lg font-bold mb-2">⚠️ Roll Number Not Registered</Text>
                 <Text className="text-text-muted text-sm leading-relaxed mb-6">
-                  We couldn't find your roll number <Text className="text-white font-bold">{rollNo}</Text> in the system. Would you like to select your sections manually and link your roll number via email OTP?
+                  We couldn&apos;t find your roll number <Text className="text-white font-bold">{rollNo}</Text> in the system. Would you like to select your sections manually and link your roll number via email OTP?
                 </Text>
                 <View className="gap-2">
                   <Pressable

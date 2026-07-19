@@ -55,7 +55,7 @@ function TimetablePage() {
 		for (const session of data?.sessions ?? []) {
 			const key = session.day.toUpperCase().slice(0, 3);
 			if (map.has(key)) {
-				map.get(key)!.push(session);
+				map.get(key)?.push(session);
 			}
 		}
 		for (const list of map.values()) {
@@ -108,6 +108,8 @@ function TimetablePage() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [containerWidth, setContainerWidth] = useState(0);
 
+	const x = useMotionValue(0);
+
 	useLayoutEffect(() => {
 		if (isLoading || isError) return;
 
@@ -122,9 +124,12 @@ function TimetablePage() {
 		measure();
 		window.addEventListener("resize", measure);
 		return () => window.removeEventListener("resize", measure);
-	}, [isLoading, isError]);
-
-	const x = useMotionValue(0);
+	}, [
+		isLoading,
+		isError,
+		initialIndex, // Sync x to the initial day index so the carousel is not stuck at index 0 on mount
+		x.set,
+	]);
 
 	const activeAnimation = useRef<ReturnType<typeof animate> | null>(null);
 

@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState, memo, useCallback, useEffect, useRef } from 'react';
 import { Linking, Pressable, FlatList, View, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { toast } from 'sonner-native';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
@@ -121,7 +122,9 @@ export default function SectionSearch() {
       setIsConfirmLinkOpen(false);
       setIsOtpOpen(true);
     } catch (err: any) {
-      setOtpError(err.message || 'Failed to send OTP. Please try again.');
+      const msg = err.message || 'Failed to send OTP. Please try again.';
+      setOtpError(msg);
+      toast.error(msg);
     } finally {
       setIsSendingOtp(false);
     }
@@ -286,7 +289,7 @@ export default function SectionSearch() {
           <Pressable className="bg-surface rounded-2xl p-6 border border-border">
             <Text className="text-white text-lg font-bold mb-2">Link Roll Number?</Text>
             <Text className="text-text-muted text-sm leading-relaxed mb-6">
-              Would you like to link your roll number <Text className="text-white font-bold">{rollNoToLink}</Text> to these sections so you don't have to select them next time?
+              Would you like to link your roll number <Text className="text-white font-bold">{rollNoToLink}</Text> to these sections so you don&apos;t have to select them next time?
             </Text>
             <View className="gap-2">
               <Pressable
@@ -329,7 +332,7 @@ export default function SectionSearch() {
           <Pressable className="bg-surface rounded-2xl p-6 border border-border">
             <Text className="text-white text-lg font-bold mb-2">Verify Your Email</Text>
             <Text className="text-text-muted text-sm leading-relaxed mb-4">
-              We've sent a 6-digit verification code to <Text className="text-white font-bold">{rollNoToLink}@kiit.ac.in</Text>. Enter it below to link your roll number.
+              We&apos;ve sent a 6-digit verification code to <Text className="text-white font-bold">{rollNoToLink}@kiit.ac.in</Text>. Enter it below to link your roll number.
             </Text>
 
             <View className="relative flex-row justify-between gap-1 sm:gap-2 my-6" style={{ minHeight: 56 }}>

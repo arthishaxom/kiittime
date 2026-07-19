@@ -20,6 +20,7 @@ export default function RootLayout() {
               <BottomSheetModalProvider>
                 <Stack screenOptions={{ headerShown: false }} />
                 <PortalHost />
+                <Toaster theme="dark" />
               </BottomSheetModalProvider>
             </SafeAreaProvider>
           </QueryProvider>
