@@ -38,3 +38,18 @@ export async function getLastSeenAnnouncementId(): Promise<number | null> {
 export async function setLastSeenAnnouncementId(id: number): Promise<void> {
   await AsyncStorage.setItem(LAST_SEEN_ANNOUNCEMENT_KEY, JSON.stringify(id));
 }
+
+const TEMP_LINKING_ROLL_NO_KEY = 'kiit-time:temp-linking-roll-no';
+
+export async function getTempLinkingRollNo(): Promise<string | null> {
+  return AsyncStorage.getItem(TEMP_LINKING_ROLL_NO_KEY);
+}
+
+export async function saveTempLinkingRollNo(rollNo: string): Promise<void> {
+  await AsyncStorage.setItem(TEMP_LINKING_ROLL_NO_KEY, rollNo);
+}
+
+export async function clearTempLinkingRollNo(): Promise<void> {
+  await AsyncStorage.removeItem(TEMP_LINKING_ROLL_NO_KEY);
+}
+

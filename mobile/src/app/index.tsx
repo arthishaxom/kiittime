@@ -1,13 +1,13 @@
 import { ChevronRight, Info, ArrowLeft } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { Image, Pressable, View, TextInput, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { Image, Pressable, View, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { AboutDialog } from '@/components/about-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { timetableHref } from '@/lib/search-params';
-import { getSavedSectionIds, saveSectionIds } from '@/lib/storage';
+import { getSavedSectionIds, saveSectionIds, saveTempLinkingRollNo, clearTempLinkingRollNo } from '@/lib/storage';
 import { fetchRollNumberMapping } from '@/lib/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,6 +27,11 @@ export default function Index() {
   const [isEmptyDb, setIsEmptyDb] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [year, setYear] = useState<number | undefined>(undefined);
+
+  const [isNotFoundOpen, setIsNotFoundOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +63,9 @@ export default function Index() {
     } catch (err: any) {
       if (err.status === 404 && err.detail === 'No timetables uploaded yet') {
         setIsEmptyDb(true);
+      } else if (err.status === 404 && err.detail === 'Roll number not found') {
+        setIsNotFoundOpen(true);
+        setError('Roll number not found');
       } else {
         setError(err.message || 'Roll number not found');
       }
@@ -65,6 +73,23 @@ export default function Index() {
       setIsLoading(false);
     }
   };
+
+  const handleLinkSelection = async () => {
+    await saveTempLinkingRollNo(rollNo.trim());
+    setIsNotFoundOpen(false);
+    setShowManual(true);
+  };
+
+  const handleManualSelection = async () => {
+    await clearTempLinkingRollNo();
+    setIsNotFoundOpen(false);
+    setShowManual(true);
+  };
+
+  const focusInput = () => {
+    inputRef.current?.focus();
+  };
+
 
   if (checkingSaved) {
     return <View className="flex-1 bg-bg" />;
@@ -126,22 +151,55 @@ export default function Index() {
               <Text className="text-text text-lg font-semibold mb-1">Find your Timetable</Text>
               <Text className="text-text-muted text-sm mb-4">Enter your roll number to automatically load your schedule.</Text>
 
-              <View className="mb-4">
+              <View className="mb-6 relative">
+                {/* Hidden TextInput */}
                 <TextInput
+                  ref={inputRef}
                   placeholder="e.g. 2105123"
                   placeholderTextColor="#a3a3a3"
                   value={rollNo}
+                  onFocus={() => setIsInputFocused(true)}
+                  onBlur={() => setIsInputFocused(false)}
                   onChangeText={(val) => {
-                    setRollNo(val);
-                    setError(null);
+                    const cleaned = val.replace(/[^0-9]/g, '');
+                    if (cleaned.length <= 8) {
+                      setRollNo(cleaned);
+                      setError(null);
+                    }
                   }}
                   editable={!isLoading}
                   keyboardType="number-pad"
                   autoCapitalize="none"
-                  className="w-full h-14 bg-bg rounded-lg px-4 border border-border text-text text-lg"
-                  style={{ color: '#ffffff' }}
+                  className="absolute inset-0 w-full h-full opacity-0 z-10"
+                  style={{ color: 'transparent' }}
                 />
-                {error && <Text className="text-danger text-sm mt-2">{error}</Text>}
+
+                {/* Styled Character Boxes */}
+                <View className="flex-row justify-between gap-1 sm:gap-2" style={{ minHeight: 56 }}>
+                  {Array.from({ length: rollNo.length >= 7 ? 8 : 7 }).map((_, i) => {
+                    const char = rollNo[i] || '';
+                    const isFocused = isInputFocused && i === rollNo.length;
+                    const isFilled = char !== '';
+                    return (
+                      <Pressable
+                        key={i}
+                        onPress={focusInput}
+                        className={
+                          'flex-1 h-14 bg-bg rounded-lg border items-center justify-center ' +
+                          (isFocused
+                            ? 'border-brand'
+                            : isFilled
+                            ? 'border-border'
+                            : 'border-border/30')
+                        }>
+                        <Text className="text-white text-lg font-bold">
+                          {char}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {error && <Text className="text-danger text-sm mt-3 text-center">{error}</Text>}
               </View>
 
               <Pressable
@@ -208,6 +266,40 @@ export default function Index() {
             </View>
           )}
         </View>
+
+        <Modal
+          visible={isNotFoundOpen}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsNotFoundOpen(false)}>
+          <Pressable
+            onPress={() => setIsNotFoundOpen(false)}
+            className="flex-1 bg-black/60 justify-center p-6">
+            <Pressable className="bg-surface rounded-2xl p-6 border border-border">
+              <Text className="text-white text-lg font-bold mb-2">⚠️ Roll Number Not Registered</Text>
+              <Text className="text-text-muted text-sm leading-relaxed mb-6">
+                We couldn't find your roll number <Text className="text-white font-bold">{rollNo}</Text> in the system. Would you like to select your sections manually and link your roll number via email OTP?
+              </Text>
+              <View className="gap-2">
+                <Pressable
+                  onPress={handleLinkSelection}
+                  className="w-full h-12 bg-brand rounded-lg items-center justify-center">
+                  <Text className="text-white font-semibold">Link Roll Number via OTP</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleManualSelection}
+                  className="w-full h-12 bg-transparent border border-border rounded-lg items-center justify-center">
+                  <Text className="text-text font-medium">Select Manually (No Linking)</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setIsNotFoundOpen(false)}
+                  className="w-full h-12 items-center justify-center">
+                  <Text className="text-text-muted font-medium">Cancel</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Pressable
           onPress={() => setAboutOpen(true)}

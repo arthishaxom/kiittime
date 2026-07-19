@@ -135,3 +135,25 @@ class RollNumberUploadResponse(BaseModel):
 class RollMappingInspectResponse(BaseModel):
     columns: list[str]
 
+
+class OTPSendRequest(BaseModel):
+    roll_no: str
+    section_ids: list[int]
+
+
+class OTPSendResponse(BaseModel):
+    status: str
+    message: str
+
+
+class OTPVerifyRequest(BaseModel):
+    roll_no: str
+    otp_code: str
+
+
+class OTPVerifyResponse(BaseModel):
+    status: str
+    academic_year: int
+    sections: list[SectionOut]
+
+

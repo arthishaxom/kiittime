@@ -1,10 +1,18 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, Info, Loader2 } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AboutDialog } from "#/components/AboutDialog";
 import { fetchRollNumberMapping } from "#/lib/api";
 import { saveSectionIds } from "#/lib/storage";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 
 export function Landing() {
 	const [rollNo, setRollNo] = useState("");
@@ -12,10 +20,13 @@ export function Landing() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isEmptyDb, setIsEmptyDb] = useState(false);
 	const [showManual, setShowManual] = useState(false);
+	const [isNotFoundOpen, setIsNotFoundOpen] = useState(false);
+	const [isInputFocused, setIsInputFocused] = useState(false);
 
 	const [year, setYear] = useState<number | undefined>(undefined);
 	const [aboutOpen, setAboutOpen] = useState(false);
 	const navigate = useNavigate();
+	const inputRef = useRef<HTMLInputElement>(null);
 
 	const handleRollSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -33,12 +44,31 @@ export function Landing() {
 		} catch (err: any) {
 			if (err.status === 404 && err.detail === "No timetables uploaded yet") {
 				setIsEmptyDb(true);
+			} else if (err.status === 404 && err.detail === "Roll number not found") {
+				setIsNotFoundOpen(true);
+				setError("Roll number not found");
 			} else {
 				setError(err.message || "Roll number not found");
 			}
 		} finally {
 			setIsLoading(false);
 		}
+	};
+
+	const handleLinkSelection = () => {
+		localStorage.setItem("temp_linking_roll_no", rollNo.trim());
+		setIsNotFoundOpen(false);
+		setShowManual(true);
+	};
+
+	const handleManualSelection = () => {
+		localStorage.removeItem("temp_linking_roll_no");
+		setIsNotFoundOpen(false);
+		setShowManual(true);
+	};
+
+	const focusInput = () => {
+		inputRef.current?.focus();
 	};
 
 	if (isEmptyDb) {
@@ -86,6 +116,8 @@ export function Landing() {
 		);
 	}
 
+	const totalBoxes = rollNo.length >= 7 ? 8 : 7;
+
 	return (
 		<div className="h-dvh bg-bg/50 text-text flex flex-col p-6">
 			{/* Logo */}
@@ -108,19 +140,52 @@ export function Landing() {
 							Enter your roll number to automatically load your schedule.
 						</p>
 
-						<div className="mb-4">
+						<div className="mb-6 relative">
+							{/* Hidden input field */}
 							<input
+								ref={inputRef}
 								type="text"
+								pattern="[0-9]*"
+								inputMode="numeric"
 								placeholder="e.g. 2105123"
 								value={rollNo}
+								onFocus={() => setIsInputFocused(true)}
+								onBlur={() => setIsInputFocused(false)}
 								onChange={(e) => {
-									setRollNo(e.target.value);
-									setError(null);
+									const val = e.target.value.replace(/[^0-9]/g, "");
+									if (val.length <= 8) {
+										setRollNo(val);
+										setError(null);
+									}
 								}}
 								disabled={isLoading}
-								className="w-full h-14 bg-bg rounded-lg px-4 border border-border text-white text-lg placeholder:text-text-muted/40 focus:outline-none focus:border-brand transition-colors disabled:opacity-50"
+								className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:pointer-events-none"
 							/>
-							{error && <p className="text-danger text-sm mt-2">{error}</p>}
+							
+							{/* Styled Segmented Boxes */}
+							<div className="flex justify-between gap-1 sm:gap-2" onClick={focusInput}>
+								{Array.from({ length: totalBoxes }).map((_, i) => {
+									const char = rollNo[i] || "";
+									const isFocused = isInputFocused && i === rollNo.length;
+									const isFilled = char !== "";
+									return (
+										<div
+											key={i}
+											className={`flex-1 h-14 bg-bg rounded-lg border flex items-center justify-center text-lg font-bold text-white transition-all ${
+												isFocused
+													? "border-brand shadow-[0_0_8px_rgba(245,124,0,0.4)] scale-102"
+													: isFilled
+														? "border-border/80"
+														: "border-border/30 text-text-muted/20"
+											}`}
+										>
+											{char}
+										</div>
+									);
+								})}
+							</div>
+							
+							{error && <p className="text-danger text-sm mt-3 text-center">{error}</p>}
 						</div>
 
 						<button
@@ -201,6 +266,42 @@ export function Landing() {
 				)}
 			</div>
 
+			<Dialog open={isNotFoundOpen} onOpenChange={setIsNotFoundOpen}>
+				<DialogContent className="bg-surface border-border text-text max-w-sm sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
+							<span className="text-brand">⚠️</span> Roll Number Not Registered
+						</DialogTitle>
+						<DialogDescription className="text-text-muted text-sm mt-2 leading-relaxed">
+							We couldn't find your roll number <strong className="text-white">{rollNo}</strong> in the system. Would you like to select your sections manually and link your roll number via email OTP?
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="flex flex-col gap-2 mt-4">
+						<button
+							type="button"
+							onClick={handleLinkSelection}
+							className="w-full h-12 rounded-lg bg-brand hover:bg-brand-active text-white font-semibold transition-colors cursor-pointer"
+						>
+							Link Roll Number via OTP
+						</button>
+						<button
+							type="button"
+							onClick={handleManualSelection}
+							className="w-full h-12 rounded-lg bg-transparent border border-border text-text hover:bg-surface/50 font-medium transition-colors cursor-pointer"
+						>
+							Select Manually (No Linking)
+						</button>
+						<button
+							type="button"
+							onClick={() => setIsNotFoundOpen(false)}
+							className="w-full h-12 rounded-lg bg-transparent text-text-muted hover:text-white font-medium transition-colors cursor-pointer"
+						>
+							Cancel
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<button
 				type="button"
 				onClick={() => setAboutOpen(true)}
@@ -214,3 +315,4 @@ export function Landing() {
 		</div>
 	);
 }
+
