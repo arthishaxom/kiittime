@@ -3,6 +3,7 @@ import { PortalHost } from '@rn-primitives/portal';
 import { Stack } from 'expo-router';
 import { ThemeProvider } from 'expo-router/react-navigation';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Toaster } from 'sonner-native';
 import { QueryProvider } from '@/lib/query-client';
 import { NAV_THEME } from '@/lib/theme';
 import '../global.css';
@@ -19,6 +20,7 @@ export default function RootLayout() {
               <BottomSheetModalProvider>
                 <Stack screenOptions={{ headerShown: false }} />
                 <PortalHost />
+                <Toaster theme="dark" />
               </BottomSheetModalProvider>
             </SafeAreaProvider>
           </QueryProvider>
@@ -27,3 +29,4 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
