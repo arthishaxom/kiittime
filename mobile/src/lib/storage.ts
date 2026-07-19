@@ -53,3 +53,37 @@ export async function clearTempLinkingRollNo(): Promise<void> {
   await AsyncStorage.removeItem(TEMP_LINKING_ROLL_NO_KEY);
 }
 
+const ACTIVE_ROLL_NO_KEY = 'kiit-time:active-roll-no';
+const ACTIVE_ACADEMIC_YEAR_KEY = 'kiit-time:active-academic-year';
+
+export async function getActiveRollNo(): Promise<string | null> {
+  return AsyncStorage.getItem(ACTIVE_ROLL_NO_KEY);
+}
+
+export async function saveActiveRollNo(rollNo: string): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_ROLL_NO_KEY, rollNo);
+}
+
+export async function clearActiveRollNo(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVE_ROLL_NO_KEY);
+}
+
+export async function getActiveAcademicYear(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(ACTIVE_ACADEMIC_YEAR_KEY);
+    if (!raw) return null;
+    return Number(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveActiveAcademicYear(year: number): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_ACADEMIC_YEAR_KEY, String(year));
+}
+
+export async function clearActiveAcademicYear(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
+}
+
+

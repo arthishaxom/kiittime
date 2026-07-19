@@ -159,5 +159,3 @@ class RollNumberMapping(Base):
     )
 
     section: Mapped["Section"] = relationship()
-
-

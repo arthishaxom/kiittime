@@ -1,5 +1,6 @@
 import json
 import re
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -13,7 +14,6 @@ from backend.redis import get_redis
 
 
 class MockEmailProvider(EmailProvider):
-
     def __init__(self):
         self.sent_emails = []
 
@@ -189,8 +189,7 @@ def test_verify_otp_success(client, db, mock_email, mock_redis):
     # Check mapping was created in DB
     mapping = db.execute(
         select(RollNumberMapping).where(
-            RollNumberMapping.roll_no == "2105124",
-            RollNumberMapping.section_id == section.id
+            RollNumberMapping.roll_no == "2105124", RollNumberMapping.section_id == section.id
         )
     ).scalar_one()
     assert mapping.academic_year == 3
@@ -301,3 +300,58 @@ def test_attempt_capping_and_lockout(client, db, mock_email, mock_redis):
         json={"roll_no": "2105128", "otp_code": "123456"},
     )
     assert res_verify.status_code == 429
+
+
+def test_verify_otp_overwrites_existing_mappings(client, db, mock_email, mock_redis):
+    # Setup: Create old sections and mapping
+    old_sec1 = get_or_create_section(db, "CS_OLD_1", 2)
+    old_sec2 = get_or_create_section(db, "CS_OLD_2", 3)
+
+    roll_no = "2105999"
+
+    mapping1 = RollNumberMapping(roll_no=roll_no, section_id=old_sec1.id, academic_year=2)
+    mapping2 = RollNumberMapping(roll_no=roll_no, section_id=old_sec2.id, academic_year=3)
+    db.add(mapping1)
+    db.add(mapping2)
+    db.commit()
+
+    # Verify old mappings exist
+    old_mappings = (
+        db.execute(select(RollNumberMapping).where(RollNumberMapping.roll_no == roll_no))
+        .scalars()
+        .all()
+    )
+    assert len(old_mappings) == 2
+
+    # Create a new section
+    new_sec = get_or_create_section(db, "CS_NEW_1", 4)
+
+    # Send OTP for the new section mapping
+    send_res = client.post(
+        "/api/auth/otp/send",
+        json={"roll_no": roll_no, "section_ids": [new_sec.id]},
+    )
+    assert send_res.status_code == 200
+
+    # Retrieve code from email
+    email = mock_email.sent_emails[-1]
+    match = re.search(r"\b\d{6}\b", email["html"])
+    assert match is not None
+    code = match.group(0)
+
+    # Verify OTP
+    verify_res = client.post(
+        "/api/auth/otp/verify",
+        json={"roll_no": roll_no, "otp_code": code},
+    )
+    assert verify_res.status_code == 200
+
+    # Verify old mappings are deleted and only new mapping exists
+    current_mappings = (
+        db.execute(select(RollNumberMapping).where(RollNumberMapping.roll_no == roll_no))
+        .scalars()
+        .all()
+    )
+    assert len(current_mappings) == 1
+    assert current_mappings[0].section_id == new_sec.id
+    assert current_mappings[0].academic_year == 4

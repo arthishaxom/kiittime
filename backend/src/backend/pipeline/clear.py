@@ -2,7 +2,15 @@ from pydantic import BaseModel
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from backend.db.models import BronzeSnapshot, ClassSession, Course, Faculty, RollNumberMapping, Room, Section
+from backend.db.models import (
+    BronzeSnapshot,
+    ClassSession,
+    Course,
+    Faculty,
+    RollNumberMapping,
+    Room,
+    Section,
+)
 
 
 class ClearAllResult(BaseModel):
