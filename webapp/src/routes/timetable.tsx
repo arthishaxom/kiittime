@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Mail,
 	Megaphone,
+	Pencil,
 	RotateCcw,
 	Settings,
 	Share2,
@@ -48,6 +49,21 @@ export const Route = createFileRoute("/timetable")({
 function TimetablePage() {
 	const { section_id } = Route.useSearch();
 	const { data, isLoading, isError } = useTimetable(section_id);
+
+	const activeRollNo = localStorage.getItem("kiit-time:active-roll-no");
+	const activeAcademicYear = localStorage.getItem(
+		"kiit-time:active-academic-year",
+	);
+
+	function handleEditSection() {
+		if (activeRollNo) {
+			localStorage.setItem("temp_linking_roll_no", activeRollNo);
+			navigate({
+				to: "/select/sections",
+				search: { year: activeAcademicYear ? Number(activeAcademicYear) : 1 },
+			});
+		}
+	}
 
 	const byDay = useMemo(() => {
 		const map = new Map<string, Session[]>();
@@ -178,10 +194,20 @@ function TimetablePage() {
 
 	return (
 		<div className="h-dvh bg-bg text-text flex flex-col">
-			<div className="p-4 pb-2 text-center">
+			<div className="p-4 pb-2 flex items-center justify-center gap-2">
 				<h1 className="text-lg font-bold">
 					{data?.sections_requested.join(", ")}
 				</h1>
+				{activeRollNo && (
+					<button
+						type="button"
+						onClick={handleEditSection}
+						className="p-1 rounded-full hover:bg-surface text-text-muted hover:text-white transition-colors cursor-pointer"
+						title="Edit Section"
+					>
+						<Pencil size={16} />
+					</button>
+				)}
 			</div>
 
 			{/* Tab strip — all 6 days always shown, tapping scrolls the carousel */}
