@@ -56,6 +56,7 @@ function TimetablePage() {
 	);
 
 	function handleEditSection() {
+		// Triggers navigation to section selection for editing current linked sections
 		if (activeRollNo) {
 			localStorage.setItem("temp_linking_roll_no", activeRollNo);
 			navigate({
@@ -172,13 +173,6 @@ function TimetablePage() {
 			goTo(index); // snap back
 		}
 	}
-
-	console.log(
-		"[timetable] RENDER — containerWidth:",
-		containerWidth,
-		"index:",
-		index,
-	);
 
 	if (isLoading) {
 		return <div className="h-dvh bg-bg text-text p-4">Loading timetable…</div>;
