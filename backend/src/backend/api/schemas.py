@@ -130,3 +130,8 @@ class RollNumberUploadResponse(BaseModel):
     status: str
     created_count: int
     deleted_count: int
+
+
+class RollMappingInspectResponse(BaseModel):
+    columns: list[str]
+

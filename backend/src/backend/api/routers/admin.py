@@ -18,6 +18,7 @@ from backend.api.schemas import (
     RejectResponse,
     RollNumberUploadResponse,
     UploadResponse,
+    RollMappingInspectResponse,
 )
 from backend.auth.dependencies import get_current_admin
 from backend.db.models import AdminUser, BronzeSnapshot, RollNumberMapping, Section, SnapshotStatus
@@ -230,10 +231,31 @@ def clear_all_route(
     return {"status": "cleared", **result.model_dump()}
 
 
+@router.post("/roll-mappings/inspect", response_model=RollMappingInspectResponse)
+def inspect_roll_mappings(
+    file: UploadFile,
+    current_admin: AdminUser = Depends(get_current_admin),
+) -> dict:
+    contents = file.file.read()
+    try:
+        if file.filename and file.filename.endswith(".csv"):
+            df = pd.read_csv(BytesIO(contents), nrows=0)
+        else:
+            df = pd.read_excel(BytesIO(contents), nrows=0)
+    except Exception as e:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Failed to read file: {e}",
+        )
+    return {"columns": [str(c).strip() for c in df.columns]}
+
+
 @router.post("/roll-mappings/upload", response_model=RollNumberUploadResponse)
 def upload_roll_mappings(
     file: UploadFile,
     academic_year: int = Form(...),
+    roll_col_name: str | None = Form(None),
+    sec_col_name: str | None = Form(None),
     current_admin: AdminUser = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -254,16 +276,36 @@ def upload_roll_mappings(
     cols = [str(c).strip().lower() for c in df.columns]
 
     roll_col_idx = -1
-    for i, c in enumerate(cols):
-        if "roll" in c or c == "rn" or c == "id":
-            roll_col_idx = i
-            break
+    if roll_col_name:
+        roll_col_target = roll_col_name.strip().lower()
+        try:
+            roll_col_idx = cols.index(roll_col_target)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Specified roll number column '{roll_col_name}' not found in file.",
+            )
+    else:
+        for i, c in enumerate(cols):
+            if "roll" in c or c == "rn" or c == "id":
+                roll_col_idx = i
+                break
 
     sec_col_idx = -1
-    for i, c in enumerate(cols):
-        if "section" in c or c == "sec" or c == "class":
-            sec_col_idx = i
-            break
+    if sec_col_name:
+        sec_col_target = sec_col_name.strip().lower()
+        try:
+            sec_col_idx = cols.index(sec_col_target)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Specified section column '{sec_col_name}' not found in file.",
+            )
+    else:
+        for i, c in enumerate(cols):
+            if "section" in c or c == "sec" or c == "class":
+                sec_col_idx = i
+                break
 
     if roll_col_idx == -1:
         roll_col_idx = 0
@@ -276,8 +318,17 @@ def upload_roll_mappings(
             detail="Could not identify roll number and section columns in the file.",
         )
 
+    def normalize_section_name(name: str) -> str:
+        n = name.strip().lower()
+        n = re.sub(r"[-_\s]+", "", n)
+        if n.startswith("cse"):
+            n = "cs" + n[3:]
+        if n.isdigit():
+            n = "cs" + n
+        return n
+
     sections = db.execute(select(Section).where(Section.year == academic_year)).scalars().all()
-    section_map = {s.section_name.strip().lower(): s for s in sections}
+    section_map = {normalize_section_name(s.section_name): s for s in sections}
 
     mappings_to_create = []
     seen_pairs = set()
@@ -311,7 +362,7 @@ def upload_roll_mappings(
 
         raw_sections = [s.strip() for s in re.split(r"[,;]+", sec_val) if s.strip()]
         for sec_name in raw_sections:
-            norm_name = sec_name.lower()
+            norm_name = normalize_section_name(sec_name)
             if norm_name not in section_map:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -51,6 +51,10 @@ interface UploadResult {
 	status: string;
 }
 
+interface RollInspectResult {
+	columns: string[];
+}
+
 function RouteComponent() {
 	const auth = useAuth();
 	const router = useRouter();
@@ -68,6 +72,8 @@ function RouteComponent() {
 
 	const [rollFile, setRollFile] = useState<File | null>(null);
 	const [rollYear, setRollYear] = useState<number | null>(null);
+	const [rollColName, setRollColName] = useState<string>("");
+	const [secColName, setSecColName] = useState<string>("");
 	const [rollError, setRollError] = useState<string | null>(null);
 	const [rollSuccess, setRollSuccess] = useState<string | null>(null);
 
@@ -143,6 +149,39 @@ function RouteComponent() {
 		},
 	});
 
+	const rollInspectMutation = useMutation({
+		mutationFn: async (f: File) => {
+			const formData = new FormData();
+			formData.append("file", f);
+			const res = await apiFetch(
+				"/admin/roll-mappings/inspect",
+				{
+					method: "POST",
+					body: formData,
+				},
+				auth.token ?? undefined,
+			);
+			if (!res.ok) {
+				const detail = await res
+					.json()
+					.then((d) => d.detail)
+					.catch(() => res.statusText);
+				throw new Error(
+					typeof detail === "string" ? detail : JSON.stringify(detail),
+				);
+			}
+			return res.json() as Promise<RollInspectResult>;
+		},
+		onSuccess: () => {
+			setRollError(null);
+		},
+		onError: (e) => {
+			setRollError(
+				e instanceof Error ? e.message : "Failed to inspect file columns",
+			);
+		},
+	});
+
 	const rollUploadMutation = useMutation({
 		mutationFn: async () => {
 			if (!rollFile) throw new Error("No file selected");
@@ -150,6 +189,12 @@ function RouteComponent() {
 			const formData = new FormData();
 			formData.append("file", rollFile);
 			formData.append("academic_year", String(rollYear));
+			if (rollColName.trim()) {
+				formData.append("roll_col_name", rollColName.trim());
+			}
+			if (secColName.trim()) {
+				formData.append("sec_col_name", secColName.trim());
+			}
 			const res = await apiFetch(
 				"/admin/roll-mappings/upload",
 				{
@@ -179,6 +224,9 @@ function RouteComponent() {
 				`Successfully uploaded! Created ${data.created_count} mappings, deleted ${data.deleted_count} old mappings.`,
 			);
 			setRollFile(null);
+			setRollColName("");
+			setSecColName("");
+			rollInspectMutation.reset();
 			if (rollFileInputRef.current) {
 				rollFileInputRef.current.value = "";
 			}
@@ -233,6 +281,9 @@ function RouteComponent() {
 			setRollFile(f);
 			setRollError(null);
 			setRollSuccess(null);
+			setRollColName("");
+			setSecColName("");
+			rollInspectMutation.mutate(f);
 		}
 	}
 
@@ -423,6 +474,70 @@ function RouteComponent() {
 								))}
 							</div>
 						</div>
+
+						{rollInspectMutation.isPending && (
+							<div className="flex flex-col gap-3">
+								<Skeleton className="h-4 w-3/4" />
+								<Skeleton className="h-4 w-1/2" />
+							</div>
+						)}
+
+						{rollInspectMutation.isSuccess && rollInspectMutation.data && (
+							<div className="grid grid-cols-2 gap-4">
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="roll-col-name">
+										Roll Number Column (Optional)
+									</Label>
+									<Select
+										value={rollColName || "DEFAULT_AUTO"}
+										onValueChange={(val) =>
+											setRollColName(val === "DEFAULT_AUTO" ? "" : val)
+										}
+										disabled={rollUploadMutation.isPending}
+									>
+										<SelectTrigger id="roll-col-name">
+											<SelectValue placeholder="Default (Auto-detect)" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="DEFAULT_AUTO">
+												Default (Auto-detect)
+											</SelectItem>
+											{rollInspectMutation.data.columns.map((col) => (
+												<SelectItem key={col} value={col}>
+													{col}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="sec-col-name">
+										Section Column (Optional)
+									</Label>
+									<Select
+										value={secColName || "DEFAULT_AUTO"}
+										onValueChange={(val) =>
+											setSecColName(val === "DEFAULT_AUTO" ? "" : val)
+										}
+										disabled={rollUploadMutation.isPending}
+									>
+										<SelectTrigger id="sec-col-name">
+											<SelectValue placeholder="Default (Auto-detect)" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="DEFAULT_AUTO">
+												Default (Auto-detect)
+											</SelectItem>
+											{rollInspectMutation.data.columns.map((col) => (
+												<SelectItem key={col} value={col}>
+													{col}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+						)}
 
 						<Button
 							onClick={handleRollUpload}
