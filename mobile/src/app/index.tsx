@@ -8,7 +8,7 @@ import { AboutDialog } from '@/components/about-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { timetableHref } from '@/lib/search-params';
-import { getSavedSectionIds, saveSectionIds, saveTempLinkingRollNo, clearTempLinkingRollNo } from '@/lib/storage';
+import { getSavedSectionIds, saveSectionIds, saveTempLinkingRollNo, clearTempLinkingRollNo, setActiveRollNo, setActiveAcademicYear } from '@/lib/storage';
 import { fetchRollNumberMapping } from '@/lib/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -60,6 +60,8 @@ export default function Index() {
       const data = await fetchRollNumberMapping(rollNo.trim());
       const sectionIds = data.sections.map((s) => s.id);
       await saveSectionIds(sectionIds);
+      await setActiveRollNo(data.roll_no);
+      await setActiveAcademicYear(data.academic_year);
       router.replace(timetableHref(sectionIds));
     } catch (err: any) {
       if (err.status === 404 && err.detail === 'No timetables uploaded yet') {

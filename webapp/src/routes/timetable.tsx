@@ -30,6 +30,8 @@ import { shareTimetable } from "#/lib/share";
 import {
 	getLastSeenAnnouncementId,
 	setLastSeenAnnouncementId,
+	ACTIVE_ROLL_NO_KEY,
+	ACTIVE_ACADEMIC_YEAR_KEY,
 } from "#/lib/storage";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
@@ -50,9 +52,9 @@ function TimetablePage() {
 	const { section_id } = Route.useSearch();
 	const { data, isLoading, isError } = useTimetable(section_id);
 
-	const activeRollNo = localStorage.getItem("kiit-time:active-roll-no");
+	const activeRollNo = localStorage.getItem(ACTIVE_ROLL_NO_KEY);
 	const activeAcademicYear = localStorage.getItem(
-		"kiit-time:active-academic-year",
+		ACTIVE_ACADEMIC_YEAR_KEY,
 	);
 
 	function handleEditSection() {
@@ -115,6 +117,8 @@ function TimetablePage() {
 
 	function handleReset() {
 		localStorage.removeItem("kiit-time:selected-sections");
+		localStorage.removeItem(ACTIVE_ROLL_NO_KEY);
+		localStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
 		navigate({ to: "/" });
 	}
 

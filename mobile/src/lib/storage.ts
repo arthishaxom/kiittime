@@ -40,6 +40,8 @@ export async function setLastSeenAnnouncementId(id: number): Promise<void> {
 }
 
 const TEMP_LINKING_ROLL_NO_KEY = 'kiit-time:temp-linking-roll-no';
+const ACTIVE_ROLL_NO_KEY = 'kiit-time:active-roll-no';
+const ACTIVE_ACADEMIC_YEAR_KEY = 'kiit-time:active-academic-year';
 
 export async function getTempLinkingRollNo(): Promise<string | null> {
   return AsyncStorage.getItem(TEMP_LINKING_ROLL_NO_KEY);
@@ -52,4 +54,37 @@ export async function saveTempLinkingRollNo(rollNo: string): Promise<void> {
 export async function clearTempLinkingRollNo(): Promise<void> {
   await AsyncStorage.removeItem(TEMP_LINKING_ROLL_NO_KEY);
 }
+
+export async function getActiveRollNo(): Promise<string | null> {
+  return AsyncStorage.getItem(ACTIVE_ROLL_NO_KEY);
+}
+
+export async function setActiveRollNo(rollNo: string): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_ROLL_NO_KEY, rollNo);
+}
+
+export async function clearActiveRollNo(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVE_ROLL_NO_KEY);
+}
+
+export async function getActiveAcademicYear(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(ACTIVE_ACADEMIC_YEAR_KEY);
+    if (!raw) return null;
+    const parsed = parseInt(raw, 10);
+    if (isNaN(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function setActiveAcademicYear(year: number): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_ACADEMIC_YEAR_KEY, String(year));
+}
+
+export async function clearActiveAcademicYear(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
+}
+
 

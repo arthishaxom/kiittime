@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "#/components/ui/badge";
 import {
@@ -22,7 +22,7 @@ import {
 import { useSections } from "#/hooks/useSections";
 import { sendOtp, verifyOtp } from "#/lib/api";
 import { buildMailto } from "#/lib/mailto";
-import { saveSectionIds } from "#/lib/storage";
+import { saveSectionIds, ACTIVE_ROLL_NO_KEY, ACTIVE_ACADEMIC_YEAR_KEY } from "#/lib/storage";
 
 export function SectionSearch({ year }: { year: number }) {
 	const navigate = useNavigate();
@@ -39,6 +39,15 @@ export function SectionSearch({ year }: { year: number }) {
 	const [isSendingOtp, setIsSendingOtp] = useState(false);
 	const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 	const [isOtpInputFocused, setIsOtpInputFocused] = useState(false);
+	const [resendCooldown, setResendCooldown] = useState(0);
+
+	useEffect(() => {
+		if (resendCooldown <= 0) return;
+		const timer = setInterval(() => {
+			setResendCooldown((prev) => prev - 1);
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [resendCooldown]);
 
 	const otpInputRef = useRef<HTMLInputElement>(null);
 	const rollNoToLink = localStorage.getItem("temp_linking_roll_no");
@@ -112,10 +121,19 @@ export function SectionSearch({ year }: { year: number }) {
 			await sendOtp(rollNoToLink, selectedIds);
 			setIsConfirmLinkOpen(false);
 			setIsOtpOpen(true);
+			setResendCooldown(60);
 		} catch (err: any) {
 			const msg = err.message || "Failed to send OTP. Please try again.";
 			setOtpError(msg);
 			toast.error(msg);
+			if (err.status === 429) {
+				const match = msg.match(/Please wait (\d+) seconds/i);
+				if (match) {
+					setResendCooldown(parseInt(match[1], 10));
+				} else {
+					setResendCooldown(60);
+				}
+			}
 		} finally {
 			setIsSendingOtp(false);
 		}
@@ -129,6 +147,8 @@ export function SectionSearch({ year }: { year: number }) {
 			const data = await verifyOtp(rollNoToLink, otp);
 			saveSectionIds(data.sections.map((s) => s.id));
 			localStorage.removeItem("temp_linking_roll_no");
+			localStorage.setItem(ACTIVE_ROLL_NO_KEY, rollNoToLink);
+			localStorage.setItem(ACTIVE_ACADEMIC_YEAR_KEY, String(data.academic_year));
 			setIsOtpOpen(false);
 			navigate({
 				to: "/timetable",
@@ -136,6 +156,9 @@ export function SectionSearch({ year }: { year: number }) {
 			});
 		} catch (err: any) {
 			setOtpError(err.message || "Invalid OTP code.");
+			if (err.status === 429) {
+				toast.error(err.message || "Too many failed attempts. Account locked.");
+			}
 		} finally {
 			setIsVerifyingOtp(false);
 		}
@@ -407,10 +430,12 @@ export function SectionSearch({ year }: { year: number }) {
 						<button
 							type="button"
 							onClick={handleSendOtp}
-							disabled={isSendingOtp}
+							disabled={isSendingOtp || resendCooldown > 0}
 							className="w-full h-12 text-brand hover:text-brand-active font-semibold text-sm transition-colors text-center cursor-pointer disabled:opacity-50"
 						>
-							Resend Code
+							{resendCooldown > 0
+								? `Resend Code (${resendCooldown}s)`
+								: "Resend Code"}
 						</button>
 						<button
 							type="button"

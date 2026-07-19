@@ -26,6 +26,8 @@ vi.mock("#/lib/api", () => ({
 vi.mock("#/lib/storage", () => ({
 	getSavedSectionIds: vi.fn(),
 	saveSectionIds: vi.fn(),
+	ACTIVE_ROLL_NO_KEY: "kiit-time:active-roll-no",
+	ACTIVE_ACADEMIC_YEAR_KEY: "kiit-time:active-academic-year",
 }));
 
 describe("Landing Component (Web Onboarding)", () => {

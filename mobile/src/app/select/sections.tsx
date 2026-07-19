@@ -16,7 +16,7 @@ import { useSections } from '@/hooks/useSections';
 import { buildMailto } from '@/lib/mailto';
 import { extractPrefixes, filterSections } from '@/lib/sections';
 import { timetableHref } from '@/lib/search-params';
-import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo } from '@/lib/storage';
+import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo, setActiveRollNo, setActiveAcademicYear } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendOtp, verifyOtp } from '@/lib/api';
@@ -73,6 +73,16 @@ export default function SectionSearch() {
 
   const otpInputRef = useRef<TextInput>(null);
 
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   useEffect(() => {
     (async () => {
       const val = await getTempLinkingRollNo();
@@ -121,10 +131,19 @@ export default function SectionSearch() {
       await sendOtp(rollNoToLink, selectedIds);
       setIsConfirmLinkOpen(false);
       setIsOtpOpen(true);
+      setResendCooldown(60);
     } catch (err: any) {
       const msg = err.message || 'Failed to send OTP. Please try again.';
       setOtpError(msg);
       toast.error(msg);
+      if (err.status === 429) {
+        const match = msg.match(/Please wait (\d+) seconds/i);
+        if (match) {
+          setResendCooldown(parseInt(match[1], 10));
+        } else {
+          setResendCooldown(60);
+        }
+      }
     } finally {
       setIsSendingOtp(false);
     }
@@ -138,11 +157,16 @@ export default function SectionSearch() {
       const data = await verifyOtp(rollNoToLink, otp);
       const sectionIds = data.sections.map((s) => s.id);
       await saveSectionIds(sectionIds);
+      await setActiveRollNo(rollNoToLink);
+      await setActiveAcademicYear(data.academic_year);
       await clearTempLinkingRollNo();
       setIsOtpOpen(false);
       router.replace(timetableHref(sectionIds));
     } catch (err: any) {
       setOtpError(err.message || 'Invalid OTP code.');
+      if (err.status === 429) {
+        toast.error(err.message || 'Too many failed attempts. Account locked.');
+      }
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -401,10 +425,12 @@ export default function SectionSearch() {
               </Pressable>
               
               <Pressable
-                disabled={isSendingOtp}
+                disabled={isSendingOtp || resendCooldown > 0}
                 onPress={handleSendOtp}
                 className="w-full h-12 items-center justify-center">
-                <Text className="text-brand font-semibold text-sm">Resend Code</Text>
+                <Text className="text-brand font-semibold text-sm">
+                  {resendCooldown > 0 ? `Resend Code (${resendCooldown}s)` : 'Resend Code'}
+                </Text>
               </Pressable>
 
               <Pressable
