@@ -4,11 +4,11 @@
 
 **Blocked by:** 04 — Client UI: Roll Number Onboarding (Mobile & Web), 05 — Backend OTP Infrastructure & Linking API
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Create OTP verification modal/screen in `mobile`.
-- [ ] Create OTP verification modal/screen in `webapp`.
-- [ ] When a roll number mapping is missing and the user manually selects sections, prompt them to "Link" their roll number.
-- [ ] On prompt acceptance, trigger `POST /api/auth/otp/send`.
-- [ ] Allow user to input the 6-digit OTP code and trigger `POST /api/auth/otp/verify`.
-- [ ] On successful verification, show success toast and route them to their timetable.
+- [x] Create OTP verification modal/screen in `mobile`.
+- [x] Create OTP verification modal/screen in `webapp`.
+- [x] When a roll number mapping is missing and the user manually selects sections, prompt them to "Link" their roll number.
+- [x] On prompt acceptance, trigger `POST /api/auth/otp/send`.
+- [x] Allow user to input the 6-digit OTP code and trigger `POST /api/auth/otp/verify`.
+- [x] On successful verification, show success toast and route them to their timetable.

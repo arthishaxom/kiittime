@@ -33,7 +33,10 @@ If a student's roll number is missing from the database but timetables exist, th
 - **OTP Email Infrastructure**: An agnostic email provider adapter pattern will be implemented. The initial concrete implementation will use the Resend API to send OTP emails.
 - **Email Derivation**: The system will explicitly derive the target email address from the provided roll number (e.g., `2105123@kiit.ac.in`) to prevent malicious linking of other students' roll numbers.
 - **Empty State Logic**: Before prompting a user to link their roll number via OTP, the backend will verify if *any* sections exist in the database for the active semester. If none exist, the OTP flow is bypassed in favor of a global empty state warning.
+- **OTP Security & Storage**: OTPs will be securely generated using the `secrets` module and stored as hashes in Redis with a short TTL, instead of the relational database. Rate limits (max 5 sends/hour), resend cooldowns (60s), and attempt caps (max 3 failed verifications) will be enforced to prevent brute force and abuse. The legacy `otp_verifications` table will be dropped.
+- **Client Rate Limit UI**: Both mobile and web frontends will implement a 60-second visual countdown timer disabling the "Resend OTP" button. The UI will also explicitly handle new API error states for rate limits (429 Too Many Requests) and failed attempt lockouts, displaying user-friendly warnings.
 - **Mobile UI Flow**: The mobile app onboarding will be restructured. The default view will be a Roll Number text input. Manual section selection will be demoted to a fallback button beneath the primary input.
+- **Keyboard Avoidance UI**: On the mobile app onboarding screen (`index.tsx`), the root layout will use `KeyboardAvoidingView` combined with a `ScrollView` to ensure the roll number input remains visible and pushed above the on-screen keyboard. On the web app (`Landing.tsx`), the main container height constraint will be changed from `h-dvh` to `min-h-dvh` to ensure scrolling is enabled and allow the browser's default behavior to scroll the focused input into view. This will be strictly applied to the main onboarding screen for now.
 
 ## Testing Decisions
 

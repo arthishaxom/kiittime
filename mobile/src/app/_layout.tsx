@@ -7,20 +7,23 @@ import { QueryProvider } from '@/lib/query-client';
 import { NAV_THEME } from '@/lib/theme';
 import '../global.css';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView className="flex-1">
-      <ThemeProvider value={NAV_THEME}>
-        <QueryProvider>
-          <SafeAreaProvider className="flex-1">
-            <BottomSheetModalProvider>
-              <Stack screenOptions={{ headerShown: false }} />
-              <PortalHost />
-            </BottomSheetModalProvider>
-          </SafeAreaProvider>
-        </QueryProvider>
-      </ThemeProvider>
+      <KeyboardProvider>
+        <ThemeProvider value={NAV_THEME}>
+          <QueryProvider>
+            <SafeAreaProvider className="flex-1">
+              <BottomSheetModalProvider>
+                <Stack screenOptions={{ headerShown: false }} />
+                <PortalHost />
+              </BottomSheetModalProvider>
+            </SafeAreaProvider>
+          </QueryProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

@@ -1,6 +1,7 @@
+import json
 import os
-import random
-from datetime import datetime, timedelta, timezone
+import secrets
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,9 +9,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.api.schemas import OTPSendRequest, OTPSendResponse, OTPVerifyRequest, OTPVerifyResponse
-from backend.db.models import OTPVerification, RollNumberMapping, Section
+from backend.auth.security import hash_password, verify_password
+from backend.db.models import RollNumberMapping, Section
 from backend.db.session import get_db
 from backend.email import ConsoleEmailProvider, EmailProvider, ResendEmailProvider
+from backend.redis import get_redis
 
 router = APIRouter(prefix="/api/auth/otp", tags=["otp"])
 
@@ -34,6 +37,7 @@ def get_email_provider() -> EmailProvider:
 def send_otp(
     payload: OTPSendRequest,
     db: Session = Depends(get_db),
+    redis_conn=Depends(get_redis),
     email_provider: EmailProvider = Depends(get_email_provider),
 ) -> Any:
     # Validate roll number
@@ -42,6 +46,36 @@ def send_otp(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Roll number cannot be empty",
+        )
+
+    # Check lockout
+    lockout_ttl = redis_conn.ttl(f"lockout:{roll_no}")
+    if lockout_ttl > 0:
+        minutes = lockout_ttl // 60
+        seconds = lockout_ttl % 60
+        time_str = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed attempts. Account locked. Try again in {time_str}.",
+        )
+
+    # Check resend cooldown
+    cooldown_ttl = redis_conn.ttl(f"cooldown:{roll_no}")
+    if cooldown_ttl > 0:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Please wait {cooldown_ttl} seconds before requesting a new OTP.",
+        )
+
+    # Check hourly rate limit
+    send_count = redis_conn.get(f"send_count:{roll_no}")
+    if send_count and int(send_count) >= 5:
+        send_count_ttl = redis_conn.ttl(f"send_count:{roll_no}")
+        minutes = max(0, send_count_ttl // 60)
+        time_str = f"{minutes}m" if minutes > 0 else f"{send_count_ttl}s"
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded. Max 5 OTP requests per hour. Try again in {time_str}.",
         )
 
     # Validate section ids
@@ -62,21 +96,31 @@ def send_otp(
             detail="One or more specified sections do not exist",
         )
 
-    # Generate 6-digit OTP code
-    otp_code = f"{random.randint(100000, 999999)}"
+    # Generate 6-digit OTP code securely
+    otp_code = f"{secrets.SystemRandom().randint(100000, 999999)}"
 
-    # Set expiration (10 minutes from now)
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    # Hash OTP and store in Redis (300 seconds TTL = 5 minutes)
+    otp_hash = hash_password(otp_code)
+    otp_data = {
+        "otp_hash": otp_hash,
+        "section_ids": payload.section_ids,
+        "attempts_left": 3,
+    }
+    # Save to Redis
+    redis_conn.set(f"otp:{roll_no}", json.dumps(otp_data), ex=300)
 
-    # Create OTP verification record
-    verification = OTPVerification(
-        roll_no=roll_no,
-        otp_code=otp_code,
-        section_ids=payload.section_ids,
-        expires_at=expires_at,
-    )
-    db.add(verification)
-    db.commit()
+    # Set 60-second resend cooldown
+    redis_conn.set(f"cooldown:{roll_no}", "1", ex=60)
+
+    # Increment and check rate limit window
+    pipe = redis_conn.pipeline()
+    pipe.incr(f"send_count:{roll_no}")
+    pipe.ttl(f"send_count:{roll_no}")
+    res = pipe.execute()
+    count = res[0]
+    current_ttl = res[1]
+    if current_ttl < 0:
+        redis_conn.expire(f"send_count:{roll_no}", 3600)
 
     # Derive email address
     email_address = f"{roll_no}@kiit.ac.in"
@@ -91,7 +135,7 @@ def send_otp(
         <div style="font-size: 24px; font-weight: bold; background: #f0f0f0; padding: 10px 20px; border-radius: 5px; display: inline-block; letter-spacing: 2px; margin: 10px 0;">
             {otp_code}
         </div>
-        <p>This code will expire in 10 minutes.</p>
+        <p>This code will expire in 5 minutes.</p>
         <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;" />
         <p style="font-size: 12px; color: #666;">If you did not make this request, please ignore this email.</p>
     </div>
@@ -111,35 +155,59 @@ def send_otp(
 def verify_otp(
     payload: OTPVerifyRequest,
     db: Session = Depends(get_db),
+    redis_conn=Depends(get_redis),
 ) -> Any:
     roll_no = payload.roll_no.strip()
     otp_code = payload.otp_code.strip()
 
-    # Query active verification
-    now_utc = datetime.now(timezone.utc)
-    verification = db.execute(
-        select(OTPVerification)
-        .where(
-            OTPVerification.roll_no == roll_no,
-            OTPVerification.is_verified == False,
-            OTPVerification.expires_at > now_utc,
+    # Check lockout
+    lockout_ttl = redis_conn.ttl(f"lockout:{roll_no}")
+    if lockout_ttl > 0:
+        minutes = lockout_ttl // 60
+        seconds = lockout_ttl % 60
+        time_str = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed attempts. Account locked. Try again in {time_str}.",
         )
-        .order_by(OTPVerification.created_at.desc())
-        .limit(1)
-    ).scalar_one_or_none()
 
-    if not verification or verification.otp_code != otp_code:
+    # Retrieve OTP data
+    otp_data_raw = redis_conn.get(f"otp:{roll_no}")
+    if not otp_data_raw:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP code",
         )
 
-    # Mark OTP as verified
-    verification.is_verified = True
+    otp_data = json.loads(otp_data_raw)
+
+    # Verify OTP hash
+    if not verify_password(otp_code, otp_data["otp_hash"]):
+        attempts_left = otp_data["attempts_left"] - 1
+        if attempts_left <= 0:
+            # Delete OTP and lockout
+            redis_conn.delete(f"otp:{roll_no}")
+            redis_conn.set(f"lockout:{roll_no}", "1", ex=900)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed attempts. Account locked. Try again in 15 minutes.",
+            )
+        else:
+            otp_data["attempts_left"] = attempts_left
+            ttl = redis_conn.ttl(f"otp:{roll_no}")
+            if ttl > 0:
+                redis_conn.set(f"otp:{roll_no}", json.dumps(otp_data), ex=ttl)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid or expired OTP code. {attempts_left} attempts remaining.",
+            )
+
+    # OTP is valid, delete it
+    redis_conn.delete(f"otp:{roll_no}")
 
     # Retrieve sections
     sections = db.execute(
-        select(Section).where(Section.id.in_(verification.section_ids))
+        select(Section).where(Section.id.in_(otp_data["section_ids"]))
     ).scalars().all()
 
     if not sections:
@@ -152,7 +220,6 @@ def verify_otp(
     academic_year = sections[0].year
 
     # Create mapping entries
-    created_mappings = []
     for section in sections:
         # Check if mapping already exists
         exists = db.execute(
@@ -169,7 +236,6 @@ def verify_otp(
                 academic_year=academic_year,
             )
             db.add(mapping)
-            created_mappings.append(mapping)
 
     db.commit()
 
@@ -178,3 +244,4 @@ def verify_otp(
         "academic_year": academic_year,
         "sections": sections,
     }
+

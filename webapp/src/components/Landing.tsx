@@ -30,7 +30,7 @@ export function Landing() {
 
 	const handleRollSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!rollNo.trim()) return;
+		if (rollNo.trim().length < 7) return;
 
 		setIsLoading(true);
 		setError(null);
@@ -73,7 +73,7 @@ export function Landing() {
 
 	if (isEmptyDb) {
 		return (
-			<div className="h-dvh bg-bg/50 text-text flex flex-col p-6">
+			<div className="min-h-dvh bg-bg/50 text-text flex flex-col p-6">
 				<div className="flex-1 flex items-center justify-center">
 					<img
 						src="/logo.png"
@@ -119,7 +119,7 @@ export function Landing() {
 	const totalBoxes = rollNo.length >= 7 ? 8 : 7;
 
 	return (
-		<div className="h-dvh bg-bg/50 text-text flex flex-col p-6">
+		<div className="min-h-dvh bg-bg/50 text-text flex flex-col p-6">
 			{/* Logo */}
 			<div className="flex-1 flex items-center justify-center">
 				<img
@@ -190,7 +190,7 @@ export function Landing() {
 
 						<button
 							type="submit"
-							disabled={isLoading || !rollNo.trim()}
+							disabled={isLoading || rollNo.trim().length < 7}
 							className="w-full h-14 rounded-lg bg-brand hover:bg-brand-active text-white text-lg font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
 						>
 							{isLoading ? (

@@ -4,12 +4,12 @@
 
 **Blocked by:** 01 — Database Schema & Roll Number Lookup API
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Implement generic `EmailProvider` adapter interface.
-- [ ] Implement concrete Resend email adapter.
-- [ ] Create `POST /api/auth/otp/send` endpoint.
-- [ ] The send endpoint MUST derive the email address as `[roll_no]@kiit.ac.in` and store the OTP temporarily.
-- [ ] Create `POST /api/auth/otp/verify` endpoint.
-- [ ] The verify endpoint MUST validate the OTP and permanently create the `RollNumberMapping` in the database.
-- [ ] Add unit tests for the email derivation and OTP verification logic.
+- [x] Implement generic `EmailProvider` adapter interface.
+- [x] Implement concrete Resend email adapter.
+- [x] Create `POST /api/auth/otp/send` endpoint.
+- [x] The send endpoint MUST derive the email address as `[roll_no]@kiit.ac.in` and store the OTP temporarily.
+- [x] Create `POST /api/auth/otp/verify` endpoint.
+- [x] The verify endpoint MUST validate the OTP and permanently create the `RollNumberMapping` in the database.
+- [x] Add unit tests for the email derivation and OTP verification logic.

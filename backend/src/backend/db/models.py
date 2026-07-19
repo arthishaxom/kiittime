@@ -161,18 +161,3 @@ class RollNumberMapping(Base):
     section: Mapped["Section"] = relationship()
 
 
-class OTPVerification(Base):
-    __tablename__ = "otp_verifications"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    roll_no: Mapped[str] = mapped_column(String, index=True, nullable=False)
-    otp_code: Mapped[str] = mapped_column(String, nullable=False)
-    section_ids: Mapped[list[int]] = mapped_column(JSONB, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    is_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
-
-    __table_args__ = (
-        {"schema": "kiittime"},
-    )
-
