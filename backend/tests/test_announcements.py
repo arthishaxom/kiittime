@@ -39,6 +39,10 @@ def test_get_current_announcement_returns_most_recent_active(db):
 
 
 def test_get_current_announcement_returns_none_when_no_active(db):
+    from backend.db.models import Announcement
+
+    db.query(Announcement).delete()
+    db.flush()
     assert get_current_announcement(db) is None
 
 

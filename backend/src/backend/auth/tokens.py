@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from dotenv import load_dotenv
@@ -15,7 +15,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours, tunable
 
 
 def create_access_token(subject: str) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": subject,
         "iat": now,

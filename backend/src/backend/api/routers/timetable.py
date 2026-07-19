@@ -18,9 +18,7 @@ def get_timetable(
     db: Session = Depends(get_db),
 ) -> Any:
     sessions = get_sessions_by_sections(db, section_id)
-    sections = db.execute(
-        select(Section).where(Section.id.in_(section_id))
-    ).scalars().all()
+    sections = db.execute(select(Section).where(Section.id.in_(section_id))).scalars().all()
 
     return {
         "sections_requested": [s.section_name for s in sections],

@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
+
 from backend.db.models import ClassSession
 
 

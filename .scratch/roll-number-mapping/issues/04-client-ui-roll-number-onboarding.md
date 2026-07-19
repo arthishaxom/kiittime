@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 — Database Schema & Roll Number Lookup API
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Update `mobile` onboarding root to feature a Roll Number input by default.
-- [ ] Update `webapp` onboarding root to feature a Roll Number input by default.
-- [ ] Call `GET /api/roll-numbers/{roll_no}` on submission.
-- [ ] On success, automatically fetch and display the aggregated timetable.
-- [ ] On "Empty DB" error, show a blocking "No timetables uploaded yet" message.
-- [ ] Demote the manual section selection UI to a secondary "Select manually" fallback button.
+- [x] Update `mobile` onboarding root to feature a Roll Number input by default.
+- [x] Update `webapp` onboarding root to feature a Roll Number input by default.
+- [x] Call `GET /api/roll-numbers/{roll_no}` on submission.
+- [x] On success, automatically fetch and display the aggregated timetable.
+- [x] On "Empty DB" error, show a blocking "No timetables uploaded yet" message.
+- [x] Demote the manual section selection UI to a secondary "Select manually" fallback button.

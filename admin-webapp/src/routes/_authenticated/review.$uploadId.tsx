@@ -1,31 +1,27 @@
-import { useEffect, useMemo, useState } from "react"
-import { Link, createFileRoute, useRouter } from "@tanstack/react-router"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-
-import { useAuth } from "../../lib/auth"
-import { apiFetch } from "../../lib/api"
-import { buildScopeBody, type ScopeMode } from "../../lib/scope"
-import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert"
-import { Badge } from "../../components/ui/badge"
-import { Button } from "../../components/ui/button"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../../components/ui/card"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
+} from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../../components/ui/select"
-import { Skeleton } from "../../components/ui/skeleton"
+} from "../../components/ui/select";
+import { Skeleton } from "../../components/ui/skeleton";
 import {
 	Table,
 	TableBody,
@@ -33,82 +29,95 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "../../components/ui/table"
+} from "../../components/ui/table";
+import { apiFetch } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
+import { buildScopeBody, type ScopeMode } from "../../lib/scope";
 
 export const Route = createFileRoute("/_authenticated/review/$uploadId")({
 	component: RouteComponent,
-})
+});
 
 interface SessionDetail {
-	section: string
-	day: string
-	period_number: number
-	course_code: string
-	faculty_name: string
-	room_number: string
-	change_type?: "added" | "changed" | "removed" | "unchanged" | null
-	previous?: SessionDetail | null
+	section: string;
+	day: string;
+	period_number: number;
+	course_code: string;
+	faculty_name: string;
+	room_number: string;
+	change_type?: "added" | "changed" | "removed" | "unchanged" | null;
+	previous?: SessionDetail | null;
 }
 
 interface DiffSummary {
-	session_count: number
-	sections: string[]
-	session_details?: SessionDetail[]
+	session_count: number;
+	sections: string[];
+	session_details?: SessionDetail[];
 }
 
-const PAGE_SIZE = 25
+const PAGE_SIZE = 25;
 
 interface UploadData {
-	upload_id: number
-	diff: DiffSummary
-	status: string
+	upload_id: number;
+	diff: DiffSummary;
+	status: string;
 }
 
 function RouteComponent() {
-	const { uploadId } = Route.useParams()
-	const auth = useAuth()
-	const router = useRouter()
-	const queryClient = useQueryClient()
+	const { uploadId } = Route.useParams();
+	const auth = useAuth();
+	const router = useRouter();
+	const queryClient = useQueryClient();
 
-	const [scopeMode, setScopeMode] = useState<ScopeMode>("year")
-	const [year, setYear] = useState<number | null>(null)
-	const [sectionIdsInput, setSectionIdsInput] = useState("")
-	const [error, setError] = useState<string | null>(null)
-	const [page, setPage] = useState(0)
+	const [scopeMode, setScopeMode] = useState<ScopeMode>("year");
+	const [year, setYear] = useState<number | null>(null);
+	const [sectionIdsInput, setSectionIdsInput] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	const [page, setPage] = useState(0);
 
-	const { data, isLoading, isError, error: queryError } = useQuery({
+	const {
+		data,
+		isLoading,
+		isError,
+		error: queryError,
+	} = useQuery({
 		queryKey: ["upload", uploadId],
 		queryFn: async () => {
 			const res = await apiFetch(
 				`/admin/uploads/${uploadId}`,
 				{},
 				auth.token ?? undefined,
-			)
+			);
 			if (!res.ok) {
-				const detail = await res.json().then((d) => d.detail).catch(() => res.statusText)
-				throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail))
+				const detail = await res
+					.json()
+					.then((d) => d.detail)
+					.catch(() => res.statusText);
+				throw new Error(
+					typeof detail === "string" ? detail : JSON.stringify(detail),
+				);
 			}
-			return res.json() as Promise<UploadData>
+			return res.json() as Promise<UploadData>;
 		},
-	})
+	});
 
-	const details = data?.diff?.session_details ?? []
-	const totalPages = Math.max(1, Math.ceil(details.length / PAGE_SIZE))
+	const details = data?.diff?.session_details ?? [];
+	const totalPages = Math.max(1, Math.ceil(details.length / PAGE_SIZE));
 	const pageDetails = useMemo(
 		() => details.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
 		[details, page],
-	)
+	);
 
 	// Reset to page 0 when a new upload's details arrive
 	useEffect(() => {
-		setPage(0)
-	}, [data?.upload_id])
+		setPage(0);
+	}, [data?.upload_id]);
 
-	const isPending = data?.status === "pending"
+	const isPending = data?.status === "pending";
 
 	const approveMutation = useMutation({
 		mutationFn: async () => {
-			const body = buildScopeBody(scopeMode, year, sectionIdsInput)
+			const body = buildScopeBody(scopeMode, year, sectionIdsInput);
 			const res = await apiFetch(
 				`/admin/uploads/${uploadId}/approve`,
 				{
@@ -117,30 +126,33 @@ function RouteComponent() {
 					body: JSON.stringify(body),
 				},
 				auth.token ?? undefined,
-			)
+			);
 			if (!res.ok) {
-				const detail = await res.json().then((d) => d.detail).catch(() => res.statusText)
-				const status = res.status
+				const detail = await res
+					.json()
+					.then((d) => d.detail)
+					.catch(() => res.statusText);
+				const status = res.status;
 				throw new ApiError(
 					typeof detail === "string" ? detail : JSON.stringify(detail),
 					status,
-				)
+				);
 			}
-			return res.json() as Promise<{ status: string; upload_id: number }>
+			return res.json() as Promise<{ status: string; upload_id: number }>;
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["upload", uploadId] })
-			toast.success("Upload approved successfully")
-			router.navigate({ to: "/" })
+			queryClient.invalidateQueries({ queryKey: ["upload", uploadId] });
+			toast.success("Upload approved successfully");
+			router.navigate({ to: "/" });
 		},
 		onError: (e) => {
 			if (e instanceof ApiError && e.status === 409) {
-				setError(`Already processed: ${e.message}`)
+				setError(`Already processed: ${e.message}`);
 			} else {
-				setError(e instanceof Error ? e.message : "Approval failed")
+				setError(e instanceof Error ? e.message : "Approval failed");
 			}
 		},
-	})
+	});
 
 	const rejectMutation = useMutation({
 		mutationFn: async () => {
@@ -148,30 +160,33 @@ function RouteComponent() {
 				`/admin/uploads/${uploadId}/reject`,
 				{ method: "POST" },
 				auth.token ?? undefined,
-			)
+			);
 			if (!res.ok) {
-				const detail = await res.json().then((d) => d.detail).catch(() => res.statusText)
-				const status = res.status
+				const detail = await res
+					.json()
+					.then((d) => d.detail)
+					.catch(() => res.statusText);
+				const status = res.status;
 				throw new ApiError(
 					typeof detail === "string" ? detail : JSON.stringify(detail),
 					status,
-				)
+				);
 			}
-			return res.json() as Promise<{ status: string; upload_id: number }>
+			return res.json() as Promise<{ status: string; upload_id: number }>;
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["upload", uploadId] })
-			toast.success("Upload rejected")
-			router.navigate({ to: "/" })
+			queryClient.invalidateQueries({ queryKey: ["upload", uploadId] });
+			toast.success("Upload rejected");
+			router.navigate({ to: "/" });
 		},
 		onError: (e) => {
 			if (e instanceof ApiError && e.status === 409) {
-				setError(`Already processed: ${e.message}`)
+				setError(`Already processed: ${e.message}`);
 			} else {
-				setError(e instanceof Error ? e.message : "Rejection failed")
+				setError(e instanceof Error ? e.message : "Rejection failed");
 			}
 		},
-	})
+	});
 
 	if (isLoading) {
 		return (
@@ -184,7 +199,7 @@ function RouteComponent() {
 					</CardContent>
 				</Card>
 			</div>
-		)
+		);
 	}
 
 	if (isError) {
@@ -197,12 +212,12 @@ function RouteComponent() {
 					</AlertDescription>
 				</Alert>
 			</div>
-		)
+		);
 	}
 
-	if (!data) return null
+	if (!data) return null;
 
-	const { diff } = data
+	const { diff } = data;
 
 	return (
 		<div className="mx-auto max-w-5xl p-6">
@@ -371,7 +386,7 @@ function RouteComponent() {
 				</CardContent>
 			</Card>
 		</div>
-	)
+	);
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -380,14 +395,14 @@ function StatusBadge({ status }: { status: string }) {
 			? "default"
 			: status === "rejected"
 				? "destructive"
-				: "secondary"
-	return <Badge variant={variant}>{status}</Badge>
+				: "secondary";
+	return <Badge variant={variant}>{status}</Badge>;
 }
 
 class ApiError extends Error {
-	status: number
+	status: number;
 	constructor(message: string, status: number) {
-		super(message)
-		this.status = status
+		super(message);
+		this.status = status;
 	}
 }

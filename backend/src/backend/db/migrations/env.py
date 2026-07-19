@@ -1,9 +1,9 @@
 import os
 from logging.config import fileConfig
 
+import sqlalchemy as sa
 from alembic import context
 from dotenv import load_dotenv
-import sqlalchemy as sa
 from sqlalchemy import engine_from_config, pool
 
 from backend.db import models  # noqa: F401
