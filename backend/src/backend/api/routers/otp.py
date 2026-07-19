@@ -219,23 +219,20 @@ def verify_otp(
     # Academic year is derived from the first section
     academic_year = sections[0].year
 
+    # Delete any existing mapping entries for this roll number
+    from sqlalchemy import delete
+    db.execute(
+        delete(RollNumberMapping).where(RollNumberMapping.roll_no == roll_no)
+    )
+
     # Create mapping entries
     for section in sections:
-        # Check if mapping already exists
-        exists = db.execute(
-            select(RollNumberMapping).where(
-                RollNumberMapping.roll_no == roll_no,
-                RollNumberMapping.section_id == section.id,
-            )
-        ).scalar_one_or_none()
-
-        if not exists:
-            mapping = RollNumberMapping(
-                roll_no=roll_no,
-                section_id=section.id,
-                academic_year=academic_year,
-            )
-            db.add(mapping)
+        mapping = RollNumberMapping(
+            roll_no=roll_no,
+            section_id=section.id,
+            academic_year=academic_year,
+        )
+        db.add(mapping)
 
     db.commit()
 
