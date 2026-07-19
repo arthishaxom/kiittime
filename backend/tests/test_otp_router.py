@@ -301,3 +301,57 @@ def test_attempt_capping_and_lockout(client, db, mock_email, mock_redis):
         json={"roll_no": "2105128", "otp_code": "123456"},
     )
     assert res_verify.status_code == 429
+
+
+def test_verify_otp_deletes_previous_mappings(client, db, mock_email, mock_redis):
+    sec1 = get_or_create_section(db, "CS_PREV_1", 3)
+    sec2 = get_or_create_section(db, "CS_PREV_2", 3)
+
+    # Pre-populate mapping for "2105199" with sec1
+    mapping_old = RollNumberMapping(roll_no="2105199", section_id=sec1.id, academic_year=3)
+    db.add(mapping_old)
+    db.commit()
+
+    # Verify old mapping exists
+    assert db.execute(
+        select(RollNumberMapping).where(
+            RollNumberMapping.roll_no == "2105199",
+            RollNumberMapping.section_id == sec1.id
+        )
+    ).scalar_one_or_none() is not None
+
+    # Send OTP for sec2 mapping
+    send_res = client.post(
+        "/api/auth/otp/send",
+        json={"roll_no": "2105199", "section_ids": [sec2.id]},
+    )
+    assert send_res.status_code == 200
+
+    # Retrieve code
+    email = mock_email.sent_emails[0]
+    match = re.search(r"\b\d{6}\b", email["html"])
+    code = match.group(0)
+
+    # Verify OTP
+    verify_res = client.post(
+        "/api/auth/otp/verify",
+        json={"roll_no": "2105199", "otp_code": code},
+    )
+    assert verify_res.status_code == 200
+
+    # Confirm old mapping is deleted
+    assert db.execute(
+        select(RollNumberMapping).where(
+            RollNumberMapping.roll_no == "2105199",
+            RollNumberMapping.section_id == sec1.id
+        )
+    ).scalar_one_or_none() is None
+
+    # Confirm new mapping exists
+    assert db.execute(
+        select(RollNumberMapping).where(
+            RollNumberMapping.roll_no == "2105199",
+            RollNumberMapping.section_id == sec2.id
+        )
+    ).scalar_one_or_none() is not None
+
