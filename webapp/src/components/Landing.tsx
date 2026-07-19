@@ -12,7 +12,7 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import { fetchRollNumberMapping } from "#/lib/api";
-import { saveSectionIds } from "#/lib/storage";
+import { saveSectionIds, ACTIVE_ROLL_NO_KEY, ACTIVE_ACADEMIC_YEAR_KEY } from "#/lib/storage";
 
 export function Landing() {
 	const [rollNo, setRollNo] = useState("");
@@ -37,6 +37,8 @@ export function Landing() {
 		try {
 			const data = await fetchRollNumberMapping(rollNo.trim());
 			saveSectionIds(data.sections.map((s) => s.id));
+			localStorage.setItem(ACTIVE_ROLL_NO_KEY, data.roll_no);
+			localStorage.setItem(ACTIVE_ACADEMIC_YEAR_KEY, String(data.academic_year));
 			navigate({
 				to: "/timetable",
 				search: { section_id: data.sections.map((s) => s.id) },
