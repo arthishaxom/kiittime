@@ -1,17 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useMemo, useState, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
+import { Loader2 } from "lucide-react";
 import {
 	Select,
 	SelectContent,
@@ -20,9 +11,17 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { useSections } from "#/hooks/useSections";
-import { sendOtp, verifyOtp } from "#/lib/api";
 import { buildMailto } from "#/lib/mailto";
 import { saveSectionIds } from "#/lib/storage";
+import { sendOtp, verifyOtp } from "#/lib/api";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
 
 export function SectionSearch({ year }: { year: number }) {
 	const navigate = useNavigate();
@@ -46,6 +45,7 @@ export function SectionSearch({ year }: { year: number }) {
 	const focusOtpInput = () => {
 		otpInputRef.current?.focus();
 	};
+
 
 	const { data: sections, isLoading, isError } = useSections(year);
 
@@ -113,9 +113,7 @@ export function SectionSearch({ year }: { year: number }) {
 			setIsConfirmLinkOpen(false);
 			setIsOtpOpen(true);
 		} catch (err: any) {
-			const msg = err.message || "Failed to send OTP. Please try again.";
-			setOtpError(msg);
-			toast.error(msg);
+			setOtpError(err.message || "Failed to send OTP. Please try again.");
 		} finally {
 			setIsSendingOtp(false);
 		}
@@ -128,11 +126,6 @@ export function SectionSearch({ year }: { year: number }) {
 		try {
 			const data = await verifyOtp(rollNoToLink, otp);
 			saveSectionIds(data.sections.map((s) => s.id));
-			localStorage.setItem("kiit-time:active-roll-no", rollNoToLink);
-			localStorage.setItem(
-				"kiit-time:active-academic-year",
-				String(data.academic_year),
-			);
 			localStorage.removeItem("temp_linking_roll_no");
 			setIsOtpOpen(false);
 			navigate({
@@ -178,6 +171,7 @@ export function SectionSearch({ year }: { year: number }) {
 					Done
 				</button>
 			</div>
+
 
 			<Input
 				placeholder="Search sections…"
@@ -287,9 +281,7 @@ export function SectionSearch({ year }: { year: number }) {
 							Link Roll Number?
 						</DialogTitle>
 						<DialogDescription className="text-text-muted text-sm mt-2 leading-relaxed">
-							Would you like to link your roll number{" "}
-							<strong className="text-white">{rollNoToLink}</strong> to these
-							sections so you don't have to select them next time?
+							Would you like to link your roll number <strong className="text-white">{rollNoToLink}</strong> to these sections so you don't have to select them next time?
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter className="flex flex-col gap-2 mt-4">
@@ -320,32 +312,24 @@ export function SectionSearch({ year }: { year: number }) {
 			</Dialog>
 
 			{/* Enter OTP Modal */}
-			<Dialog
-				open={isOtpOpen}
-				onOpenChange={(open) => {
-					if (!open) {
-						setIsOtpOpen(false);
-						setOtp("");
-						setOtpError(null);
-					}
-				}}
-			>
+			<Dialog open={isOtpOpen} onOpenChange={(open) => {
+				if (!open) {
+					setIsOtpOpen(false);
+					setOtp("");
+					setOtpError(null);
+				}
+			}}>
 				<DialogContent className="bg-surface border-border text-text max-w-sm sm:max-w-md">
 					<DialogHeader>
 						<DialogTitle className="text-white text-xl font-bold">
 							Verify Your Email
 						</DialogTitle>
 						<DialogDescription className="text-text-muted text-sm mt-2 leading-relaxed">
-							We've sent a 6-digit verification code to{" "}
-							<strong className="text-white">{rollNoToLink}@kiit.ac.in</strong>.
-							Enter it below to link your roll number.
+							We've sent a 6-digit verification code to <strong className="text-white">{rollNoToLink}@kiit.ac.in</strong>. Enter it below to link your roll number.
 						</DialogDescription>
 					</DialogHeader>
 
-					<div
-						className="relative flex justify-center gap-2 my-6"
-						onClick={focusOtpInput}
-					>
+					<div className="relative flex justify-center gap-2 my-6" onClick={focusOtpInput}>
 						{/* Hidden actual input */}
 						<input
 							ref={otpInputRef}
@@ -366,7 +350,7 @@ export function SectionSearch({ year }: { year: number }) {
 							disabled={isVerifyingOtp}
 							className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:pointer-events-none"
 						/>
-
+						
 						{/* Styled OTP character slots */}
 						{Array.from({ length: 6 }).map((_, i) => {
 							const char = otp[i] || "";

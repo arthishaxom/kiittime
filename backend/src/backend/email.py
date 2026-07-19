@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import resend
 
@@ -25,7 +26,7 @@ class ConsoleEmailProvider(EmailProvider):
 
 
 class ResendEmailProvider(EmailProvider):
-    def __init__(self, api_key: str | None = None, from_email: str = "onboarding@resend.dev"):
+    def __init__(self, api_key: Optional[str] = None, from_email: str = "onboarding@resend.dev"):
         self.api_key = api_key
         self.from_email = from_email
         if api_key:
@@ -50,3 +51,4 @@ class ResendEmailProvider(EmailProvider):
         except Exception as e:
             logger.error(f"Unexpected error when sending email via Resend SDK: {e}")
             return False
+

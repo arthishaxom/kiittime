@@ -84,7 +84,7 @@ export async function fetchRollNumberMapping(
 		let detailMessage = "";
 		try {
 			const body = await res.json();
-			if (body?.detail) {
+			if (body && body.detail) {
 				detailMessage = body.detail;
 			}
 		} catch {}
@@ -110,13 +110,11 @@ export async function sendOtp(
 		let detailMessage = "";
 		try {
 			const body = await res.json();
-			if (body?.detail) {
+			if (body && body.detail) {
 				detailMessage = body.detail;
 			}
 		} catch {}
-		const error = new Error(
-			detailMessage || `Failed to send OTP: ${res.status}`,
-		);
+		const error = new Error(detailMessage || `Failed to send OTP: ${res.status}`);
 		(error as any).status = res.status;
 		throw error;
 	}
@@ -137,18 +135,17 @@ export async function verifyOtp(
 		let detailMessage = "";
 		try {
 			const body = await res.json();
-			if (body?.detail) {
+			if (body && body.detail) {
 				detailMessage = body.detail;
 			}
 		} catch {}
-		const error = new Error(
-			detailMessage || `Failed to verify OTP: ${res.status}`,
-		);
+		const error = new Error(detailMessage || `Failed to verify OTP: ${res.status}`);
 		(error as any).status = res.status;
 		throw error;
 	}
 	return res.json();
 }
+
 
 export function formatTime(time: string): string {
 	// time comes as "HH:MM:SS" from the API

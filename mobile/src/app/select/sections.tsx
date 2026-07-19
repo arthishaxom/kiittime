@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState, memo, useCallback, useEffect, useRef } from 'react';
 import { Linking, Pressable, FlatList, View, ActivityIndicator, Modal, TextInput } from 'react-native';
-import { toast } from 'sonner-native';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,7 +15,7 @@ import { useSections } from '@/hooks/useSections';
 import { buildMailto } from '@/lib/mailto';
 import { extractPrefixes, filterSections } from '@/lib/sections';
 import { timetableHref } from '@/lib/search-params';
-import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo, saveActiveRollNo, saveActiveAcademicYear } from '@/lib/storage';
+import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendOtp, verifyOtp } from '@/lib/api';
@@ -122,14 +121,11 @@ export default function SectionSearch() {
       setIsConfirmLinkOpen(false);
       setIsOtpOpen(true);
     } catch (err: any) {
-      const msg = err.message || 'Failed to send OTP. Please try again.';
-      setOtpError(msg);
-      toast.error(msg);
+      setOtpError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
       setIsSendingOtp(false);
     }
   };
-
 
   const handleVerifyOtp = async () => {
     if (!rollNoToLink || otp.length < 6) return;
@@ -139,8 +135,6 @@ export default function SectionSearch() {
       const data = await verifyOtp(rollNoToLink, otp);
       const sectionIds = data.sections.map((s) => s.id);
       await saveSectionIds(sectionIds);
-      await saveActiveRollNo(rollNoToLink);
-      await saveActiveAcademicYear(data.academic_year);
       await clearTempLinkingRollNo();
       setIsOtpOpen(false);
       router.replace(timetableHref(sectionIds));
@@ -292,7 +286,7 @@ export default function SectionSearch() {
           <Pressable className="bg-surface rounded-2xl p-6 border border-border">
             <Text className="text-white text-lg font-bold mb-2">Link Roll Number?</Text>
             <Text className="text-text-muted text-sm leading-relaxed mb-6">
-              Would you like to link your roll number <Text className="text-white font-bold">{rollNoToLink}</Text> to these sections so you don&apos;t have to select them next time?
+              Would you like to link your roll number <Text className="text-white font-bold">{rollNoToLink}</Text> to these sections so you don't have to select them next time?
             </Text>
             <View className="gap-2">
               <Pressable
@@ -335,7 +329,7 @@ export default function SectionSearch() {
           <Pressable className="bg-surface rounded-2xl p-6 border border-border">
             <Text className="text-white text-lg font-bold mb-2">Verify Your Email</Text>
             <Text className="text-text-muted text-sm leading-relaxed mb-4">
-              We&apos;ve sent a 6-digit verification code to <Text className="text-white font-bold">{rollNoToLink}@kiit.ac.in</Text>. Enter it below to link your roll number.
+              We've sent a 6-digit verification code to <Text className="text-white font-bold">{rollNoToLink}@kiit.ac.in</Text>. Enter it below to link your roll number.
             </Text>
 
             <View className="relative flex-row justify-between gap-1 sm:gap-2 my-6" style={{ minHeight: 56 }}>

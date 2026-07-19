@@ -1,10 +1,11 @@
 import json
 import os
 import secrets
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.api.schemas import OTPSendRequest, OTPSendResponse, OTPVerifyRequest, OTPVerifyResponse
@@ -85,9 +86,9 @@ def send_otp(
         )
 
     # Check if all sections exist
-    existing_sections = (
-        db.execute(select(Section).where(Section.id.in_(payload.section_ids))).scalars().all()
-    )
+    existing_sections = db.execute(
+        select(Section).where(Section.id.in_(payload.section_ids))
+    ).scalars().all()
 
     if len(existing_sections) != len(set(payload.section_ids)):
         raise HTTPException(
@@ -205,9 +206,9 @@ def verify_otp(
     redis_conn.delete(f"otp:{roll_no}")
 
     # Retrieve sections
-    sections = (
-        db.execute(select(Section).where(Section.id.in_(otp_data["section_ids"]))).scalars().all()
-    )
+    sections = db.execute(
+        select(Section).where(Section.id.in_(otp_data["section_ids"]))
+    ).scalars().all()
 
     if not sections:
         raise HTTPException(
@@ -217,9 +218,6 @@ def verify_otp(
 
     # Academic year is derived from the first section
     academic_year = sections[0].year
-
-    # Delete all existing section mappings for this roll number (across all academic years)
-    db.execute(delete(RollNumberMapping).where(RollNumberMapping.roll_no == roll_no))
 
     # Create mapping entries
     for section in sections:
@@ -246,3 +244,4 @@ def verify_otp(
         "academic_year": academic_year,
         "sections": sections,
     }
+

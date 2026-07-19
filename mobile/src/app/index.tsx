@@ -8,16 +8,7 @@ import { AboutDialog } from '@/components/about-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { timetableHref } from '@/lib/search-params';
-import {
-  getSavedSectionIds,
-  saveSectionIds,
-  saveTempLinkingRollNo,
-  clearTempLinkingRollNo,
-  saveActiveRollNo,
-  saveActiveAcademicYear,
-  clearActiveRollNo,
-  clearActiveAcademicYear
-} from '@/lib/storage';
+import { getSavedSectionIds, saveSectionIds, saveTempLinkingRollNo, clearTempLinkingRollNo } from '@/lib/storage';
 import { fetchRollNumberMapping } from '@/lib/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -69,8 +60,6 @@ export default function Index() {
       const data = await fetchRollNumberMapping(rollNo.trim());
       const sectionIds = data.sections.map((s) => s.id);
       await saveSectionIds(sectionIds);
-      await saveActiveRollNo(rollNo.trim());
-      await saveActiveAcademicYear(data.academic_year);
       router.replace(timetableHref(sectionIds));
     } catch (err: any) {
       if (err.status === 404 && err.detail === 'No timetables uploaded yet') {
@@ -94,12 +83,9 @@ export default function Index() {
 
   const handleManualSelection = async () => {
     await clearTempLinkingRollNo();
-    await clearActiveRollNo();
-    await clearActiveAcademicYear();
     setIsNotFoundOpen(false);
     setShowManual(true);
   };
-
 
   const focusInput = () => {
     inputRef.current?.focus();
@@ -239,11 +225,7 @@ export default function Index() {
                 </Pressable>
 
                 <Pressable
-                  onPress={async () => {
-                    await clearActiveRollNo();
-                    await clearActiveAcademicYear();
-                    setShowManual(true);
-                  }}
+                  onPress={() => setShowManual(true)}
                   className="w-full mt-4 items-center justify-center">
                   <Text className="text-brand font-medium text-sm">Select sections manually</Text>
                 </Pressable>
@@ -304,7 +286,7 @@ export default function Index() {
               <Pressable className="bg-surface rounded-2xl p-6 border border-border">
                 <Text className="text-white text-lg font-bold mb-2">⚠️ Roll Number Not Registered</Text>
                 <Text className="text-text-muted text-sm leading-relaxed mb-6">
-                  We couldn&apos;t find your roll number <Text className="text-white font-bold">{rollNo}</Text> in the system. Would you like to select your sections manually and link your roll number via email OTP?
+                  We couldn't find your roll number <Text className="text-white font-bold">{rollNo}</Text> in the system. Would you like to select your sections manually and link your roll number via email OTP?
                 </Text>
                 <View className="gap-2">
                   <Pressable

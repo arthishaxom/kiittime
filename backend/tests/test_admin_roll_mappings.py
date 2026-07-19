@@ -158,7 +158,14 @@ def test_upload_roll_mappings_normalization(admin_client, db):
 
     # Upload CSV with various section name formats
     # 53 -> CS53, CS-53 -> CS53, CSE-53 -> CS53, IT-2 -> IT2, CS 53 -> CS53
-    csv_content = "roll_no,section\n1001,53\n1002,CS-53\n1003,CSE-53\n1004,IT-2\n1005,CS 53\n"
+    csv_content = (
+        "roll_no,section\n"
+        "1001,53\n"
+        "1002,CS-53\n"
+        "1003,CSE-53\n"
+        "1004,IT-2\n"
+        "1005,CS 53\n"
+    )
 
     file_payload = {"file": ("mappings.csv", csv_content, "text/csv")}
     form_payload = {"academic_year": 3}
@@ -175,7 +182,7 @@ def test_upload_roll_mappings_normalization(admin_client, db):
     # Verify matching in database
     mappings = db.query(RollNumberMapping).order_by(RollNumberMapping.roll_no).all()
     assert len(mappings) == 5
-
+    
     # 1001 -> 53 -> CS53
     assert mappings[0].roll_no == "1001"
     assert mappings[0].section.section_name == "CS53"
@@ -202,12 +209,12 @@ def test_upload_roll_mappings_explicit_columns_success(admin_client, db):
     db.add(sec)
     db.commit()
 
-    csv_content = "weird_roll,weird_section\n2105123,CS1\n"
+    csv_content = 'weird_roll,weird_section\n2105123,CS1\n'
     file_payload = {"file": ("mappings.csv", csv_content, "text/csv")}
     form_payload = {
         "academic_year": 2,
         "roll_col_name": "weird_roll",
-        "sec_col_name": "weird_section",
+        "sec_col_name": "weird_section"
     }
 
     response = admin_client.post(
@@ -220,26 +227,26 @@ def test_upload_roll_mappings_explicit_columns_success(admin_client, db):
 
 
 def test_upload_roll_mappings_explicit_columns_not_found(admin_client, db):
-    csv_content = "weird_roll,weird_section\n2105123,CS1\n"
+    csv_content = 'weird_roll,weird_section\n2105123,CS1\n'
     file_payload = {"file": ("mappings.csv", csv_content, "text/csv")}
-
+    
     # Missing roll column
     form_payload = {
         "academic_year": 2,
         "roll_col_name": "missing_roll",
-        "sec_col_name": "weird_section",
+        "sec_col_name": "weird_section"
     }
     response = admin_client.post(
         "/admin/roll-mappings/upload", files=file_payload, data=form_payload
     )
     assert response.status_code == 422
     assert "not found in file" in response.json()["detail"].lower()
-
+    
     # Missing sec column
     form_payload = {
         "academic_year": 2,
         "roll_col_name": "weird_roll",
-        "sec_col_name": "missing_sec",
+        "sec_col_name": "missing_sec"
     }
     response = admin_client.post(
         "/admin/roll-mappings/upload", files=file_payload, data=form_payload
@@ -249,9 +256,12 @@ def test_upload_roll_mappings_explicit_columns_not_found(admin_client, db):
 
 
 def test_inspect_roll_mappings_success(admin_client, db):
-    csv_content = "weird_roll,weird_section\n2105123,CS1\n"
+    csv_content = 'weird_roll,weird_section\n2105123,CS1\n'
     file_payload = {"file": ("mappings.csv", csv_content, "text/csv")}
-    response = admin_client.post("/admin/roll-mappings/inspect", files=file_payload)
+    response = admin_client.post(
+        "/admin/roll-mappings/inspect", files=file_payload
+    )
     assert response.status_code == 200
     res_data = response.json()
     assert res_data["columns"] == ["weird_roll", "weird_section"]
+

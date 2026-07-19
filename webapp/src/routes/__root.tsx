@@ -1,7 +1,6 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Toaster } from "#/components/ui/sonner";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 import "../styles.css";
@@ -14,7 +13,6 @@ function RootComponent() {
 	return (
 		<>
 			<Outlet />
-			<Toaster />
 			<TanStackDevtools
 				config={{
 					position: "bottom-right",

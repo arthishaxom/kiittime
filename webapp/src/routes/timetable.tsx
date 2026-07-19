@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Mail,
 	Megaphone,
-	Pencil,
 	RotateCcw,
 	Settings,
 	Share2,
@@ -50,28 +49,13 @@ function TimetablePage() {
 	const { section_id } = Route.useSearch();
 	const { data, isLoading, isError } = useTimetable(section_id);
 
-	const activeRollNo = localStorage.getItem("kiit-time:active-roll-no");
-	const activeAcademicYear = localStorage.getItem(
-		"kiit-time:active-academic-year",
-	);
-
-	function handleEditSection() {
-		if (activeRollNo) {
-			localStorage.setItem("temp_linking_roll_no", activeRollNo);
-			navigate({
-				to: "/select/sections",
-				search: { year: activeAcademicYear ? Number(activeAcademicYear) : 1 },
-			});
-		}
-	}
-
 	const byDay = useMemo(() => {
 		const map = new Map<string, Session[]>();
 		for (const day of DAYS) map.set(day, []);
 		for (const session of data?.sessions ?? []) {
 			const key = session.day.toUpperCase().slice(0, 3);
 			if (map.has(key)) {
-				map.get(key)?.push(session);
+				map.get(key)!.push(session);
 			}
 		}
 		for (const list of map.values()) {
@@ -114,8 +98,6 @@ function TimetablePage() {
 
 	function handleReset() {
 		localStorage.removeItem("kiit-time:selected-sections");
-		localStorage.removeItem("kiit-time:active-roll-no");
-		localStorage.removeItem("kiit-time:active-academic-year");
 		navigate({ to: "/" });
 	}
 
@@ -125,8 +107,6 @@ function TimetablePage() {
 	const [index, setIndex] = useState(initialIndex);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [containerWidth, setContainerWidth] = useState(0);
-
-	const x = useMotionValue(0);
 
 	useLayoutEffect(() => {
 		if (isLoading || isError) return;
@@ -142,13 +122,9 @@ function TimetablePage() {
 		measure();
 		window.addEventListener("resize", measure);
 		return () => window.removeEventListener("resize", measure);
-	}, [
-		isLoading,
-		isError,
-		initialIndex, // Sync x to the initial day index so the carousel is not stuck at index 0 on mount
-		x.set,
-	]);
+	}, [isLoading, isError]);
 
+	const x = useMotionValue(0);
 
 	const activeAnimation = useRef<ReturnType<typeof animate> | null>(null);
 
@@ -176,6 +152,13 @@ function TimetablePage() {
 		}
 	}
 
+	console.log(
+		"[timetable] RENDER — containerWidth:",
+		containerWidth,
+		"index:",
+		index,
+	);
+
 	if (isLoading) {
 		return <div className="h-dvh bg-bg text-text p-4">Loading timetable…</div>;
 	}
@@ -190,20 +173,10 @@ function TimetablePage() {
 
 	return (
 		<div className="h-dvh bg-bg text-text flex flex-col">
-			<div className="p-4 pb-2 flex items-center justify-center gap-2">
+			<div className="p-4 pb-2 text-center">
 				<h1 className="text-lg font-bold">
 					{data?.sections_requested.join(", ")}
 				</h1>
-				{activeRollNo && (
-					<button
-						type="button"
-						onClick={handleEditSection}
-						className="p-1 rounded-full hover:bg-surface text-text-muted hover:text-white transition-colors cursor-pointer"
-						title="Edit Section"
-					>
-						<Pencil size={16} />
-					</button>
-				)}
 			</div>
 
 			{/* Tab strip — all 6 days always shown, tapping scrolls the carousel */}
