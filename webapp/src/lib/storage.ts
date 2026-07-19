@@ -1,5 +1,8 @@
-const STORAGE_KEY = "kiit-time:selected-sections";
-const LAST_SEEN_ANNOUNCEMENT_KEY = "kiit-time:last-seen-announcement";
+export const STORAGE_KEY = "kiit-time:selected-sections";
+export const LAST_SEEN_ANNOUNCEMENT_KEY = "kiit-time:last-seen-announcement";
+export const ACTIVE_ROLL_NO_KEY = "kiit-time:active-roll-no";
+export const ACTIVE_ACADEMIC_YEAR_KEY = "kiit-time:active-academic-year";
+
 
 export function getSavedSectionIds(): number[] | null {
 	try {
