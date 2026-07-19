@@ -5,9 +5,7 @@ import pandas as pd
 
 from backend.pipeline.schemas import SessionRow
 
-_PERIOD_V2 = re.compile(
-    r"P(\d+) \((\d{1,2}):(\d{2}) (AM|PM)-\d{1,2}:\d{2} (?:AM|PM)\)"
-)
+_PERIOD_V2 = re.compile(r"P(\d+) \((\d{1,2}):(\d{2}) (AM|PM)-\d{1,2}:\d{2} (?:AM|PM)\)")
 _PERIOD_V1 = re.compile(r"P(\d+)\n(\d{2}):(\d{2})")
 WEEKDAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
 

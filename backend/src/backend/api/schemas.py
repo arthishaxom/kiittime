@@ -11,6 +11,7 @@ class SectionOut(BaseModel):
     section_name: str
     year: int
 
+
 class SessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -36,7 +37,8 @@ class SessionOut(BaseModel):
             "room_number": obj.room.room_number,
             "section": obj.section.section_name,
         }
-    
+
+
 class TimetableOut(BaseModel):
     sections_requested: list[str]
     sessions: list[SessionOut]
@@ -114,3 +116,44 @@ class ClearAllResponse(BaseModel):
     faculty_deleted: int
     rooms_deleted: int
     bronze_snapshots_deleted: int
+
+
+class RollNumberMappingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    roll_no: str
+    academic_year: int
+    sections: list[SectionOut]
+
+
+class RollNumberUploadResponse(BaseModel):
+    status: str
+    created_count: int
+    deleted_count: int
+
+
+class RollMappingInspectResponse(BaseModel):
+    columns: list[str]
+
+
+class OTPSendRequest(BaseModel):
+    roll_no: str
+    section_ids: list[int]
+
+
+class OTPSendResponse(BaseModel):
+    status: str
+    message: str
+
+
+class OTPVerifyRequest(BaseModel):
+    roll_no: str
+    otp_code: str
+
+
+class OTPVerifyResponse(BaseModel):
+    status: str
+    academic_year: int
+    sections: list[SectionOut]
+
+

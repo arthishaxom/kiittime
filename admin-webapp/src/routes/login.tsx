@@ -1,19 +1,17 @@
-import { useState } from "react"
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-
-import { useAuth } from "../lib/auth"
-import { Alert, AlertDescription } from "../components/ui/alert"
-import { Button } from "../components/ui/button"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card"
+} from "../components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -21,46 +19,47 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "../components/ui/form"
-import { Input } from "../components/ui/input"
+} from "../components/ui/form";
+import { Input } from "../components/ui/input";
+import { useAuth } from "../lib/auth";
 
 const LoginSearchSchema = z.object({
 	redirect: z.string().default("/"),
-})
+});
 
 const LoginFormSchema = z.object({
 	username: z.string().min(1, "Username is required"),
 	password: z.string().min(1, "Password is required"),
-})
+});
 
 export const Route = createFileRoute("/login")({
 	validateSearch: LoginSearchSchema.parse,
 	beforeLoad: ({ context, search }) => {
 		if (context.auth.isAuthenticated) {
-			throw redirect({ to: search.redirect })
+			throw redirect({ to: search.redirect });
 		}
 	},
 	component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-	const auth = useAuth()
-	const router = useRouter()
-	const search = Route.useSearch()
-	const [error, setError] = useState<string | null>(null)
+	const auth = useAuth();
+	const router = useRouter();
+	const search = Route.useSearch();
+	const [error, setError] = useState<string | null>(null);
 
 	const form = useForm<z.infer<typeof LoginFormSchema>>({
 		resolver: zodResolver(LoginFormSchema),
 		defaultValues: { username: "", password: "" },
-	})
+	});
 
 	async function onSubmit(values: z.infer<typeof LoginFormSchema>) {
-		setError(null)
+		setError(null);
 		try {
-			await auth.login(values.username, values.password)
-			router.navigate({ to: search.redirect })
+			await auth.login(values.username, values.password);
+			router.navigate({ to: search.redirect });
 		} catch (e) {
-			setError(e instanceof Error ? e.message : "Login failed")
+			setError(e instanceof Error ? e.message : "Login failed");
 		}
 	}
 
@@ -122,5 +121,5 @@ function RouteComponent() {
 				</CardContent>
 			</Card>
 		</div>
-	)
+	);
 }

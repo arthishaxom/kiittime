@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState, memo, useCallback } from 'react';
-import { Linking, Pressable, FlatList, View } from 'react-native';
+import { useMemo, useState, memo, useCallback, useEffect, useRef } from 'react';
+import { Linking, Pressable, FlatList, View, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,9 +15,11 @@ import { useSections } from '@/hooks/useSections';
 import { buildMailto } from '@/lib/mailto';
 import { extractPrefixes, filterSections } from '@/lib/sections';
 import { timetableHref } from '@/lib/search-params';
-import { saveSectionIds } from '@/lib/storage';
+import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { sendOtp, verifyOtp } from '@/lib/api';
+
 
 const MAX_SECTIONS = 5;
 
@@ -56,6 +58,25 @@ export default function SectionSearch() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [selectedPrefix, setSelectedPrefix] = useState('All');
 
+  // OTP flow states
+  const [rollNoToLink, setRollNoToLink] = useState<string | null>(null);
+  const [isConfirmLinkOpen, setIsConfirmLinkOpen] = useState(false);
+  const [isOtpOpen, setIsOtpOpen] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isOtpInputFocused, setIsOtpInputFocused] = useState(false);
+
+  const otpInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    (async () => {
+      const val = await getTempLinkingRollNo();
+      setRollNoToLink(val);
+    })();
+  }, []);
+
   const { data: sections, isLoading, isError } = useSections(year);
 
   const prefixes = useMemo(() => extractPrefixes(sections ?? []), [sections]);
@@ -81,9 +102,58 @@ export default function SectionSearch() {
   }, []);
 
   async function handleDone() {
+    if (rollNoToLink) {
+      setIsConfirmLinkOpen(true);
+    } else {
+      await saveSectionIds(selectedIds);
+      router.replace(timetableHref(selectedIds));
+    }
+  }
+
+  const handleSendOtp = async () => {
+    if (!rollNoToLink) return;
+    setIsSendingOtp(true);
+    setOtpError(null);
+    try {
+      await sendOtp(rollNoToLink, selectedIds);
+      setIsConfirmLinkOpen(false);
+      setIsOtpOpen(true);
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!rollNoToLink || otp.length < 6) return;
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      const data = await verifyOtp(rollNoToLink, otp);
+      const sectionIds = data.sections.map((s) => s.id);
+      await saveSectionIds(sectionIds);
+      await clearTempLinkingRollNo();
+      setIsOtpOpen(false);
+      router.replace(timetableHref(sectionIds));
+    } catch (err: any) {
+      setOtpError(err.message || 'Invalid OTP code.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleSkipLink = async () => {
+    await clearTempLinkingRollNo();
+    setIsConfirmLinkOpen(false);
     await saveSectionIds(selectedIds);
     router.replace(timetableHref(selectedIds));
-  }
+  };
+
+  const focusOtpInput = () => {
+    otpInputRef.current?.focus();
+  };
+
 
   const insets = useSafeAreaInsets();
 
@@ -201,6 +271,150 @@ export default function SectionSearch() {
           }}
         />
       </View>
+
+      {/* Confirm Link Modal */}
+      <Modal
+        visible={isConfirmLinkOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsConfirmLinkOpen(false)}>
+        <Pressable
+          onPress={() => setIsConfirmLinkOpen(false)}
+          className="flex-1 bg-black/60 justify-center p-6">
+          <Pressable className="bg-surface rounded-2xl p-6 border border-border">
+            <Text className="text-white text-lg font-bold mb-2">Link Roll Number?</Text>
+            <Text className="text-text-muted text-sm leading-relaxed mb-6">
+              Would you like to link your roll number <Text className="text-white font-bold">{rollNoToLink}</Text> to these sections so you don't have to select them next time?
+            </Text>
+            <View className="gap-2">
+              <Pressable
+                disabled={isSendingOtp}
+                onPress={handleSendOtp}
+                className="w-full h-12 bg-brand rounded-lg items-center justify-center flex-row gap-2">
+                {isSendingOtp ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-white font-semibold">Link via OTP</Text>
+                )}
+              </Pressable>
+              <Pressable
+                onPress={handleSkipLink}
+                className="w-full h-12 bg-transparent border border-border rounded-lg items-center justify-center">
+                <Text className="text-text font-medium">No, thanks (Just View)</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* OTP Input Modal */}
+      <Modal
+        visible={isOtpOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setIsOtpOpen(false);
+          setOtp('');
+          setOtpError(null);
+        }}>
+        <Pressable
+          onPress={() => {
+            setIsOtpOpen(false);
+            setOtp('');
+            setOtpError(null);
+          }}
+          className="flex-1 bg-black/60 justify-center p-6">
+          <Pressable className="bg-surface rounded-2xl p-6 border border-border">
+            <Text className="text-white text-lg font-bold mb-2">Verify Your Email</Text>
+            <Text className="text-text-muted text-sm leading-relaxed mb-4">
+              We've sent a 6-digit verification code to <Text className="text-white font-bold">{rollNoToLink}@kiit.ac.in</Text>. Enter it below to link your roll number.
+            </Text>
+
+            <View className="relative flex-row justify-between gap-1 sm:gap-2 my-6" style={{ minHeight: 56 }}>
+              {/* Hidden actual TextInput */}
+              <TextInput
+                ref={otpInputRef}
+                value={otp}
+                onChangeText={(val) => {
+                  const cleaned = val.replace(/[^0-9]/g, '');
+                  if (cleaned.length <= 6) {
+                    setOtp(cleaned);
+                    setOtpError(null);
+                  }
+                }}
+                onFocus={() => setIsOtpInputFocused(true)}
+                onBlur={() => setIsOtpInputFocused(false)}
+                disabled={isVerifyingOtp}
+                keyboardType="number-pad"
+                maxLength={6}
+                className="absolute inset-0 w-full h-full opacity-0 z-10"
+                style={{ color: 'transparent' }}
+              />
+
+              {/* Styled OTP character slots */}
+              {Array.from({ length: 6 }).map((_, i) => {
+                const char = otp[i] || '';
+                const isFocused = isOtpInputFocused && i === otp.length;
+                const isFilled = char !== '';
+                return (
+                  <Pressable
+                    key={i}
+                    onPress={focusOtpInput}
+                    className={
+                      'flex-1 h-14 bg-bg rounded-lg border items-center justify-center ' +
+                      (isFocused
+                        ? 'border-brand'
+                        : isFilled
+                        ? 'border-border'
+                        : 'border-border/30')
+                    }>
+                    <Text className="text-white text-lg font-bold">
+                      {char}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {otpError && (
+              <Text className="text-danger text-sm text-center mb-4">{otpError}</Text>
+            )}
+
+            <View className="gap-2">
+              <Pressable
+                disabled={isVerifyingOtp || otp.length < 6}
+                onPress={handleVerifyOtp}
+                className={
+                  'w-full h-12 bg-brand rounded-lg items-center justify-center flex-row gap-2 ' +
+                  (isVerifyingOtp || otp.length < 6 ? 'opacity-40' : '')
+                }>
+                {isVerifyingOtp ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-white font-semibold">Verify & Link</Text>
+                )}
+              </Pressable>
+              
+              <Pressable
+                disabled={isSendingOtp}
+                onPress={handleSendOtp}
+                className="w-full h-12 items-center justify-center">
+                <Text className="text-brand font-semibold text-sm">Resend Code</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setIsOtpOpen(false);
+                  setOtp('');
+                  setOtpError(null);
+                }}
+                className="w-full h-12 items-center justify-center">
+                <Text className="text-text-muted font-medium">Cancel</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

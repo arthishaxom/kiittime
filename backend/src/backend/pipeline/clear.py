@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from backend.db.models import BronzeSnapshot, ClassSession, Course, Faculty, Room, Section
+from backend.db.models import BronzeSnapshot, ClassSession, Course, Faculty, RollNumberMapping, Room, Section
 
 
 class ClearAllResult(BaseModel):
@@ -26,6 +26,7 @@ def clear_all(session: Session) -> ClearAllResult:
     convention as gold_upsert).
     """
     class_sessions_deleted = session.execute(delete(ClassSession)).rowcount
+    session.execute(delete(RollNumberMapping))
     sections_deleted = session.execute(delete(Section)).rowcount
     courses_deleted = session.execute(delete(Course)).rowcount
     faculty_deleted = session.execute(delete(Faculty)).rowcount
