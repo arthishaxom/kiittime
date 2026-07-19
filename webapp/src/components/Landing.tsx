@@ -1,10 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, Info, Loader2 } from "lucide-react";
 import type React from "react";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { AboutDialog } from "#/components/AboutDialog";
-import { fetchRollNumberMapping } from "#/lib/api";
-import { saveSectionIds } from "#/lib/storage";
 import {
 	Dialog,
 	DialogContent,
@@ -13,6 +11,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import { fetchRollNumberMapping } from "#/lib/api";
+import { saveSectionIds } from "#/lib/storage";
 
 export function Landing() {
 	const [rollNo, setRollNo] = useState("");
@@ -161,9 +161,12 @@ export function Landing() {
 								disabled={isLoading}
 								className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:pointer-events-none"
 							/>
-							
+
 							{/* Styled Segmented Boxes */}
-							<div className="flex justify-between gap-1 sm:gap-2" onClick={focusInput}>
+							<div
+								className="flex justify-between gap-1 sm:gap-2"
+								onClick={focusInput}
+							>
 								{Array.from({ length: totalBoxes }).map((_, i) => {
 									const char = rollNo[i] || "";
 									const isFocused = isInputFocused && i === rollNo.length;
@@ -184,8 +187,10 @@ export function Landing() {
 									);
 								})}
 							</div>
-							
-							{error && <p className="text-danger text-sm mt-3 text-center">{error}</p>}
+
+							{error && (
+								<p className="text-danger text-sm mt-3 text-center">{error}</p>
+							)}
 						</div>
 
 						<button
@@ -273,7 +278,10 @@ export function Landing() {
 							<span className="text-brand">⚠️</span> Roll Number Not Registered
 						</DialogTitle>
 						<DialogDescription className="text-text-muted text-sm mt-2 leading-relaxed">
-							We couldn't find your roll number <strong className="text-white">{rollNo}</strong> in the system. Would you like to select your sections manually and link your roll number via email OTP?
+							We couldn't find your roll number{" "}
+							<strong className="text-white">{rollNo}</strong> in the system.
+							Would you like to select your sections manually and link your roll
+							number via email OTP?
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter className="flex flex-col gap-2 mt-4">
@@ -315,4 +323,3 @@ export function Landing() {
 		</div>
 	);
 }
-

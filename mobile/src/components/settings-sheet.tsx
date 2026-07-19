@@ -13,7 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { buildMailto } from '@/lib/mailto';
 import { shareTimetable } from '@/lib/share';
-import { clearSavedSectionIds } from '@/lib/storage';
+import { clearSavedSectionIds, clearActiveRollNo, clearActiveAcademicYear } from '@/lib/storage';
 import { THEME } from '@/lib/theme';
 
 type SettingsSheetProps = {
@@ -42,6 +42,8 @@ export const SettingsSheet = forwardRef<BottomSheetModal, SettingsSheetProps>(
 
     async function handleReset() {
       await clearSavedSectionIds();
+      await clearActiveRollNo();
+      await clearActiveAcademicYear();
       queryClient.clear();
       router.replace('/');
     }

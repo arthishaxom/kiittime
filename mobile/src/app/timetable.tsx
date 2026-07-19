@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useLocalSearchParams } from 'expo-router';
-import { Settings } from 'lucide-react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Settings, Pencil } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -21,7 +21,7 @@ import { useTimetable } from '@/hooks/useTimetable';
 import { isAnnouncementUnseen } from '@/lib/announcements';
 import { formatTime } from '@/lib/api';
 import { parseSectionIds } from '@/lib/search-params';
-import { getLastSeenAnnouncementId, setLastSeenAnnouncementId } from '@/lib/storage';
+import { getLastSeenAnnouncementId, setLastSeenAnnouncementId, getActiveRollNo, getActiveAcademicYear, saveTempLinkingRollNo } from '@/lib/storage';
 import { DAYS, groupSessionsByDay, todayIndex } from '@/lib/timetable';
 import { cn } from '@/lib/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +34,29 @@ export default function TimetablePage() {
   const { section_id } = useLocalSearchParams<{ section_id?: string | string[] }>();
   const sectionIds = useMemo(() => parseSectionIds(section_id), [section_id]);
   const { data, isLoading, isError } = useTimetable(sectionIds);
+
+  const router = useRouter();
+  const [activeRollNo, setActiveRollNo] = useState<string | null>(null);
+  const [activeAcademicYear, setActiveAcademicYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const r = await getActiveRollNo();
+      const y = await getActiveAcademicYear();
+      setActiveRollNo(r);
+      setActiveAcademicYear(y);
+    })();
+  }, []);
+
+  async function handleEditSection() {
+    if (activeRollNo) {
+      await saveTempLinkingRollNo(activeRollNo);
+      router.push({
+        pathname: '/select/sections',
+        params: { year: String(activeAcademicYear || 1) },
+      });
+    }
+  }
 
   const byDay = useMemo(() => groupSessionsByDay(data?.sessions ?? []), [data]);
 
@@ -158,8 +181,16 @@ export default function TimetablePage() {
 
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View className="p-4 pb-2 items-center">
+      <View className="p-4 pb-2 flex-row items-center justify-center gap-2">
         <Text className="text-text text-lg font-bold">{data?.sections_requested.join(', ')}</Text>
+        {activeRollNo && (
+          <Pressable
+            onPress={handleEditSection}
+            hitSlop={12}
+            className="p-1 rounded-full active:bg-surface-hover">
+            <Icon as={Pencil} size={16} className="text-text-muted" />
+          </Pressable>
+        )}
       </View>
 
       <View className="flex-row gap-1 mx-4 mb-2 p-1 bg-surface rounded-lg">
