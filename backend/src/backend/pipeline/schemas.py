@@ -10,5 +10,5 @@ class SessionRow(BaseModel):
     period_number: int
     start_time: time
     course_code: str
-    faculty_name: str
+    faculty_name: str | None
     room_number: str

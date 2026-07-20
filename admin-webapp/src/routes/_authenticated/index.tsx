@@ -52,7 +52,8 @@ interface UploadResult {
 }
 
 interface RollInspectResult {
-	columns: string[];
+	columns?: string[];
+	sheet_names?: string[];
 }
 
 function RouteComponent() {
@@ -74,9 +75,11 @@ function RouteComponent() {
 	const [rollYear, setRollYear] = useState<number | null>(null);
 	const [rollColName, setRollColName] = useState<string>("");
 	const [secColName, setSecColName] = useState<string>("");
+	const [rollSheetName, setRollSheetName] = useState<string>("");
 	const [rollError, setRollError] = useState<string | null>(null);
 	const [rollSuccess, setRollSuccess] = useState<string | null>(null);
 
+	const [clearRollOpen, setClearRollOpen] = useState(false);
 	const [clearAllOpen, setClearAllOpen] = useState(false);
 	const [clearAllConfirmText, setClearAllConfirmText] = useState("");
 
@@ -150,9 +153,12 @@ function RouteComponent() {
 	});
 
 	const rollInspectMutation = useMutation({
-		mutationFn: async (f: File) => {
+		mutationFn: async ({ f, sheetName }: { f: File; sheetName?: string }) => {
 			const formData = new FormData();
 			formData.append("file", f);
+			if (sheetName) {
+				formData.append("sheet_name", sheetName);
+			}
 			const res = await apiFetch(
 				"/admin/roll-mappings/inspect",
 				{
@@ -195,6 +201,9 @@ function RouteComponent() {
 			if (secColName.trim()) {
 				formData.append("sec_col_name", secColName.trim());
 			}
+			if (rollSheetName) {
+				formData.append("sheet_name", rollSheetName);
+			}
 			const res = await apiFetch(
 				"/admin/roll-mappings/upload",
 				{
@@ -226,6 +235,7 @@ function RouteComponent() {
 			setRollFile(null);
 			setRollColName("");
 			setSecColName("");
+			setRollSheetName("");
 			rollInspectMutation.reset();
 			if (rollFileInputRef.current) {
 				rollFileInputRef.current.value = "";
@@ -235,6 +245,39 @@ function RouteComponent() {
 		onError: (e) => {
 			setRollSuccess(null);
 			setRollError(e instanceof Error ? e.message : "Upload failed");
+		},
+	});
+
+	const clearRollMutation = useMutation({
+		mutationFn: async () => {
+			if (rollYear === null) throw new Error("No academic year selected");
+			const res = await apiFetch(
+				`/admin/roll-mappings/${rollYear}`,
+				{ method: "DELETE" },
+				auth.token ?? undefined,
+			);
+			if (!res.ok) {
+				const detail = await res
+					.json()
+					.then((d) => d.detail)
+					.catch(() => res.statusText);
+				throw new Error(
+					typeof detail === "string" ? detail : JSON.stringify(detail),
+				);
+			}
+			return res.json() as Promise<{ status: string; deleted_count: number }>;
+		},
+		onSuccess: (data) => {
+			setRollError(null);
+			setRollSuccess(
+				`Successfully cleared! Deleted ${data.deleted_count} mappings for Year ${rollYear}.`,
+			);
+			setClearRollOpen(false);
+			toast.success(`Cleared mappings for Year ${rollYear}`);
+		},
+		onError: (e) => {
+			setRollSuccess(null);
+			setRollError(e instanceof Error ? e.message : "Failed to clear mappings");
 		},
 	});
 
@@ -283,7 +326,8 @@ function RouteComponent() {
 			setRollSuccess(null);
 			setRollColName("");
 			setSecColName("");
-			rollInspectMutation.mutate(f);
+			setRollSheetName("");
+			rollInspectMutation.mutate({ f });
 		}
 	}
 
@@ -482,73 +526,155 @@ function RouteComponent() {
 							</div>
 						)}
 
-						{rollInspectMutation.isSuccess && rollInspectMutation.data && (
-							<div className="grid grid-cols-2 gap-4">
+						{rollInspectMutation.isSuccess &&
+							rollInspectMutation.data &&
+							rollInspectMutation.data.sheet_names &&
+							rollInspectMutation.data.sheet_names.length > 0 && (
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="roll-col-name">
-										Roll Number Column (Optional)
-									</Label>
+									<Label htmlFor="roll-sheet-name">Sheet</Label>
 									<Select
-										value={rollColName || "DEFAULT_AUTO"}
-										onValueChange={(val) =>
-											setRollColName(val === "DEFAULT_AUTO" ? "" : val)
-										}
+										value={rollSheetName}
+										onValueChange={(val) => {
+											setRollSheetName(val);
+											setRollColName("");
+											setSecColName("");
+											if (rollFile) {
+												rollInspectMutation.mutate({
+													f: rollFile,
+													sheetName: val,
+												});
+											}
+										}}
 										disabled={rollUploadMutation.isPending}
 									>
-										<SelectTrigger id="roll-col-name">
-											<SelectValue placeholder="Default (Auto-detect)" />
+										<SelectTrigger id="roll-sheet-name">
+											<SelectValue placeholder="Select a sheet" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="DEFAULT_AUTO">
-												Default (Auto-detect)
-											</SelectItem>
-											{rollInspectMutation.data.columns.map((col) => (
-												<SelectItem key={col} value={col}>
-													{col}
+											{rollInspectMutation.data.sheet_names.map((name) => (
+												<SelectItem key={name} value={name}>
+													{name}
 												</SelectItem>
 											))}
 										</SelectContent>
 									</Select>
 								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="sec-col-name">
-										Section Column (Optional)
-									</Label>
-									<Select
-										value={secColName || "DEFAULT_AUTO"}
-										onValueChange={(val) =>
-											setSecColName(val === "DEFAULT_AUTO" ? "" : val)
-										}
-										disabled={rollUploadMutation.isPending}
-									>
-										<SelectTrigger id="sec-col-name">
-											<SelectValue placeholder="Default (Auto-detect)" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="DEFAULT_AUTO">
-												Default (Auto-detect)
-											</SelectItem>
-											{rollInspectMutation.data.columns.map((col) => (
-												<SelectItem key={col} value={col}>
-													{col}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
-						)}
+							)}
 
-						<Button
-							onClick={handleRollUpload}
-							disabled={
-								!rollFile || rollYear === null || rollUploadMutation.isPending
-							}
-						>
-							{rollUploadMutation.isPending
-								? "Uploading..."
-								: "Upload Mappings"}
-						</Button>
+						{rollInspectMutation.isSuccess &&
+							rollInspectMutation.data &&
+							rollInspectMutation.data.columns && (
+								<div className="grid grid-cols-2 gap-4">
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="roll-col-name">
+											Roll Number Column (Optional)
+										</Label>
+										<Select
+											value={rollColName || "DEFAULT_AUTO"}
+											onValueChange={(val) =>
+												setRollColName(val === "DEFAULT_AUTO" ? "" : val)
+											}
+											disabled={rollUploadMutation.isPending}
+										>
+											<SelectTrigger id="roll-col-name">
+												<SelectValue placeholder="Default (Auto-detect)" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="DEFAULT_AUTO">
+													Default (Auto-detect)
+												</SelectItem>
+												{rollInspectMutation.data.columns.map((col) => (
+													<SelectItem key={col} value={col}>
+														{col}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="sec-col-name">
+											Section Column (Optional)
+										</Label>
+										<Select
+											value={secColName || "DEFAULT_AUTO"}
+											onValueChange={(val) =>
+												setSecColName(val === "DEFAULT_AUTO" ? "" : val)
+											}
+											disabled={rollUploadMutation.isPending}
+										>
+											<SelectTrigger id="sec-col-name">
+												<SelectValue placeholder="Default (Auto-detect)" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="DEFAULT_AUTO">
+													Default (Auto-detect)
+												</SelectItem>
+												{rollInspectMutation.data.columns.map((col) => (
+													<SelectItem key={col} value={col}>
+														{col}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								</div>
+							)}
+
+						<div className="flex gap-4">
+							<Button
+								onClick={handleRollUpload}
+								className="flex-1"
+								disabled={
+									!rollFile ||
+									rollYear === null ||
+									rollUploadMutation.isPending ||
+									(rollInspectMutation.data?.sheet_names &&
+										rollInspectMutation.data.sheet_names.length > 0 &&
+										!rollSheetName)
+								}
+							>
+								{rollUploadMutation.isPending
+									? "Uploading..."
+									: "Upload Mappings"}
+							</Button>
+
+							<AlertDialog open={clearRollOpen} onOpenChange={setClearRollOpen}>
+								<AlertDialogTrigger asChild>
+									<Button
+										type="button"
+										variant="outline"
+										className="border-destructive text-destructive hover:bg-destructive/10"
+										disabled={rollYear === null || clearRollMutation.isPending}
+									>
+										Clear Mappings
+									</Button>
+								</AlertDialogTrigger>
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>
+											Clear Year {rollYear} Mappings?
+										</AlertDialogTitle>
+										<AlertDialogDescription>
+											This will permanently delete all student roll number
+											mappings for academic year {rollYear}. This action cannot
+											be undone.
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<AlertDialogFooter>
+										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogAction
+											className="bg-destructive text-white hover:bg-destructive/90"
+											disabled={clearRollMutation.isPending}
+											onClick={() => clearRollMutation.mutate()}
+										>
+											{clearRollMutation.isPending
+												? "Clearing..."
+												: "Clear Mappings"}
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
+						</div>
 					</CardContent>
 				</Card>
 			)}

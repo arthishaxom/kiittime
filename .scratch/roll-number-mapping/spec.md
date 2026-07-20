@@ -28,8 +28,9 @@ If a student's roll number is missing from the database but timetables exist, th
 ## Implementation Decisions
 
 - **Branching**: This feature will be implemented in a dedicated branch (`feat/roll-number-mapping-and-auth`), completely separate from the planned Hugeicons migration.
-- **Database Schema**: A new `RollNumberMapping` model will be introduced in the backend (`backend/src/backend/db/models.py`). It will function as a one-to-many relationship tracking `roll_no`, `section_id` (foreign key), and `academic_year`.
-- **Admin Upload Module**: The admin webapp will be updated to include an upload component specifically for CSV/XLSX files. It will include fields for the admin to explicitly specify the column names for "Roll Number" and "Section", avoiding auto-detection ambiguities.
+- **Database Schema**: A new `RollNumberMapping` model will be introduced in the backend (`backend/src/backend/db/models.py`). It will function as a one-to-many relationship tracking `roll_no`, `section_id` (foreign key), and `academic_year`. A unique constraint will be added to the combination of `(roll_no, section_id, academic_year)` to prevent duplicate mappings from accidental re-uploads.
+- **Admin Upload Module**: The admin webapp will be updated to include an upload component specifically for CSV/XLSX files. It will include fields for the admin to explicitly specify the column names for "Roll Number" and "Section", avoiding auto-detection ambiguities. The upload behavior will be **strictly additive (Upsert/Merge)**. It will insert new mappings and silently skip exact duplicates (using `ON CONFLICT DO NOTHING`), ensuring elective section uploads do not overwrite core section mappings.
+- **Admin Clear Mappings**: A dedicated "Clear Mappings" function will be added to the Admin UI. Admins will be able to select an Academic Year and clear all roll mappings associated with that year to provide a clean slate for new semesters.
 - **OTP Email Infrastructure**: An agnostic email provider adapter pattern will be implemented. The initial concrete implementation will use the Resend API to send OTP emails.
 - **Email Derivation**: The system will explicitly derive the target email address from the provided roll number (e.g., `2105123@kiit.ac.in`) to prevent malicious linking of other students' roll numbers.
 - **Empty State Logic**: Before prompting a user to link their roll number via OTP, the backend will verify if *any* sections exist in the database for the active semester. If none exist, the OTP flow is bypassed in favor of a global empty state warning.
@@ -37,6 +38,10 @@ If a student's roll number is missing from the database but timetables exist, th
 - **Client Rate Limit UI**: Both mobile and web frontends will implement a 60-second visual countdown timer disabling the "Resend OTP" button. The UI will also explicitly handle new API error states for rate limits (429 Too Many Requests) and failed attempt lockouts, displaying user-friendly warnings.
 - **Mobile UI Flow**: The mobile app onboarding will be restructured. The default view will be a Roll Number text input. Manual section selection will be demoted to a fallback button beneath the primary input.
 - **Keyboard Avoidance UI**: On the mobile app onboarding screen (`index.tsx`), the root layout will use `KeyboardAvoidingView` combined with a `ScrollView` to ensure the roll number input remains visible and pushed above the on-screen keyboard. On the web app (`Landing.tsx`), the main container height constraint will be changed from `h-dvh` to `min-h-dvh` to ensure scrolling is enabled and allow the browser's default behavior to scroll the focused input into view. This will be strictly applied to the main onboarding screen for now.
+- **Multi-sheet Excel Roll Mappings**: Support selecting a specific sheet from Excel files for roll mappings, mirroring the timetable upload pattern:
+  - `POST /admin/roll-mappings/inspect` accepts an optional `sheet_name` form parameter. For Excel, omitting it returns `{"sheet_names": [...]}`. Providing it returns `{"columns": [...]}`. For CSV, it directly returns `{"columns": [...]}`.
+  - `POST /admin/roll-mappings/upload` accepts an optional `sheet_name` form parameter to parse the selected Excel sheet.
+  - The admin dashboard UI displays a sheet selector dropdown for Excel files. When selected, it triggers inspect for that sheet and displays the column mapping inputs.
 
 ## Testing Decisions
 

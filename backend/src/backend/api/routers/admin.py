@@ -19,6 +19,7 @@ from backend.api.schemas import (
     RollNumberUploadResponse,
     UploadResponse,
     RollMappingInspectResponse,
+    ClearRollMappingsResponse,
 )
 from backend.auth.dependencies import get_current_admin
 from backend.db.models import AdminUser, BronzeSnapshot, RollNumberMapping, Section, SnapshotStatus
@@ -234,20 +235,38 @@ def clear_all_route(
 @router.post("/roll-mappings/inspect", response_model=RollMappingInspectResponse)
 def inspect_roll_mappings(
     file: UploadFile,
+    sheet_name: str | None = Form(None),
     current_admin: AdminUser = Depends(get_current_admin),
 ) -> dict:
     contents = file.file.read()
     try:
         if file.filename and file.filename.endswith(".csv"):
             df = pd.read_csv(BytesIO(contents), nrows=0)
+            return {"columns": [str(c).strip() for c in df.columns]}
         else:
-            df = pd.read_excel(BytesIO(contents), nrows=0)
+            xls = pd.ExcelFile(BytesIO(contents))
+            if sheet_name:
+                if sheet_name not in xls.sheet_names:
+                    raise HTTPException(
+                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"Sheet '{sheet_name}' not found in Excel file.",
+                    )
+                df = pd.read_excel(xls, sheet_name=sheet_name, nrows=0)
+                return {"columns": [str(c).strip() for c in df.columns]}
+            
+            if len(xls.sheet_names) > 1:
+                return {"sheet_names": xls.sheet_names}
+            
+            df = pd.read_excel(xls, sheet_name=xls.sheet_names[0], nrows=0)
+            return {"columns": [str(c).strip() for c in df.columns]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Failed to read file: {e}",
         )
-    return {"columns": [str(c).strip() for c in df.columns]}
+
 
 
 @router.post("/roll-mappings/upload", response_model=RollNumberUploadResponse)
@@ -256,6 +275,7 @@ def upload_roll_mappings(
     academic_year: int = Form(...),
     roll_col_name: str | None = Form(None),
     sec_col_name: str | None = Form(None),
+    sheet_name: str | None = Form(None),
     current_admin: AdminUser = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -266,7 +286,10 @@ def upload_roll_mappings(
         if file.filename and file.filename.endswith(".csv"):
             df = pd.read_csv(BytesIO(contents))
         else:
-            df = pd.read_excel(BytesIO(contents))
+            if sheet_name:
+                df = pd.read_excel(BytesIO(contents), sheet_name=sheet_name)
+            else:
+                df = pd.read_excel(BytesIO(contents))
     except Exception as e:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -377,19 +400,39 @@ def upload_roll_mappings(
                 seen_pairs.add(pair)
                 mappings_to_create.append((roll_val, sec_obj.id))
 
-    deleted_count = db.execute(
-        delete(RollNumberMapping).where(RollNumberMapping.academic_year == academic_year)
-    ).rowcount
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-    new_mappings = [
-        RollNumberMapping(roll_no=r, section_id=s_id, academic_year=academic_year)
-        for r, s_id in mappings_to_create
-    ]
-    db.add_all(new_mappings)
-    db.commit()
+    inserted_count = 0
+    if mappings_to_create:
+        stmt = pg_insert(RollNumberMapping).values([
+            {"roll_no": r, "section_id": s_id, "academic_year": academic_year}
+            for r, s_id in mappings_to_create
+        ])
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=["roll_no", "section_id", "academic_year"]
+        ).returning(RollNumberMapping.id)
+        result = db.execute(stmt)
+        inserted_count = len(result.all())
+        db.commit()
 
     return {
         "status": "success",
-        "created_count": len(new_mappings),
+        "created_count": inserted_count,
+        "deleted_count": 0,
+    }
+
+
+@router.delete("/roll-mappings/{academic_year}", response_model=ClearRollMappingsResponse)
+def clear_roll_mappings(
+    academic_year: int,
+    current_admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    deleted_count = db.execute(
+        delete(RollNumberMapping).where(RollNumberMapping.academic_year == academic_year)
+    ).rowcount
+    db.commit()
+    return {
+        "status": "success",
         "deleted_count": deleted_count,
     }

@@ -26,6 +26,27 @@ def db():
 
     engine = create_engine(database_url)
     connection = engine.connect()
+    
+    # Truncate tables to ensure database is clean for tests
+    from sqlalchemy import text
+    connection.execute(text(
+        "TRUNCATE TABLE "
+        "kiittime.class_sessions, "
+        "kiittime.roll_number_mappings, "
+        "kiittime.sections, "
+        "kiittime.courses, "
+        "kiittime.faculty, "
+        "kiittime.rooms, "
+        "kiittime.bronze_snapshots, "
+        "kiittime.announcements "
+        "CASCADE"
+    ))
+    # Some SQLAlchemy versions auto-commit, some require manual commit on connection
+    try:
+        connection.commit()
+    except Exception:
+        pass
+
     outer_transaction = connection.begin()
 
     session = Session(bind=connection)
