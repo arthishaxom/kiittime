@@ -68,7 +68,7 @@ class ClassSession(Base):
 
     section_id: Mapped[int] = mapped_column(ForeignKey("kiittime.sections.id"))
     course_id: Mapped[int] = mapped_column(ForeignKey("kiittime.courses.id"))
-    faculty_id: Mapped[int] = mapped_column(ForeignKey("kiittime.faculty.id"))
+    faculty_id: Mapped[int | None] = mapped_column(ForeignKey("kiittime.faculty.id"))
     room_id: Mapped[int] = mapped_column(ForeignKey("kiittime.rooms.id"))
 
     day: Mapped[str]
@@ -154,7 +154,7 @@ class RollNumberMapping(Base):
     academic_year: Mapped[int] = mapped_column(nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("roll_no", "section_id"),
+        UniqueConstraint("roll_no", "section_id", "academic_year"),
         {"schema": "kiittime"},
     )
 
