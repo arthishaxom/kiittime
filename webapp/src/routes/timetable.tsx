@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
+	ChevronDown,
 	Mail,
 	Megaphone,
-	Pencil,
 	RotateCcw,
 	Settings,
 	Share2,
 	Smartphone,
+	WifiOff,
 } from "lucide-react";
 import { animate, motion, useMotionValue } from "motion/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -14,12 +15,19 @@ import { z } from "zod";
 import { AboutDialog } from "#/components/AboutDialog";
 import { AnnouncementDialog } from "#/components/AnnouncementDialog";
 import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog";
+import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
 } from "#/components/ui/sheet";
+import { Skeleton } from "#/components/ui/skeleton";
 import { useAnnouncement } from "#/hooks/useAnnouncement";
 import { useTimetable } from "#/hooks/useTimetable";
 import { isAnnouncementUnseen } from "#/lib/announcements";
@@ -28,10 +36,10 @@ import { formatTime } from "#/lib/api";
 import { buildMailto } from "#/lib/mailto";
 import { shareTimetable } from "#/lib/share";
 import {
+	ACTIVE_ACADEMIC_YEAR_KEY,
+	ACTIVE_ROLL_NO_KEY,
 	getLastSeenAnnouncementId,
 	setLastSeenAnnouncementId,
-	ACTIVE_ROLL_NO_KEY,
-	ACTIVE_ACADEMIC_YEAR_KEY,
 } from "#/lib/storage";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
@@ -48,14 +56,45 @@ export const Route = createFileRoute("/timetable")({
 	component: TimetablePage,
 });
 
+function summarizeSections(sections?: string[]) {
+	if (!sections || sections.length === 0) return "";
+	if (sections.length === 1) return sections[0];
+	return `${sections[0]} + ${sections.length - 1} other${sections.length - 1 > 1 ? "s" : ""}`;
+}
+
+function useOnlineStatus() {
+	const [isOnline, setIsOnline] = useState(
+		typeof navigator !== "undefined" ? navigator.onLine : true,
+	);
+
+	useEffect(() => {
+		function handleOnline() {
+			setIsOnline(true);
+		}
+		function handleOffline() {
+			setIsOnline(false);
+		}
+		window.addEventListener("online", handleOnline);
+		window.addEventListener("offline", handleOffline);
+		return () => {
+			window.removeEventListener("online", handleOnline);
+			window.removeEventListener("offline", handleOffline);
+		};
+	}, []);
+
+	return isOnline;
+}
+
 function TimetablePage() {
 	const { section_id } = Route.useSearch();
-	const { data, isLoading, isError } = useTimetable(section_id);
+	const { data, isLoading, isError, refetch } = useTimetable(section_id);
+	const isOnline = useOnlineStatus();
+	const isOffline = !isOnline;
+	const [offlineAlertOpen, setOfflineAlertOpen] = useState(false);
+	const [sectionsModalOpen, setSectionsModalOpen] = useState(false);
 
 	const activeRollNo = localStorage.getItem(ACTIVE_ROLL_NO_KEY);
-	const activeAcademicYear = localStorage.getItem(
-		ACTIVE_ACADEMIC_YEAR_KEY,
-	);
+	const activeAcademicYear = localStorage.getItem(ACTIVE_ACADEMIC_YEAR_KEY);
 
 	function handleEditSection() {
 		// Triggers navigation to section selection for editing current linked sections
@@ -119,6 +158,7 @@ function TimetablePage() {
 		localStorage.removeItem("kiit-time:selected-sections");
 		localStorage.removeItem(ACTIVE_ROLL_NO_KEY);
 		localStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
+		localStorage.removeItem("temp_linking_roll_no");
 		navigate({ to: "/" });
 	}
 
@@ -179,13 +219,78 @@ function TimetablePage() {
 	}
 
 	if (isLoading) {
-		return <div className="h-dvh bg-bg text-text p-4">Loading timetable…</div>;
+		return (
+			<div className="h-dvh bg-bg text-text flex flex-col">
+				<div className="p-4 pb-2 flex items-center justify-center">
+					<Skeleton className="h-7 w-32 animate-pulse bg-accent" />
+				</div>
+
+				<div className="flex gap-1 mx-4 mb-2 p-1 bg-surface rounded-lg">
+					{DAYS.map((day, i) => (
+						<div
+							key={day}
+							className={`flex-1 h-9 rounded-md text-sm font-medium flex items-center justify-center transition-colors ${
+								i === initialIndex
+									? "bg-pill text-brand-active"
+									: "text-text-muted"
+							}`}
+						>
+							{day}
+						</div>
+					))}
+				</div>
+
+				<div className="flex-1 px-4 pb-4 overflow-y-auto flex flex-col gap-2 pt-2">
+					{[1, 2, 3, 4].map((n) => (
+						<div
+							key={n}
+							className="bg-surface rounded-lg p-4 flex justify-between items-center"
+						>
+							<div className="flex flex-col gap-2">
+								<Skeleton className="h-8 w-28 animate-pulse bg-accent" />
+								<Skeleton className="h-5 w-16 animate-pulse bg-accent" />
+							</div>
+							<Skeleton className="h-7 w-20 animate-pulse bg-accent" />
+						</div>
+					))}
+				</div>
+			</div>
+		);
 	}
 
-	if (isError) {
+	if (isError && !data) {
+		if (isOffline) {
+			return (
+				<div className="h-dvh bg-bg text-text flex flex-col items-center justify-center p-6 text-center">
+					<WifiOff size={48} className="text-text-muted mb-4 animate-bounce" />
+					<h2 className="text-xl font-bold mb-2">You're offline</h2>
+					<p className="text-text-muted mb-6 max-w-sm">
+						Please connect to the internet to load your timetable for the first
+						time.
+					</p>
+					<button
+						type="button"
+						onClick={() => refetch()}
+						className="px-6 py-3 bg-brand text-brand-active font-semibold rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+					>
+						Retry
+					</button>
+				</div>
+			);
+		}
+
 		return (
-			<div className="h-dvh bg-bg text-danger p-4">
-				Failed to load timetable.
+			<div className="h-dvh bg-bg text-text flex flex-col items-center justify-center p-6 text-center">
+				<p className="text-danger text-lg font-semibold mb-4">
+					Failed to load timetable.
+				</p>
+				<button
+					type="button"
+					onClick={() => refetch()}
+					className="px-6 py-3 bg-brand text-brand-active font-semibold rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+				>
+					Retry
+				</button>
 			</div>
 		);
 	}
@@ -193,17 +298,22 @@ function TimetablePage() {
 	return (
 		<div className="h-dvh bg-bg text-text flex flex-col">
 			<div className="p-4 pb-2 flex items-center justify-center gap-2">
-				<h1 className="text-lg font-bold">
-					{data?.sections_requested.join(", ")}
-				</h1>
-				{activeRollNo && (
+				<button
+					type="button"
+					onClick={() => setSectionsModalOpen(true)}
+					className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer font-bold text-lg text-white"
+				>
+					{summarizeSections(data?.sections_requested)}
+					<ChevronDown size={18} className="text-text-muted" />
+				</button>
+				{isOffline && (
 					<button
 						type="button"
-						onClick={handleEditSection}
+						onClick={() => setOfflineAlertOpen(true)}
 						className="p-1 rounded-full hover:bg-surface text-text-muted hover:text-white transition-colors cursor-pointer"
-						title="Edit Section"
+						title="Offline - showing cached data"
 					>
-						<Pencil size={16} />
+						<WifiOff size={16} />
 					</button>
 				)}
 			</div>
@@ -370,6 +480,75 @@ function TimetablePage() {
 			</Sheet>
 
 			<AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
+			<Dialog open={offlineAlertOpen} onOpenChange={setOfflineAlertOpen}>
+				<DialogContent className="bg-sheet border-border">
+					<DialogHeader>
+						<DialogTitle className="text-white text-center text-xl">
+							Offline Mode
+						</DialogTitle>
+					</DialogHeader>
+					<div className="flex flex-col items-center gap-4 py-2 text-center">
+						<WifiOff size={36} className="text-text-muted" />
+						<p className="text-text font-medium">
+							You are offline. Showing cached data.
+						</p>
+						<p className="text-text-muted text-sm">
+							Please reconnect to the internet to fetch the latest timetable
+							updates.
+						</p>
+					</div>
+				</DialogContent>
+			</Dialog>
+			<Dialog open={sectionsModalOpen} onOpenChange={setSectionsModalOpen}>
+				<DialogContent className="bg-sheet border-border">
+					<DialogHeader>
+						<DialogTitle className="text-white text-center text-xl font-bold">
+							Manage Sections
+						</DialogTitle>
+					</DialogHeader>
+					<div className="flex flex-col gap-4 py-2 text-left">
+						<div className="flex flex-col gap-1">
+							<span className="text-text-muted text-sm font-medium">
+								Selected Sections
+							</span>
+							<div className="flex flex-wrap gap-2 mt-1">
+								{data?.sections_requested.map((sec) => (
+									<div
+										key={sec}
+										className="bg-surface border border-border px-3 py-1.5 rounded-full text-white text-sm font-medium"
+									>
+										{sec}
+									</div>
+								))}
+							</div>
+						</div>
+
+						<div className="flex flex-col gap-1">
+							<span className="text-text-muted text-sm font-medium">
+								Linked Roll Number
+							</span>
+							<span className="text-white text-lg font-bold mt-0.5">
+								{activeRollNo ?? "Not linked"}
+							</span>
+						</div>
+
+						<button
+							type="button"
+							onClick={() => {
+								setSectionsModalOpen(false);
+								if (activeRollNo) {
+									handleEditSection();
+								} else {
+									handleReset();
+								}
+							}}
+							className="mt-2 w-full bg-brand text-white h-12 rounded-lg font-semibold flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer"
+						>
+							{activeRollNo ? "Relink Roll Number" : "Link Roll Number"}
+						</button>
+					</div>
+				</DialogContent>
+			</Dialog>
 			{announcement && (
 				<AnnouncementDialog
 					announcement={announcement}
