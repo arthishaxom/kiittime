@@ -37,6 +37,10 @@ If a student's roll number is missing from the database but timetables exist, th
 - **Client Rate Limit UI**: Both mobile and web frontends will implement a 60-second visual countdown timer disabling the "Resend OTP" button. The UI will also explicitly handle new API error states for rate limits (429 Too Many Requests) and failed attempt lockouts, displaying user-friendly warnings.
 - **Mobile UI Flow**: The mobile app onboarding will be restructured. The default view will be a Roll Number text input. Manual section selection will be demoted to a fallback button beneath the primary input.
 - **Keyboard Avoidance UI**: On the mobile app onboarding screen (`index.tsx`), the root layout will use `KeyboardAvoidingView` combined with a `ScrollView` to ensure the roll number input remains visible and pushed above the on-screen keyboard. On the web app (`Landing.tsx`), the main container height constraint will be changed from `h-dvh` to `min-h-dvh` to ensure scrolling is enabled and allow the browser's default behavior to scroll the focused input into view. This will be strictly applied to the main onboarding screen for now.
+- **Multi-sheet Excel Roll Mappings**: Support selecting a specific sheet from Excel files for roll mappings, mirroring the timetable upload pattern:
+  - `POST /admin/roll-mappings/inspect` accepts an optional `sheet_name` form parameter. For Excel, omitting it returns `{"sheet_names": [...]}`. Providing it returns `{"columns": [...]}`. For CSV, it directly returns `{"columns": [...]}`.
+  - `POST /admin/roll-mappings/upload` accepts an optional `sheet_name` form parameter to parse the selected Excel sheet.
+  - The admin dashboard UI displays a sheet selector dropdown for Excel files. When selected, it triggers inspect for that sheet and displays the column mapping inputs.
 
 ## Testing Decisions
 
