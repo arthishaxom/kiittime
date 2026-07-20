@@ -20,7 +20,7 @@ class SessionOut(BaseModel):
     start_time: time
     course_code: str
     course_name: str | None
-    faculty_name: str
+    faculty_name: str | None
     room_number: str
     section: str
 
@@ -33,7 +33,7 @@ class SessionOut(BaseModel):
             "start_time": obj.start_time,
             "course_code": obj.course.course_code,
             "course_name": obj.course.course_name,
-            "faculty_name": obj.faculty.faculty_name,
+            "faculty_name": obj.faculty.faculty_name if obj.faculty is not None else None,
             "room_number": obj.room.room_number,
             "section": obj.section.section_name,
         }
@@ -54,7 +54,7 @@ class SessionDetail(BaseModel):
     day: str
     period_number: int
     course_code: str
-    faculty_name: str
+    faculty_name: str | None
     room_number: str
     change_type: Literal["added", "changed", "removed", "unchanged"] | None = None
     previous: "SessionDetail | None" = None

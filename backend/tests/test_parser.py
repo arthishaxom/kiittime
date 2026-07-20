@@ -3,7 +3,7 @@ from datetime import time
 import pandas as pd
 import pytest
 
-from backend.pipeline.parser import parse_period_column, parse_section_grid
+from backend.pipeline.parser import parse_cell, parse_period_column, parse_section_grid
 
 
 def make_mock_grid() -> pd.DataFrame:
@@ -54,3 +54,33 @@ def test_parse_period_column_v2_midnight():
 def test_parse_period_column_invalid():
     with pytest.raises(ValueError):
         parse_period_column("garbage")
+
+
+def test_parse_cell_3_lines():
+    assert parse_cell("DL\nDr. Test Faculty\nC25-B001") == ("DL", "Dr. Test Faculty", "C25-B001")
+
+
+def test_parse_cell_2_lines():
+    assert parse_cell("DL\nC25-B001") == ("DL", None, "C25-B001")
+
+
+def test_parse_cell_invalid_lines():
+    with pytest.raises(AssertionError):
+        parse_cell("DL")
+    with pytest.raises(AssertionError):
+        parse_cell("DL\nDr. Test Faculty\nC25-B001\nExtra Line")
+
+
+def test_parse_section_grid_missing_faculty():
+    data = {
+        "Section": ["Sem 7 | CS-S7 | CS1", "CS1"],
+        "Day": ["2 course group(s)", "Wednesday"],
+        "P1\n08:00": [None, "DL\nC25-B001"],
+    }
+    df = pd.DataFrame(data)
+    sessions = parse_section_grid(df, year=2)
+    assert len(sessions) == 1
+    session = sessions[0]
+    assert session.course_code == "DL"
+    assert session.faculty_name is None
+    assert session.room_number == "C25-B001"

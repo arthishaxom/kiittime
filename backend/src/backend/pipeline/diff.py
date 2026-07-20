@@ -72,7 +72,7 @@ def compute_diff(
             day=cs.day,
             period_number=cs.period_number,
             course_code=cs.course.course_code,
-            faculty_name=cs.faculty.faculty_name,
+            faculty_name=cs.faculty.faculty_name if cs.faculty is not None else None,
             room_number=cs.room.room_number,
         )
 

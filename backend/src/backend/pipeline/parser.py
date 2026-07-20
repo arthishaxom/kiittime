@@ -38,15 +38,18 @@ def parse_period_column(col_name: str) -> tuple[int, time]:
     raise ValueError(f"Unrecognized period column format: {col_name!r}")
 
 
-def parse_cell(raw: str) -> tuple[str, str, str]:
-    """Parse a raw cell like 'DL\\nDr. X\\nC25-B006'.
+def parse_cell(raw: str) -> tuple[str, str | None, str]:
+    """Parse a raw cell like 'DL\nDr. X\nC25-B006'.
 
     Into (course_code, faculty_name, room_number).
     """
     parts = raw.split("\n")
-    assert len(parts) == 3, f"Unexpected cell format: {raw!r}"
-    course_code, faculty_name, room_number = parts
-    return course_code, faculty_name, room_number
+    if len(parts) == 3:
+        return parts[0], parts[1], parts[2]
+    elif len(parts) == 2:
+        return parts[0], None, parts[1]
+    else:
+        raise AssertionError(f"Unexpected cell format: {raw!r}")
 
 
 def _row_to_session(row: pd.Series) -> SessionRow:
