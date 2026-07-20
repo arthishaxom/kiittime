@@ -132,8 +132,14 @@ class RollNumberUploadResponse(BaseModel):
     deleted_count: int
 
 
+class ClearRollMappingsResponse(BaseModel):
+    status: str
+    deleted_count: int
+
+
 class RollMappingInspectResponse(BaseModel):
-    columns: list[str]
+    columns: list[str] | None = None
+    sheet_names: list[str] | None = None
 
 
 class OTPSendRequest(BaseModel):

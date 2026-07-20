@@ -35,3 +35,15 @@ def test_unique_roll_number_mapping(db):
 
     with pytest.raises(IntegrityError):
         db.flush()
+
+
+def test_unique_roll_number_mapping_different_academic_years(db):
+    section = Section(section_name="CS1", year=2)
+    db.add(section)
+    db.flush()
+
+    mapping1 = RollNumberMapping(roll_no="2105123", section_id=section.id, academic_year=2)
+    mapping2 = RollNumberMapping(roll_no="2105123", section_id=section.id, academic_year=3)
+    db.add_all([mapping1, mapping2])
+    db.flush()  # Should succeed with the new unique constraint (roll_no, section_id, academic_year)
+

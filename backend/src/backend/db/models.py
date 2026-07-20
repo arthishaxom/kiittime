@@ -154,7 +154,7 @@ class RollNumberMapping(Base):
     academic_year: Mapped[int] = mapped_column(nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("roll_no", "section_id"),
+        UniqueConstraint("roll_no", "section_id", "academic_year"),
         {"schema": "kiittime"},
     )
 
