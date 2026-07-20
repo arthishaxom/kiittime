@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, Info, Loader2 } from "lucide-react";
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AboutDialog } from "#/components/AboutDialog";
 import {
 	Dialog,
@@ -12,7 +12,11 @@ import {
 	DialogTitle,
 } from "#/components/ui/dialog";
 import { fetchRollNumberMapping } from "#/lib/api";
-import { saveSectionIds, ACTIVE_ROLL_NO_KEY, ACTIVE_ACADEMIC_YEAR_KEY } from "#/lib/storage";
+import {
+	ACTIVE_ACADEMIC_YEAR_KEY,
+	ACTIVE_ROLL_NO_KEY,
+	saveSectionIds,
+} from "#/lib/storage";
 
 export function Landing() {
 	const [rollNo, setRollNo] = useState("");
@@ -28,6 +32,10 @@ export function Landing() {
 	const navigate = useNavigate();
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	useEffect(() => {
+		localStorage.removeItem("temp_linking_roll_no");
+	}, []);
+
 	const handleRollSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (rollNo.trim().length < 7) return;
@@ -38,7 +46,10 @@ export function Landing() {
 			const data = await fetchRollNumberMapping(rollNo.trim());
 			saveSectionIds(data.sections.map((s) => s.id));
 			localStorage.setItem(ACTIVE_ROLL_NO_KEY, data.roll_no);
-			localStorage.setItem(ACTIVE_ACADEMIC_YEAR_KEY, String(data.academic_year));
+			localStorage.setItem(
+				ACTIVE_ACADEMIC_YEAR_KEY,
+				String(data.academic_year),
+			);
 			navigate({
 				to: "/timetable",
 				search: { section_id: data.sections.map((s) => s.id) },
@@ -118,7 +129,7 @@ export function Landing() {
 		);
 	}
 
-	const totalBoxes = rollNo.length >= 7 ? 8 : 7;
+	const totalBoxes = rollNo.length >= 8 ? 9 : rollNo.length >= 7 ? 8 : 7;
 
 	return (
 		<div className="min-h-dvh bg-bg/50 text-text flex flex-col p-6">
@@ -155,7 +166,7 @@ export function Landing() {
 								onBlur={() => setIsInputFocused(false)}
 								onChange={(e) => {
 									const val = e.target.value.replace(/[^0-9]/g, "");
-									if (val.length <= 8) {
+									if (val.length <= 9) {
 										setRollNo(val);
 										setError(null);
 									}
@@ -212,7 +223,10 @@ export function Landing() {
 
 						<button
 							type="button"
-							onClick={() => setShowManual(true)}
+							onClick={() => {
+								localStorage.removeItem("temp_linking_roll_no");
+								setShowManual(true);
+							}}
 							className="w-full mt-4 text-brand hover:text-brand-active font-medium text-sm text-center block cursor-pointer"
 						>
 							Select sections manually

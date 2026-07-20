@@ -1,16 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { focusManager, QueryClient } from '@tanstack/react-query';
+import { focusManager, onlineManager, QueryClient } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import NetInfo from '@react-native-community/netinfo';
 import { useEffect, type ReactNode } from 'react';
 import { AppState, type AppStateStatus, Platform } from 'react-native';
 
 const ONE_DAY = 1000 * 60 * 60 * 24;
+const SEVEN_DAYS = 7 * ONE_DAY;
+
+onlineManager.setEventListener((setOnline) => {
+  return NetInfo.addEventListener((state) => {
+    setOnline(!!state.isConnected);
+  });
+});
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      gcTime: ONE_DAY,
+      gcTime: SEVEN_DAYS,
     },
   },
 });
@@ -38,7 +46,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: ONE_DAY }}>
+      persistOptions={{ persister, maxAge: SEVEN_DAYS }}>
       {children}
     </PersistQueryClientProvider>
   );
