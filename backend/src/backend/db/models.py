@@ -68,7 +68,7 @@ class ClassSession(Base):
 
     section_id: Mapped[int] = mapped_column(ForeignKey("kiittime.sections.id"))
     course_id: Mapped[int] = mapped_column(ForeignKey("kiittime.courses.id"))
-    faculty_id: Mapped[int] = mapped_column(ForeignKey("kiittime.faculty.id"))
+    faculty_id: Mapped[int | None] = mapped_column(ForeignKey("kiittime.faculty.id"))
     room_id: Mapped[int] = mapped_column(ForeignKey("kiittime.rooms.id"))
 
     day: Mapped[str]

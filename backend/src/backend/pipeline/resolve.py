@@ -11,7 +11,7 @@ from backend.pipeline.schemas import SessionRow
 class ResolvedSession(BaseModel):
     section_id: int
     course_id: int
-    faculty_id: int
+    faculty_id: int | None
     room_id: int
     day: str
     period_number: int
@@ -28,7 +28,7 @@ def resolve_all(db: Session, rows: list[SessionRow]) -> list[ResolvedSession]:
     """
 
     course_codes = {r.course_code for r in rows}
-    faculty_names = {r.faculty_name for r in rows}
+    faculty_names = {r.faculty_name for r in rows if r.faculty_name is not None}
     room_numbers = {r.room_number for r in rows}
     section_keys = {(r.section, r.year) for r in rows}
 
@@ -88,7 +88,7 @@ def resolve_all(db: Session, rows: list[SessionRow]) -> list[ResolvedSession]:
         ResolvedSession(
             section_id=existing_sections[(r.section, r.year)].id,
             course_id=existing_courses[r.course_code].id,
-            faculty_id=existing_faculty[r.faculty_name].id,
+            faculty_id=existing_faculty[r.faculty_name].id if r.faculty_name is not None else None,
             room_id=existing_rooms[r.room_number].id,
             day=r.day,
             period_number=r.period_number,

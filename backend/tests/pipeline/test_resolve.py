@@ -74,3 +74,11 @@ def test_section_composite_key_same_name_different_year(db):
     assert resolved[0].section_id != resolved[1].section_id
     assert db.query(Section).filter_by(section_name="CSE1", year=1).count() == 1
     assert db.query(Section).filter_by(section_name="CSE1", year=2).count() == 1
+
+
+def test_resolves_null_faculty(db):
+    rows = [make_row(faculty_name=None)]
+    resolved = resolve_all(db, rows)
+
+    assert len(resolved) == 1
+    assert resolved[0].faculty_id is None
