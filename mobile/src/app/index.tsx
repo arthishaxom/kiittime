@@ -42,6 +42,7 @@ export default function Index() {
       if (saved && saved.length > 0) {
         router.replace(timetableHref(saved));
       } else {
+        await clearTempLinkingRollNo();
         setCheckingSaved(false);
       }
       await SplashScreen.hideAsync();
@@ -172,7 +173,7 @@ export default function Index() {
                     onBlur={() => setIsInputFocused(false)}
                     onChangeText={(val) => {
                       const cleaned = val.replace(/[^0-9]/g, '');
-                      if (cleaned.length <= 8) {
+                      if (cleaned.length <= 9) {
                         setRollNo(cleaned);
                         setError(null);
                       }
@@ -186,7 +187,7 @@ export default function Index() {
 
                   {/* Styled Character Boxes */}
                   <View className="flex-row justify-between gap-1 sm:gap-2" style={{ minHeight: 56 }}>
-                    {Array.from({ length: rollNo.length >= 7 ? 8 : 7 }).map((_, i) => {
+                    {Array.from({ length: rollNo.length >= 8 ? 9 : rollNo.length >= 7 ? 8 : 7 }).map((_, i) => {
                       const char = rollNo[i] || '';
                       const isFocused = isInputFocused && i === rollNo.length;
                       const isFilled = char !== '';
@@ -227,7 +228,10 @@ export default function Index() {
                 </Pressable>
 
                 <Pressable
-                  onPress={() => setShowManual(true)}
+                  onPress={async () => {
+                    await clearTempLinkingRollNo();
+                    setShowManual(true);
+                  }}
                   className="w-full mt-4 items-center justify-center">
                   <Text className="text-brand font-medium text-sm">Select sections manually</Text>
                 </Pressable>
