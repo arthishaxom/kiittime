@@ -16,7 +16,7 @@ vi.mock("#/hooks/useSections", () => ({
 }));
 
 // Mock storage
-vi.mock("#/lib/storage", () => ({
+vi.mock("@kiittime/api/storage", () => ({
 	saveSectionIds: vi.fn(),
 }));
 

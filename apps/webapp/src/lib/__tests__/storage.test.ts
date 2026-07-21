@@ -4,7 +4,7 @@ import {
 	getSavedSectionIds,
 	saveSectionIds,
 	setLastSeenAnnouncementId,
-} from "../storage";
+} from "@kiittime/api/storage";
 
 beforeEach(() => {
 	localStorage.clear();

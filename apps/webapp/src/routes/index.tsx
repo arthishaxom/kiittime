@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Landing } from "#/components/Landing";
-import { getSavedSectionIds } from "#/lib/storage";
+import { getSavedSectionIds } from "@kiittime/api/storage";
 
 export const Route = createFileRoute("/")({
 	beforeLoad: () => {

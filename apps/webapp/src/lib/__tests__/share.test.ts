@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { shareTimetable } from "../share";
+import { shareTimetable } from "@kiittime/api/share";
 
 describe("shareTimetable", () => {
 	const originalLocation = window.location;

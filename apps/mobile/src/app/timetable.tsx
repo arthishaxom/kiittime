@@ -21,12 +21,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SettingsSheet } from '@/components/settings-sheet';
 import { useAnnouncement } from '@/hooks/useAnnouncement';
 import { useTimetable } from '@/hooks/useTimetable';
-import { isAnnouncementUnseen } from '@/lib/announcements';
-import { formatTime } from '@/lib/api';
+import { isAnnouncementUnseen } from '@kiittime/api/announcements';
+import { formatTime } from '@kiittime/api/api';
 import { parseSectionIds } from '@/lib/search-params';
-import { getLastSeenAnnouncementId, setLastSeenAnnouncementId, getActiveRollNo, getActiveAcademicYear, saveTempLinkingRollNo, clearTempLinkingRollNo, clearSavedSectionIds, clearActiveRollNo, clearActiveAcademicYear } from '@/lib/storage';
+import { getLastSeenAnnouncementId, setLastSeenAnnouncementId, getActiveRollNo, getActiveAcademicYear, saveTempLinkingRollNo, clearTempLinkingRollNo, clearSavedSectionIds, clearActiveRollNo, clearActiveAcademicYear } from '@kiittime/api/storage';
 import { DAYS, groupSessionsByDay, todayIndex } from '@/lib/timetable';
-import { cn } from '@/lib/utils';
+import { cn } from '@kiittime/api/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function summarizeSections(sections?: string[]) {

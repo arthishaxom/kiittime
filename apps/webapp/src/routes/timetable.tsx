@@ -30,17 +30,17 @@ import {
 import { Skeleton } from "#/components/ui/skeleton";
 import { useAnnouncement } from "#/hooks/useAnnouncement";
 import { useTimetable } from "#/hooks/useTimetable";
-import { isAnnouncementUnseen } from "#/lib/announcements";
-import type { Session } from "#/lib/api";
-import { formatTime } from "#/lib/api";
+import { isAnnouncementUnseen } from "@kiittime/api/announcements";
+import type { Session } from "@kiittime/api/api";
+import { formatTime } from "@kiittime/api/api";
 import { buildMailto } from "#/lib/mailto";
-import { shareTimetable } from "#/lib/share";
+import { shareTimetable } from "@kiittime/api/share";
 import {
 	ACTIVE_ACADEMIC_YEAR_KEY,
 	ACTIVE_ROLL_NO_KEY,
 	getLastSeenAnnouncementId,
 	setLastSeenAnnouncementId,
-} from "#/lib/storage";
+} from "@kiittime/api/storage";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
 

@@ -1,4 +1,4 @@
-import type { Session } from '@/lib/api';
+import type { Session } from '@kiittime/api/api';
 
 export const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
 export type Day = (typeof DAYS)[number];

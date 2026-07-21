@@ -1,5 +1,5 @@
 import { DAYS, groupSessionsByDay } from '@/lib/timetable';
-import type { Session } from '@/lib/api';
+import type { Session } from '@kiittime/api/api';
 
 function session(overrides: Partial<Session>): Session {
   return {

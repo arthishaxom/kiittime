@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAnnouncementUnseen } from "../announcements";
+import { isAnnouncementUnseen } from "@kiittime/api/announcements";
 
 describe("isAnnouncementUnseen", () => {
 	it("is false when there is no active announcement", () => {

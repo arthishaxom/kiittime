@@ -5,7 +5,7 @@ import {
   getSavedSectionIds,
   saveSectionIds,
   setLastSeenAnnouncementId,
-} from '@/lib/storage';
+} from '@kiittime/api/storage';
 
 afterEach(async () => {
   await AsyncStorage.clear();

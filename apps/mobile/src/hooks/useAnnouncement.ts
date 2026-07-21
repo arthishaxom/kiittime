@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchCurrentAnnouncement } from '@/lib/api';
+import { fetchCurrentAnnouncement } from '@kiittime/api/api';
 
 export function useAnnouncement() {
   return useQuery({

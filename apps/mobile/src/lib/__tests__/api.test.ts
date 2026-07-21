@@ -1,4 +1,4 @@
-import { fetchSections, fetchTimetable, formatTime, fetchRollNumberMapping } from '@/lib/api';
+import { fetchSections, fetchTimetable, formatTime, fetchRollNumberMapping } from '@kiittime/api/api';
 
 const originalFetch = globalThis.fetch;
 

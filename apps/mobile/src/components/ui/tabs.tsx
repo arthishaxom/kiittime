@@ -1,5 +1,5 @@
 import { TextClassContext } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
+import { cn } from '@kiittime/api/utils';
 import * as TabsPrimitive from '@rn-primitives/tabs';
 import { Platform } from 'react-native';
 

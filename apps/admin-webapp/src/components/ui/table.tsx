@@ -1,6 +1,6 @@
 import type * as React from "react";
 
-import { cn } from "#/lib/utils.ts";
+import { cn } from "@kiittime/api/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
 	return (

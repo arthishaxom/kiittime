@@ -1,4 +1,4 @@
-import type { Section } from '@/lib/api';
+import type { Section } from '@kiittime/api/api';
 
 export function extractPrefixes(sections: Section[]): string[] {
   const unique = new Set<string>();

@@ -1,4 +1,4 @@
-import { buildShareMessage, buildShareUrl } from '@/lib/share';
+import { buildShareMessage, buildShareUrl } from '@kiittime/api/share';
 
 describe('buildShareUrl', () => {
   it('builds a webapp timetable URL with one section_id param per id', () => {
@@ -38,7 +38,7 @@ describe('buildShareUrl dynamic environment config', () => {
 
   it('uses EXPO_PUBLIC_WEBAPP_URL when provided', () => {
     process.env.EXPO_PUBLIC_WEBAPP_URL = 'https://custom.test.domain';
-    const { buildShareUrl: dynamicBuild } = require('@/lib/share');
+    const { buildShareUrl: dynamicBuild } = require('@kiittime/api/share');
     
     const url = dynamicBuild([1, 2]);
     expect(url).toBe('https://custom.test.domain/timetable?section_id=1&section_id=2');
@@ -46,7 +46,7 @@ describe('buildShareUrl dynamic environment config', () => {
 
   it('falls back to kiittime.apothal.dev if no env var is provided', () => {
     delete process.env.EXPO_PUBLIC_WEBAPP_URL;
-    const { buildShareUrl: dynamicBuild } = require('@/lib/share');
+    const { buildShareUrl: dynamicBuild } = require('@kiittime/api/share');
     
     const url = dynamicBuild([3]);
     expect(url).toBe('https://kiittime.apothal.dev/timetable?section_id=3');

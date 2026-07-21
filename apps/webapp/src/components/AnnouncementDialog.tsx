@@ -4,7 +4,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import type { Announcement } from "#/lib/api";
+import type { Announcement } from "@kiittime/api/api";
 
 interface AnnouncementDialogProps {
 	announcement: Announcement;

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchSections } from "#/lib/api";
+import { fetchSections } from "@kiittime/api/api";
 
 export function useSections(year?: number) {
 	return useQuery({

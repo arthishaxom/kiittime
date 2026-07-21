@@ -1,5 +1,5 @@
 {
-  "name": "kiittime",
+  "name": "@kiittime/mobile",
   "main": "expo-router/entry",
   "version": "2.3.0",
   "dependencies": {

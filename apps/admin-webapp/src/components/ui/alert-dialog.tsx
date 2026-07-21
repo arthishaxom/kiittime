@@ -1,7 +1,7 @@
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { buttonVariants } from "#/components/ui/button.tsx";
-import { cn } from "#/lib/utils.ts";
+import { cn } from "@kiittime/api/utils";
 
 function AlertDialog({
 	...props

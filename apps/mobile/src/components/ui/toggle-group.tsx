@@ -1,7 +1,7 @@
 import { Icon } from '@/components/ui/icon';
 import { TextClassContext } from '@/components/ui/text';
 import { toggleVariants } from '@/components/ui/toggle';
-import { cn } from '@/lib/utils';
+import { cn } from '@kiittime/api/utils';
 import * as ToggleGroupPrimitive from '@rn-primitives/toggle-group';
 import type { VariantProps } from 'class-variance-authority';
 import * as React from 'react';

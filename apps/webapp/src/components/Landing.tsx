@@ -11,12 +11,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
-import { fetchRollNumberMapping } from "#/lib/api";
+import { fetchRollNumberMapping } from "@kiittime/api/api";
 import {
 	ACTIVE_ACADEMIC_YEAR_KEY,
 	ACTIVE_ROLL_NO_KEY,
 	saveSectionIds,
-} from "#/lib/storage";
+} from "@kiittime/api/storage";
 
 export function Landing() {
 	const [rollNo, setRollNo] = useState("");

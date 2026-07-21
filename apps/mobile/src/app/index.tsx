@@ -8,8 +8,8 @@ import { AboutDialog } from '@/components/about-dialog';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { timetableHref } from '@/lib/search-params';
-import { getSavedSectionIds, saveSectionIds, saveTempLinkingRollNo, clearTempLinkingRollNo, setActiveRollNo, setActiveAcademicYear } from '@/lib/storage';
-import { fetchRollNumberMapping } from '@/lib/api';
+import { getSavedSectionIds, saveSectionIds, saveTempLinkingRollNo, clearTempLinkingRollNo, setActiveRollNo, setActiveAcademicYear } from '@kiittime/api/storage';
+import { fetchRollNumberMapping } from '@kiittime/api/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();

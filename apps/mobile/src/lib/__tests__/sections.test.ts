@@ -1,5 +1,5 @@
 import { extractPrefixes, filterSections } from '@/lib/sections';
-import type { Section } from '@/lib/api';
+import type { Section } from '@kiittime/api/api';
 
 function section(overrides: Partial<Section>): Section {
   return {

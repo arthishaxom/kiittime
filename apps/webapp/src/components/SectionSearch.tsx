@@ -20,9 +20,9 @@ import {
 	SelectValue,
 } from "#/components/ui/select";
 import { useSections } from "#/hooks/useSections";
-import { sendOtp, verifyOtp } from "#/lib/api";
+import { sendOtp, verifyOtp } from "@kiittime/api/api";
 import { buildMailto } from "#/lib/mailto";
-import { saveSectionIds, ACTIVE_ROLL_NO_KEY, ACTIVE_ACADEMIC_YEAR_KEY } from "#/lib/storage";
+import { saveSectionIds, ACTIVE_ROLL_NO_KEY, ACTIVE_ACADEMIC_YEAR_KEY } from "@kiittime/api/storage";
 
 export function SectionSearch({ year }: { year: number }) {
 	const navigate = useNavigate();

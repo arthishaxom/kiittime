@@ -16,10 +16,10 @@ import { useSections } from '@/hooks/useSections';
 import { buildMailto } from '@/lib/mailto';
 import { extractPrefixes, filterSections } from '@/lib/sections';
 import { timetableHref } from '@/lib/search-params';
-import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo, setActiveRollNo, setActiveAcademicYear } from '@/lib/storage';
-import { cn } from '@/lib/utils';
+import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo, setActiveRollNo, setActiveAcademicYear } from '@kiittime/api/storage';
+import { cn } from '@kiittime/api/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { sendOtp, verifyOtp } from '@/lib/api';
+import { sendOtp, verifyOtp } from '@kiittime/api/api';
 
 
 const MAX_SECTIONS = 5;

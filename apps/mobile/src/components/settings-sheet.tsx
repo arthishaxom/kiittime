@@ -12,8 +12,8 @@ import { Linking, Pressable, View } from 'react-native';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { buildMailto } from '@/lib/mailto';
-import { shareTimetable } from '@/lib/share';
-import { clearSavedSectionIds, clearActiveRollNo, clearActiveAcademicYear } from '@/lib/storage';
+import { shareTimetable } from '@kiittime/api/share';
+import { clearSavedSectionIds, clearActiveRollNo, clearActiveAcademicYear } from '@kiittime/api/storage';
 import { THEME } from '@/lib/theme';
 
 type SettingsSheetProps = {

@@ -7,8 +7,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Landing } from "#/components/Landing";
-import * as api from "#/lib/api";
-import * as storage from "#/lib/storage";
+import * as api from "@kiittime/api/api";
+import * as storage from "@kiittime/api/storage";
 
 const mockNavigate = vi.fn();
 
@@ -19,11 +19,11 @@ vi.mock("@tanstack/react-router", () => ({
 	}),
 }));
 
-vi.mock("#/lib/api", () => ({
+vi.mock("@kiittime/api/api", () => ({
 	fetchRollNumberMapping: vi.fn(),
 }));
 
-vi.mock("#/lib/storage", () => ({
+vi.mock("@kiittime/api/storage", () => ({
 	getSavedSectionIds: vi.fn(),
 	saveSectionIds: vi.fn(),
 	ACTIVE_ROLL_NO_KEY: "kiit-time:active-roll-no",
