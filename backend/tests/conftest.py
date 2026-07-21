@@ -8,8 +8,29 @@ from sqlalchemy.orm import Session
 load_dotenv()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def postgres_container():
+    """Start Postgres Testcontainer and run migrations."""
+    from alembic import command
+    from alembic.config import Config
+    from testcontainers.postgres import PostgresContainer
+
+    with PostgresContainer("postgres:17", driver="psycopg") as container:
+        db_url = container.get_connection_url()
+        os.environ["DATABASE_URL"] = db_url
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ini_path = os.path.join(base_dir, "alembic.ini")
+
+        alembic_cfg = Config(ini_path)
+        alembic_cfg.set_main_option("sqlalchemy.url", db_url)
+        command.upgrade(alembic_cfg, "head")
+
+        yield container
+
+
 @pytest.fixture
-def db():
+def db(postgres_container):
     """Isolate each test in a SAVEPOINT nested inside an outer transaction.
 
     Code under test may call session.commit() as part of normal,
@@ -20,32 +41,10 @@ def db():
     transaction open. Roll back the outer transaction at teardown to erase
     everything, including anything the code under test committed.
     """
-    database_url = os.getenv("DATABASE_URL")
-    if database_url is None:
-        raise RuntimeError("DATABASE_URL is not set (check your .env)")
+    database_url = postgres_container.get_connection_url()
 
     engine = create_engine(database_url)
     connection = engine.connect()
-    
-    # Truncate tables to ensure database is clean for tests
-    from sqlalchemy import text
-    connection.execute(text(
-        "TRUNCATE TABLE "
-        "kiittime.class_sessions, "
-        "kiittime.roll_number_mappings, "
-        "kiittime.sections, "
-        "kiittime.courses, "
-        "kiittime.faculty, "
-        "kiittime.rooms, "
-        "kiittime.bronze_snapshots, "
-        "kiittime.announcements "
-        "CASCADE"
-    ))
-    # Some SQLAlchemy versions auto-commit, some require manual commit on connection
-    try:
-        connection.commit()
-    except Exception:
-        pass
 
     outer_transaction = connection.begin()
 
