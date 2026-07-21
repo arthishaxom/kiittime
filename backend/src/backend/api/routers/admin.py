@@ -12,14 +12,14 @@ from backend.api.schemas import (
     ApproveResponse,
     ClearAllResponse,
     ClearAnnouncementResponse,
+    ClearRollMappingsResponse,
     CreateAnnouncementRequest,
     DiffSummary,
     InspectResponse,
     RejectResponse,
+    RollMappingInspectResponse,
     RollNumberUploadResponse,
     UploadResponse,
-    RollMappingInspectResponse,
-    ClearRollMappingsResponse,
 )
 from backend.auth.dependencies import get_current_admin
 from backend.db.models import AdminUser, BronzeSnapshot, RollNumberMapping, Section, SnapshotStatus
@@ -47,7 +47,7 @@ def inspect_upload(
         xl = pd.ExcelFile(BytesIO(contents))
     except Exception as e:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to read Excel file: {e}",
         )
     return {"sheet_names": xl.sheet_names}
@@ -82,13 +82,13 @@ def create_upload(
         xl = pd.ExcelFile(BytesIO(contents))
     except Exception as e:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to read Excel file: {e}",
         )
 
     if sheet_name not in xl.sheet_names:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Sheet {sheet_name!r} not found. Available sheets: {xl.sheet_names}",
         )
 
@@ -98,7 +98,7 @@ def create_upload(
         rows = parse_section_grid(df, year=year)
     except Exception as e:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to parse file: {e}",
         )
 
@@ -111,7 +111,7 @@ def create_upload(
         )
     except ValidationError as e:
         db.rollback()
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
 
     db.commit()
 
@@ -159,7 +159,7 @@ def approve_upload(
         gold_upsert(db, resolved, scope)
     except ScopeViolationError as e:
         db.rollback()
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
     except Exception as e:
         db.rollback()
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -248,7 +248,7 @@ def inspect_roll_mappings(
             if sheet_name:
                 if sheet_name not in xls.sheet_names:
                     raise HTTPException(
-                        status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        status.HTTP_422_UNPROCESSABLE_CONTENT,
                         detail=f"Sheet '{sheet_name}' not found in Excel file.",
                     )
                 df = pd.read_excel(xls, sheet_name=sheet_name, nrows=0)
@@ -263,7 +263,7 @@ def inspect_roll_mappings(
         raise
     except Exception as e:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to read file: {e}",
         )
 
@@ -292,7 +292,7 @@ def upload_roll_mappings(
                 df = pd.read_excel(BytesIO(contents))
     except Exception as e:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to read file: {e}",
         )
 
@@ -305,7 +305,7 @@ def upload_roll_mappings(
             roll_col_idx = cols.index(roll_col_target)
         except ValueError:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Specified roll number column '{roll_col_name}' not found in file.",
             )
     else:
@@ -321,7 +321,7 @@ def upload_roll_mappings(
             sec_col_idx = cols.index(sec_col_target)
         except ValueError:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Specified section column '{sec_col_name}' not found in file.",
             )
     else:
@@ -337,7 +337,7 @@ def upload_roll_mappings(
 
     if sec_col_idx == -1 or roll_col_idx == sec_col_idx:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Could not identify roll number and section columns in the file.",
         )
 
@@ -388,7 +388,7 @@ def upload_roll_mappings(
             norm_name = normalize_section_name(sec_name)
             if norm_name not in section_map:
                 raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=(
                         f"Section '{sec_name}' not found for academic year {academic_year}. "
                         "Please upload the timetable for this section first."
