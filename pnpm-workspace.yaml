@@ -1,0 +1,17 @@
+packages:
+  - 'webapp'
+  - 'admin-webapp'
+  - 'mobile'
+  - 'packages/*'
+  - 'backend'
+
+nodeLinker: hoisted
+
+allowBuilds:
+  sharp: true
+  esbuild: true
+  lightningcss: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - jest-expo@57.0.2

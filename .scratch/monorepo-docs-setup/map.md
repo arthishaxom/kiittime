@@ -9,3 +9,5 @@
 - Use Turborepo for task orchestration.
 - Use a single root `pnpm-workspace.yaml`.
 - Do not use MkDocs yet; stick to Markdown files in `docs/`.
+- Unified workspace and task orchestration via Turborepo (see [01-root-workspace-setup.md](file:///C:/Users/ashis/kiittime/.scratch/monorepo-docs-setup/issues/01-root-workspace-setup.md)).
+
