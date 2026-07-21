@@ -161,5 +161,3 @@ class OTPVerifyResponse(BaseModel):
     status: str
     academic_year: int
     sections: list[SectionOut]
-
-

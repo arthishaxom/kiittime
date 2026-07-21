@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"],
       "outputs": ["dist/**", "build/**", ".next/**", "web-build/**"]
     },
     "dev": {
@@ -10,11 +11,15 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"]
     },
-    "format": {}
+    "format": {
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"]
+    }
   }
 }

@@ -253,10 +253,10 @@ def inspect_roll_mappings(
                     )
                 df = pd.read_excel(xls, sheet_name=sheet_name, nrows=0)
                 return {"columns": [str(c).strip() for c in df.columns]}
-            
+
             if len(xls.sheet_names) > 1:
                 return {"sheet_names": xls.sheet_names}
-            
+
             df = pd.read_excel(xls, sheet_name=xls.sheet_names[0], nrows=0)
             return {"columns": [str(c).strip() for c in df.columns]}
     except HTTPException:
@@ -266,7 +266,6 @@ def inspect_roll_mappings(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to read file: {e}",
         )
-
 
 
 @router.post("/roll-mappings/upload", response_model=RollNumberUploadResponse)
@@ -404,10 +403,12 @@ def upload_roll_mappings(
 
     inserted_count = 0
     if mappings_to_create:
-        stmt = pg_insert(RollNumberMapping).values([
-            {"roll_no": r, "section_id": s_id, "academic_year": academic_year}
-            for r, s_id in mappings_to_create
-        ])
+        stmt = pg_insert(RollNumberMapping).values(
+            [
+                {"roll_no": r, "section_id": s_id, "academic_year": academic_year}
+                for r, s_id in mappings_to_create
+            ]
+        )
         stmt = stmt.on_conflict_do_nothing(
             index_elements=["roll_no", "section_id", "academic_year"]
         ).returning(RollNumberMapping.id)

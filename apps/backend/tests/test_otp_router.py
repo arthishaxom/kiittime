@@ -1,5 +1,6 @@
 import json
 import re
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -13,7 +14,6 @@ from backend.redis import get_redis
 
 
 class MockEmailProvider(EmailProvider):
-
     def __init__(self):
         self.sent_emails = []
 
@@ -189,8 +189,7 @@ def test_verify_otp_success(client, db, mock_email, mock_redis):
     # Check mapping was created in DB
     mapping = db.execute(
         select(RollNumberMapping).where(
-            RollNumberMapping.roll_no == "2105124",
-            RollNumberMapping.section_id == section.id
+            RollNumberMapping.roll_no == "2105124", RollNumberMapping.section_id == section.id
         )
     ).scalar_one()
     assert mapping.academic_year == 3
@@ -313,12 +312,14 @@ def test_verify_otp_deletes_previous_mappings(client, db, mock_email, mock_redis
     db.commit()
 
     # Verify old mapping exists
-    assert db.execute(
-        select(RollNumberMapping).where(
-            RollNumberMapping.roll_no == "2105199",
-            RollNumberMapping.section_id == sec1.id
-        )
-    ).scalar_one_or_none() is not None
+    assert (
+        db.execute(
+            select(RollNumberMapping).where(
+                RollNumberMapping.roll_no == "2105199", RollNumberMapping.section_id == sec1.id
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
 
     # Send OTP for sec2 mapping
     send_res = client.post(
@@ -340,18 +341,21 @@ def test_verify_otp_deletes_previous_mappings(client, db, mock_email, mock_redis
     assert verify_res.status_code == 200
 
     # Confirm old mapping is deleted
-    assert db.execute(
-        select(RollNumberMapping).where(
-            RollNumberMapping.roll_no == "2105199",
-            RollNumberMapping.section_id == sec1.id
-        )
-    ).scalar_one_or_none() is None
+    assert (
+        db.execute(
+            select(RollNumberMapping).where(
+                RollNumberMapping.roll_no == "2105199", RollNumberMapping.section_id == sec1.id
+            )
+        ).scalar_one_or_none()
+        is None
+    )
 
     # Confirm new mapping exists
-    assert db.execute(
-        select(RollNumberMapping).where(
-            RollNumberMapping.roll_no == "2105199",
-            RollNumberMapping.section_id == sec2.id
-        )
-    ).scalar_one_or_none() is not None
-
+    assert (
+        db.execute(
+            select(RollNumberMapping).where(
+                RollNumberMapping.roll_no == "2105199", RollNumberMapping.section_id == sec2.id
+            )
+        ).scalar_one_or_none()
+        is not None
+    )

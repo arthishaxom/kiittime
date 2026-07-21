@@ -1,7 +1,6 @@
 import json
 import os
 import secrets
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -86,9 +85,9 @@ def send_otp(
         )
 
     # Check if all sections exist
-    existing_sections = db.execute(
-        select(Section).where(Section.id.in_(payload.section_ids))
-    ).scalars().all()
+    existing_sections = (
+        db.execute(select(Section).where(Section.id.in_(payload.section_ids))).scalars().all()
+    )
 
     if len(existing_sections) != len(set(payload.section_ids)):
         raise HTTPException(
@@ -206,9 +205,9 @@ def verify_otp(
     redis_conn.delete(f"otp:{roll_no}")
 
     # Retrieve sections
-    sections = db.execute(
-        select(Section).where(Section.id.in_(otp_data["section_ids"]))
-    ).scalars().all()
+    sections = (
+        db.execute(select(Section).where(Section.id.in_(otp_data["section_ids"]))).scalars().all()
+    )
 
     if not sections:
         raise HTTPException(
@@ -221,9 +220,8 @@ def verify_otp(
 
     # Delete any existing mapping entries for this roll number
     from sqlalchemy import delete
-    db.execute(
-        delete(RollNumberMapping).where(RollNumberMapping.roll_no == roll_no)
-    )
+
+    db.execute(delete(RollNumberMapping).where(RollNumberMapping.roll_no == roll_no))
 
     # Create mapping entries
     for section in sections:
@@ -241,4 +239,3 @@ def verify_otp(
         "academic_year": academic_year,
         "sections": sections,
     }
-

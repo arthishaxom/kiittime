@@ -46,4 +46,3 @@ def test_unique_roll_number_mapping_different_academic_years(db):
     mapping2 = RollNumberMapping(roll_no="2105123", section_id=section.id, academic_year=3)
     db.add_all([mapping1, mapping2])
     db.flush()  # Should succeed with the new unique constraint (roll_no, section_id, academic_year)
-
