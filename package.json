@@ -12,25 +12,5 @@
   },
   "devDependencies": {
     "turbo": "^2.10.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "react": "^19.2.0",
-      "react-dom": "^19.2.0",
-      "@types/react": "^19.2.0",
-      "@types/react-dom": "^19.2.0"
-    },
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "react": "19",
-        "react-dom": "19",
-        "@types/react": "19",
-        "@types/react-dom": "19"
-      },
-      "ignoreMissing": [
-        "react",
-        "react-dom"
-      ]
-    }
   }
 }
