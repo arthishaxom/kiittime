@@ -16,6 +16,7 @@
     "check": "biome check"
   },
   "dependencies": {
+    "@kiittime/api": "workspace:*",
     "@hookform/resolvers": "^5.4.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",
