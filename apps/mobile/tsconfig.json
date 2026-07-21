@@ -1,7 +1,6 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "@kiittime/tsconfig/react-native.json",
   "compilerOptions": {
-    "strict": true,
     "types": ["jest"],
     "paths": {
       "@/*": [

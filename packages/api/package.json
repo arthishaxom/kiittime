@@ -35,5 +35,8 @@
     "react-native": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@kiittime/tsconfig": "workspace:*"
   }
 }

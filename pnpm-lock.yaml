@@ -90,6 +90,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.4.5
         version: 2.4.5
+      '@kiittime/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
       '@tailwindcss/typography':
         specifier: ^0.5.16
         version: 0.5.20(tailwindcss@4.3.3)
@@ -277,6 +280,9 @@ importers:
         specifier: ^1.10.0
         version: 1.10.0(@expo/metro-config@57.0.6(expo@57.0.7)(typescript@6.0.3))(metro-cache@0.84.4)(metro-transform-worker@0.84.4)(metro@0.84.4)(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.7))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(tailwindcss@4.3.3)
     devDependencies:
+      '@kiittime/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
       '@testing-library/react-native':
         specifier: ^14.0.1
         version: 14.0.1(jest@29.7.0(@types/node@22.20.1))(react-native@0.86.0(@babel/core@7.29.7)(@react-native/jest-preset@0.86.0(@babel/core@7.29.7)(react@19.2.7))(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)(test-renderer@1.2.0(@types/react@19.2.17)(react@19.2.7))
@@ -386,6 +392,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.4.5
         version: 2.4.5
+      '@kiittime/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
       '@tailwindcss/typography':
         specifier: ^0.5.16
         version: 0.5.20(tailwindcss@4.3.3)
@@ -446,6 +455,12 @@ importers:
       tailwind-merge:
         specifier: ^3.0.2
         version: 3.6.0
+    devDependencies:
+      '@kiittime/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+
+  packages/tsconfig: {}
 
 packages:
 

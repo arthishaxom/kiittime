@@ -1,4 +1,10 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorageDefault from '@react-native-async-storage/async-storage';
+
+const AsyncStorage = AsyncStorageDefault as unknown as {
+  getItem: (key: string) => Promise<string | null>;
+  setItem: (key: string, value: string) => Promise<void>;
+  removeItem: (key: string) => Promise<void>;
+};
 
 export const STORAGE_KEY = "kiit-time:selected-sections";
 export const LAST_SEEN_ANNOUNCEMENT_KEY = "kiit-time:last-seen-announcement";

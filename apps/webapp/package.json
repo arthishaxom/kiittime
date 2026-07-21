@@ -45,6 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@kiittime/tsconfig": "workspace:*",
     "@biomejs/biome": "2.4.5",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
