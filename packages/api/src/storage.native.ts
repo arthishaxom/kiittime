@@ -1,0 +1,93 @@
+import AsyncStorageDefault from '@react-native-async-storage/async-storage';
+
+const AsyncStorage = AsyncStorageDefault as unknown as {
+  getItem: (key: string) => Promise<string | null>;
+  setItem: (key: string, value: string) => Promise<void>;
+  removeItem: (key: string) => Promise<void>;
+};
+
+export const STORAGE_KEY = "kiit-time:selected-sections";
+export const LAST_SEEN_ANNOUNCEMENT_KEY = "kiit-time:last-seen-announcement";
+export const ACTIVE_ROLL_NO_KEY = "kiit-time:active-roll-no";
+export const ACTIVE_ACADEMIC_YEAR_KEY = "kiit-time:active-academic-year";
+export const TEMP_LINKING_ROLL_NO_KEY = "kiit-time:temp-linking-roll-no";
+
+export async function getSavedSectionIds(): Promise<number[] | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.every((n) => typeof n === 'number')) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSectionIds(ids: number[]): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+}
+
+export async function clearSavedSectionIds(): Promise<void> {
+  await AsyncStorage.removeItem(STORAGE_KEY);
+}
+
+export async function getLastSeenAnnouncementId(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(LAST_SEEN_ANNOUNCEMENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'number') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function setLastSeenAnnouncementId(id: number): Promise<void> {
+  await AsyncStorage.setItem(LAST_SEEN_ANNOUNCEMENT_KEY, JSON.stringify(id));
+}
+
+export async function getTempLinkingRollNo(): Promise<string | null> {
+  return AsyncStorage.getItem(TEMP_LINKING_ROLL_NO_KEY);
+}
+
+export async function saveTempLinkingRollNo(rollNo: string): Promise<void> {
+  await AsyncStorage.setItem(TEMP_LINKING_ROLL_NO_KEY, rollNo);
+}
+
+export async function clearTempLinkingRollNo(): Promise<void> {
+  await AsyncStorage.removeItem(TEMP_LINKING_ROLL_NO_KEY);
+}
+
+export async function getActiveRollNo(): Promise<string | null> {
+  return AsyncStorage.getItem(ACTIVE_ROLL_NO_KEY);
+}
+
+export async function setActiveRollNo(rollNo: string): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_ROLL_NO_KEY, rollNo);
+}
+
+export async function clearActiveRollNo(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVE_ROLL_NO_KEY);
+}
+
+export async function getActiveAcademicYear(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(ACTIVE_ACADEMIC_YEAR_KEY);
+    if (!raw) return null;
+    const parsed = parseInt(raw, 10);
+    if (isNaN(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export async function setActiveAcademicYear(year: number): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_ACADEMIC_YEAR_KEY, String(year));
+}
+
+export async function clearActiveAcademicYear(): Promise<void> {
+  await AsyncStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
+}
