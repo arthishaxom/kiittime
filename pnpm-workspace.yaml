@@ -1,9 +1,6 @@
 packages:
-  - 'webapp'
-  - 'admin-webapp'
-  - 'mobile'
+  - 'apps/*'
   - 'packages/*'
-  - 'backend'
 
 nodeLinker: hoisted
 
