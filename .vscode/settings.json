@@ -3,5 +3,9 @@
 		"source.fixAll": "explicit",
 		"source.organizeImports.biome": "explicit",
 		"source.fixAll.biome": "explicit"
-	}
+	},
+	"eslint.workingDirectories": [
+		{ "pattern": "./apps/*/" },
+		{ "pattern": "./packages/*/" }
+	]
 }

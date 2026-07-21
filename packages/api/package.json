@@ -1,0 +1,42 @@
+{
+  "name": "@kiittime/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": {
+      "react-native": "./src/api.native.ts",
+      "default": "./src/api.web.ts"
+    },
+    "./announcements": "./src/announcements.ts",
+    "./utils": "./src/utils.ts",
+    "./share": {
+      "react-native": "./src/share.native.ts",
+      "default": "./src/share.web.ts"
+    },
+    "./storage": {
+      "react-native": "./src/storage.native.ts",
+      "default": "./src/storage.web.ts"
+    }
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.2"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": "*",
+    "react-native": "*"
+  },
+  "peerDependenciesMeta": {
+    "@react-native-async-storage/async-storage": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@kiittime/tsconfig": "workspace:*"
+  }
+}

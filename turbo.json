@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui":"tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": [
+        "VITE_API_URL",
+        "VITE_API_BASE_URL",
+        "EXPO_PUBLIC_WEBAPP_URL",
+        "EXPO_PUBLIC_API_BASE_URL"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"],
+      "outputs": ["dist/**", "build/**", ".next/**", "web-build/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"]
+    },
+    "format": {
+      "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"]
+    }
+  }
+}

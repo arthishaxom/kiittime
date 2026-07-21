@@ -1,0 +1,20 @@
+{
+  "extends": "@kiittime/tsconfig/react-native.json",
+  "compilerOptions": {
+    "types": ["jest"],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

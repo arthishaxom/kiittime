@@ -1,0 +1,11 @@
+{
+  "name": "@kiittime/backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run fastapi dev",
+    "test": "uv run pytest",
+    "lint": "uv run ruff check",
+    "format": "uv run ruff format"
+  }
+}
