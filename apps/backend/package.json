@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "uv run python -m fastapi dev",
-    "test": "uv run python -m pytest",
-    "lint": "uv run python -m ruff check",
-    "format": "uv run python -m ruff format"
+    "dev": "uv run fastapi dev",
+    "test": "uv run pytest",
+    "lint": "uv run ruff check",
+    "format": "uv run ruff format"
   }
 }

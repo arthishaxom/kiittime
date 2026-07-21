@@ -7,13 +7,13 @@ This document details the architectural conventions, scoping, and directory layo
 ## 📂 Directory Layout
 
 * **`apps/`**: Complete deployment targets.
-  * `admin-webapp` — Vite + React SPA for admins.
-  * `backend` — Python FastAPI server.
-  * `mobile` — React Native Expo application.
-  * `webapp` — Vite + React PWA for students.
+  * [webapp](file:///C:/Users/ashis/kiittime/apps/webapp) — Student Web application (Vite + React)
+  * [admin-webapp](file:///C:/Users/ashis/kiittime/apps/admin-webapp) — Admin management application (Vite + React)
+  * [mobile](file:///C:/Users/ashis/kiittime/apps/mobile) — React Native Expo application
+  * [backend](file:///C:/Users/ashis/kiittime/apps/backend) — FastAPI server (Python)
 * **`packages/`**: Shared libraries and build utilities.
-  * `api` — Shared client SDK (storage, networking, state).
-  * `tsconfig` — Shared TSConfigs.
+  * [api](file:///C:/Users/ashis/kiittime/packages/api) — Shared client APIs, storage, and utility functions
+  * [tsconfig](file:///C:/Users/ashis/kiittime/packages/tsconfig) — Shared TypeScript configurations
 
 ---
 
