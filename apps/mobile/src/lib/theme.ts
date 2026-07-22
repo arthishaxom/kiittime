@@ -18,7 +18,8 @@ export const THEME = {
 export const NAV_THEME: Theme = {
   ...DarkTheme,
   colors: {
-    background: THEME.bg,
+    ...DarkTheme.colors,
+    background: 'transparent',
     border: THEME.border,
     card: THEME.surface,
     notification: THEME.danger,

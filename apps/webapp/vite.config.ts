@@ -14,7 +14,10 @@ const config = defineConfig({
 		__APP_VERSION__: JSON.stringify(pkg.version),
 	},
 	preview: {
-		allowedHosts: [".trycloudflare.com"],
+		allowedHosts: [".apothal.dev"],
+	},
+	server: {
+		allowedHosts: [".apothal.dev"],
 	},
 	test: {
 		environment: "jsdom",

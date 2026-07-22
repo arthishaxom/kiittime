@@ -96,13 +96,13 @@ export default function Index() {
 
 
   if (checkingSaved) {
-    return <View className="flex-1 bg-bg" />;
+    return <View className="flex-1 bg-transparent" />;
   }
 
   if (isEmptyDb) {
     return (
-      <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-        <View className="flex-1 bg-bg px-6 py-6 justify-between">
+      <View className="flex-1 bg-transparent" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+        <View className="flex-1 px-6 py-6 justify-between">
           <View className="flex-1 justify-center items-center">
             <Image
               source={require('@/assets/images/logo_fg.png')}
@@ -141,13 +141,13 @@ export default function Index() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-bg"
+      className="flex-1 bg-transparent"
       style={{ paddingTop: insets.top }}>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        <View className="flex-1 bg-bg px-6 py-6">
+        <View className="flex-1 px-6 py-6">
           <View className="flex-1 items-center justify-center">
             <Image
               source={require('@/assets/images/logo_fg.png')}

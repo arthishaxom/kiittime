@@ -186,7 +186,7 @@ export default function TimetablePage() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <View className="flex-1 bg-transparent" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
         <View className="p-4 pb-2 flex-row items-center justify-center">
           <Skeleton className="h-7 w-32" />
         </View>
@@ -232,7 +232,7 @@ export default function TimetablePage() {
   if (isError && !data) {
     if (isOffline) {
       return (
-        <View className="flex-1 bg-bg items-center justify-center p-6" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+        <View className="flex-1 bg-transparent items-center justify-center p-6" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
           <Icon as={WifiOff} size={48} className="text-text-muted mb-4" />
           <Text className="text-text text-xl font-bold text-center mb-2">You{"'"}re offline</Text>
           <Text className="text-text-muted text-center mb-6">
@@ -248,7 +248,7 @@ export default function TimetablePage() {
     }
 
     return (
-      <View className="flex-1 bg-bg items-center justify-center p-6" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <View className="flex-1 bg-transparent items-center justify-center p-6" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
         <Text className="text-danger text-lg font-semibold text-center mb-4">Failed to load timetable.</Text>
         <Pressable
           onPress={() => refetch()}
@@ -260,7 +260,7 @@ export default function TimetablePage() {
   }
 
   return (
-    <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View className="flex-1 bg-transparent" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <View className="p-4 pb-2 flex-row items-center justify-center gap-2">
         <Pressable
           onPress={() => setSectionsModalOpen(true)}
