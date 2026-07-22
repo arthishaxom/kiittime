@@ -264,11 +264,14 @@ export default function TimetablePage() {
       <View className="p-4 pb-2 flex-row items-center justify-center gap-2">
         <Pressable
           onPress={() => setSectionsModalOpen(true)}
-          className="flex-row items-center gap-1 active:opacity-85">
-          <Text className="text-text text-lg font-bold">
+          className="flex-row items-center gap-1 active:opacity-85 max-w-full">
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            className="text-text text-lg font-bold shrink">
             {summarizeSections(data?.sections_requested)}
           </Text>
-          <Icon as={ChevronDown} size={18} className="text-text-muted" />
+          <Icon as={ChevronDown} size={18} className="text-text-muted shrink-0" />
         </Pressable>
         {isOffline && (
           <Pressable
