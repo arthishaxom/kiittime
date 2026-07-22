@@ -70,6 +70,7 @@ module.exports = ({ config }) => ({
 
   plugins: [
     "expo-router",
+    "expo-updates",
     [
       "expo-splash-screen",
       {
