@@ -6,7 +6,7 @@
 
 ### Issue tracker
 
-Issues/specs live as local markdown files under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues (`gh` CLI). See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

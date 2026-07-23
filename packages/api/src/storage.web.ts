@@ -3,6 +3,7 @@ export const LAST_SEEN_ANNOUNCEMENT_KEY = "kiit-time:last-seen-announcement";
 export const ACTIVE_ROLL_NO_KEY = "kiit-time:active-roll-no";
 export const ACTIVE_ACADEMIC_YEAR_KEY = "kiit-time:active-academic-year";
 export const TEMP_LINKING_ROLL_NO_KEY = "kiit-time:temp-linking-roll-no";
+export const LAST_SHOWN_UPDATE_ID_KEY = "kiit-time:last-shown-update-id";
 
 export function getSavedSectionIds(): number[] | null {
 	try {
@@ -80,3 +81,16 @@ export function setActiveAcademicYear(year: number): void {
 export function clearActiveAcademicYear(): void {
 	localStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
 }
+
+export function getLastShownUpdateId(): string | null {
+	try {
+		return localStorage.getItem(LAST_SHOWN_UPDATE_ID_KEY);
+	} catch {
+		return null;
+	}
+}
+
+export function setLastShownUpdateId(id: string): void {
+	localStorage.setItem(LAST_SHOWN_UPDATE_ID_KEY, id);
+}
+

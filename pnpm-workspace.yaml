@@ -18,6 +18,8 @@ overrides:
   react-dom: "^19.2.0"
   "@types/react": "^19.2.0"
   "@types/react-dom": "^19.2.0"
+  "@tanstack/react-query": "^5.101.4"
+  "@tanstack/react-query-persist-client": "^5.101.2"
 
 peerDependencyRules:
   allowedVersions:

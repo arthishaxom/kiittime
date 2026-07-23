@@ -86,7 +86,7 @@ export function Landing() {
 
 	if (isEmptyDb) {
 		return (
-			<div className="min-h-dvh bg-bg/50 text-text flex flex-col p-6">
+			<div className="min-h-dvh text-text flex flex-col p-6">
 				<div className="flex-1 flex items-center justify-center">
 					<img
 						src="/logo.png"
@@ -132,7 +132,7 @@ export function Landing() {
 	const totalBoxes = rollNo.length >= 8 ? 9 : rollNo.length >= 7 ? 8 : 7;
 
 	return (
-		<div className="min-h-dvh bg-bg/50 text-text flex flex-col p-6">
+		<div className="min-h-dvh text-text flex flex-col p-6">
 			{/* Logo */}
 			<div className="flex-1 flex items-center justify-center">
 				<img

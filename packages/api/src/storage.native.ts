@@ -11,6 +11,7 @@ export const LAST_SEEN_ANNOUNCEMENT_KEY = "kiit-time:last-seen-announcement";
 export const ACTIVE_ROLL_NO_KEY = "kiit-time:active-roll-no";
 export const ACTIVE_ACADEMIC_YEAR_KEY = "kiit-time:active-academic-year";
 export const TEMP_LINKING_ROLL_NO_KEY = "kiit-time:temp-linking-roll-no";
+export const LAST_SHOWN_UPDATE_ID_KEY = "kiit-time:last-shown-update-id";
 
 export async function getSavedSectionIds(): Promise<number[] | null> {
   try {
@@ -91,3 +92,16 @@ export async function setActiveAcademicYear(year: number): Promise<void> {
 export async function clearActiveAcademicYear(): Promise<void> {
   await AsyncStorage.removeItem(ACTIVE_ACADEMIC_YEAR_KEY);
 }
+
+export async function getLastShownUpdateId(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(LAST_SHOWN_UPDATE_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function setLastShownUpdateId(id: string): Promise<void> {
+  await AsyncStorage.setItem(LAST_SHOWN_UPDATE_ID_KEY, id);
+}
+

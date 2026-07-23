@@ -187,8 +187,8 @@ export default function SectionSearch() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-1 bg-bg" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View className="flex-1 bg-bg px-4 pt-4">
+    <View className="flex-1 bg-transparent" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <View className="flex-1 px-4 pt-4">
         <View className="flex-row items-center gap-3 mb-4">
           <Pressable onPress={() => router.back()} hitSlop={12}>
             <Text className="text-2xl text-text">←</Text>
