@@ -5,7 +5,7 @@
   },
   "build": {
     "development": {
-      "pnpm": "10.12.1",
+      "pnpm": "11.12.0",
       "developmentClient": true,
       "distribution": "internal",
       "env": {
@@ -13,12 +13,15 @@
       }
     },
     "preview": {
+      "pnpm": "11.12.0",
+      "channel": "preview",
       "distribution": "internal",
       "env": {
         "APP_VARIANT": "preview"
       }
     },
     "production": {
+      "pnpm": "11.12.0",
       "channel": "production",
       "autoIncrement": true
     }

@@ -101,12 +101,20 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background:
-    url('/background.png') center / cover no-repeat fixed,
-    var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url('/background.png') center / cover no-repeat fixed;
+  opacity: 0.30;
+  pointer-events: none;
+  z-index: -1;
 }
 
 @layer base {

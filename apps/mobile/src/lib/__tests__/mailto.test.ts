@@ -7,13 +7,13 @@ describe('buildMailto', () => {
 
   it('includes an encoded subject param', () => {
     expect(buildMailto({ subject: 'KIIT Time - Contact' })).toBe(
-      'mailto:pothal.builds@gmail.com?subject=KIIT+Time+-+Contact',
+      'mailto:pothal.builds@gmail.com?subject=KIIT%20Time%20-%20Contact',
     );
   });
 
   it('includes both encoded subject and body params', () => {
     expect(buildMailto({ subject: 'Hi there', body: 'Please help' })).toBe(
-      'mailto:pothal.builds@gmail.com?subject=Hi+there&body=Please+help',
+      'mailto:pothal.builds@gmail.com?subject=Hi%20there&body=Please%20help',
     );
   });
 
