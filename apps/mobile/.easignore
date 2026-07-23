@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Expo & Build outputs
+.expo/
+dist/
+web-build/
+build/
+*.apk
+*.aab
+*.ipa
+
+# Native build artifacts (if prebuilding or generated)
+/ios
+
+# Tests and Coverage
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+
+# Documentation and Scratch
+docs/
+.scratch/
+
+# Local configuration and logs
+.env*.local
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo

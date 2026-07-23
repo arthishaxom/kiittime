@@ -38,10 +38,12 @@ The existing ADR-0004 explicitly deferred mobile CD (automated `eas build`/`eas 
 - Non-crash regressions are handled by `eas update:rollback` from the developer's terminal.
 - No bespoke in-app crash detection layer is added.
 
-**OTA publishing: manual for now.**
+**Publishing: automated via GitHub Actions (#60).**
 
-- `eas update --branch production --message "..."` is run manually from a dev machine after merging to `main`.
-- Automating this in GitHub Actions (`eas-update.yml`) is explicitly deferred to a separate issue — it is a straightforward `EXPO_TOKEN`-only workflow (no signing credentials needed) and can be added independently once the team wants it.
+- GitHub Actions workflow `.github/workflows/eas-build-update.yml` automatically triggers on push to `main` (and pull requests).
+- Uses `dorny/paths-filter` to smartly distinguish between native and non-native changes:
+  - **Native changes**: Runs `eas build --platform all --auto-submit` to trigger native builds and submission to app stores.
+  - **Non-native (JS/asset) changes**: Runs `eas update --branch production` on push to `main` (or `--branch preview` on PR) to publish OTA updates automatically.
 
 **Stallion migration exit condition (documented, not planned).**
 
