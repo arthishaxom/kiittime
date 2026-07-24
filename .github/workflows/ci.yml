@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      webapp: ${{ steps.filter.outputs.webapp }}
+      admin-webapp: ${{ steps.filter.outputs.admin-webapp }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+            mobile:
+              - 'apps/mobile/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+            webapp:
+              - 'apps/webapp/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+            admin-webapp:
+              - 'apps/admin-webapp/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+
+  test-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user -d test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          
+      - name: Install dependencies
+        working-directory: apps/backend
+        run: uv sync
+
+      - name: Run Alembic migrations
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql+psycopg://test_user:test_password@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-ci
+          ALLOWED_ORIGINS: "*"
+        run: uv run alembic upgrade head
+        
+      - name: Run pytest
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql+psycopg://test_user:test_password@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-ci
+          ALLOWED_ORIGINS: "*"
+          CI: "true"
+        run: uv run pytest
+
+  test-mobile:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.12.0
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm --filter @kiittime/mobile test
+
+  test-webapp:
+    needs: changes
+    if: needs.changes.outputs.webapp == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.12.0
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm --filter @kiittime/webapp test
+
+  test-admin-webapp:
+    needs: changes
+    if: needs.changes.outputs.admin-webapp == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.12.0
+          cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm --filter @kiittime/admin-webapp test

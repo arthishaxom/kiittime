@@ -10,7 +10,11 @@ load_dotenv()
 
 @pytest.fixture(scope="session", autouse=True)
 def postgres_container():
-    """Start Postgres Testcontainer and run migrations."""
+    """Start Postgres Testcontainer and run migrations (skip in CI)."""
+    if os.environ.get("CI") == "true":
+        yield None
+        return
+
     from alembic import command
     from alembic.config import Config
     from testcontainers.postgres import PostgresContainer
@@ -41,7 +45,11 @@ def db(postgres_container):
     transaction open. Roll back the outer transaction at teardown to erase
     everything, including anything the code under test committed.
     """
-    database_url = postgres_container.get_connection_url()
+    if postgres_container is not None:
+        database_url = postgres_container.get_connection_url()
+    else:
+        database_url = os.environ.get("DATABASE_URL")
+
 
     engine = create_engine(database_url)
     connection = engine.connect()

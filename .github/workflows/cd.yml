@@ -1,25 +1,22 @@
-name: EAS Build & Update (Mobile CI/CD)
+name: CD
 
 on:
   push:
     branches:
       - main
       - dev
-  pull_request:
-    branches:
-      - main
-      - dev
+  workflow_dispatch:
 
 jobs:
   eas-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Detect mobile & native file changes
         id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             mobile:
@@ -33,21 +30,22 @@ jobs:
               - 'apps/mobile/package.json'
               - 'package.json'
 
+      - name: Setup pnpm
+        if: steps.changes.outputs.mobile == 'true'
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.12.0
+          cache: true
+
       - name: Setup Node.js
         if: steps.changes.outputs.mobile == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
-      - name: Setup pnpm
-        if: steps.changes.outputs.mobile == 'true'
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.12.0
-
       - name: Setup Expo / EAS CLI
         if: steps.changes.outputs.mobile == 'true'
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -58,38 +56,30 @@ jobs:
 
       # MAIN BRANCH (Production)
       - name: Run EAS Build Production (Native Changes on Main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'true'
+        if: github.ref == 'refs/heads/main' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'true'
         working-directory: apps/mobile
         run: eas build --platform android --profile production --auto-submit --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Run EAS Update Production (JS/Asset Changes on Main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'false'
+        if: github.ref == 'refs/heads/main' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'false'
         working-directory: apps/mobile
-        run: eas update --platform android --branch production --message "deploying to production from CI (${{ github.sha }})" --non-interactive
+        run: eas update --platform android --branch production --message "deploying to production from CD (${{ github.sha }})" --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       # DEV BRANCH (Preview)
       - name: Run EAS Build Preview (Native Changes on Dev)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'true'
+        if: github.ref == 'refs/heads/dev' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'true'
         working-directory: apps/mobile
         run: eas build --platform android --profile preview --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Run EAS Update Preview (JS/Asset Changes on Dev)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'false'
+        if: github.ref == 'refs/heads/dev' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'false'
         working-directory: apps/mobile
-        run: eas update --platform android --branch preview --message "deploying to preview from CI (${{ github.sha }})" --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-      # PULL REQUEST (Preview Update)
-      - name: Run EAS Update Preview (JS/Asset Changes on PR)
-        if: github.event_name == 'pull_request' && steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'false'
-        working-directory: apps/mobile
-        run: eas update --platform android --branch preview --message "PR #${{ github.event.number }}: ${{ github.event.pull_request.title }}" --non-interactive
+        run: eas update --platform android --branch preview --message "deploying to preview from CD (${{ github.sha }})" --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
