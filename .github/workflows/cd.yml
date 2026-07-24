@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Detect mobile & native file changes
         id: changes
@@ -32,14 +32,13 @@ jobs:
 
       - name: Setup pnpm
         if: steps.changes.outputs.mobile == 'true'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v4
         with:
           version: 11.12.0
-          cache: true
 
       - name: Setup Node.js
         if: steps.changes.outputs.mobile == 'true'
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
