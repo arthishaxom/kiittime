@@ -13,7 +13,8 @@ load_dotenv()
 
 app = FastAPI(title="KIIT Time API")
 
-allowed_origins = os.environ["ALLOWED_ORIGINS"].split(",")
+raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
