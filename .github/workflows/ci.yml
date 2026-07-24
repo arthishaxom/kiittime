@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      webapp: ${{ steps.filter.outputs.webapp }}
+      admin-webapp: ${{ steps.filter.outputs.admin-webapp }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+            mobile:
+              - 'apps/mobile/**'
+            webapp:
+              - 'apps/webapp/**'
+            admin-webapp:
+              - 'apps/admin-webapp/**'
+
+  test-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          
+      - name: Install dependencies
+        working-directory: apps/backend
+        run: uv sync
+
+      - name: Run Alembic migrations
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql+psycopg://test_user:test_password@localhost:5432/test_db
+        run: uv run alembic upgrade head
+        
+      - name: Run pytest
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql+psycopg://test_user:test_password@localhost:5432/test_db
+          CI: "true"
+        run: uv run pytest
