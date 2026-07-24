@@ -74,6 +74,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+psycopg://test_user:test_password@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-ci
+          ALLOWED_ORIGINS: "*"
         run: uv run alembic upgrade head
         
       - name: Run pytest
@@ -81,6 +82,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+psycopg://test_user:test_password@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-ci
+          ALLOWED_ORIGINS: "*"
           CI: "true"
         run: uv run pytest
 
