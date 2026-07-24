@@ -1,0 +1,68 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  eas-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect mobile & native file changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            mobile:
+              - 'apps/mobile/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+            native:
+              - 'apps/mobile/app.config.js'
+              - 'apps/mobile/eas.json'
+              - 'apps/mobile/android/**'
+              - 'apps/mobile/package.json'
+              - 'package.json'
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.mobile == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        if: steps.changes.outputs.mobile == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+
+      - name: Setup Expo / EAS CLI
+        if: steps.changes.outputs.mobile == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        if: steps.changes.outputs.mobile == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # MAIN BRANCH (Production / Manual Dispatch)
+      - name: Run EAS Build Production (Native Changes)
+        if: steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'true'
+        working-directory: apps/mobile
+        run: eas build --platform android --profile production --auto-submit --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Run EAS Update Production (JS/Asset Changes)
+        if: steps.changes.outputs.mobile == 'true' && steps.changes.outputs.native == 'false'
+        working-directory: apps/mobile
+        run: eas update --platform android --branch production --message "deploying to production from CD (${{ github.sha }})" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
