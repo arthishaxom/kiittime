@@ -1,0 +1,3 @@
+{
+  "ignoreCommand": "if [ \"$VERCEL_ENV\" != \"production\" ]; then exit 0; else npx turbo query affected --task=build --filter=@kiittime/admin-webapp --exit-code; fi"
+}
