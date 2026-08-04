@@ -8,10 +8,16 @@ from sqlalchemy.orm import Session
 
 from backend.api.routers import admin, announcements, auth, otp, roll_numbers, sections, timetable
 from backend.db.session import get_db
+from backend.logging import setup_logging
+from backend.middleware.logging import LoggingMiddleware
 
 load_dotenv()
 
+setup_logging()
+
 app = FastAPI(title="KIIT Time API")
+
+app.add_middleware(LoggingMiddleware)
 
 raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
 allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
