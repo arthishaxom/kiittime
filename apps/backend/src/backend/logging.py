@@ -18,10 +18,10 @@ class StructlogAxiomHandler(AxiomHandler):
     """Custom AxiomHandler that formats structlog log records for Axiom ingestion."""
 
     def emit(self, record: logging.LogRecord) -> None:
-        if hasattr(record, "event_dict") and isinstance(record.event_dict, dict):
-            event = record.event_dict
-        elif isinstance(record.msg, dict):
+        if isinstance(record.msg, dict):
             event = record.msg
+        elif hasattr(record, "event_dict") and isinstance(record.event_dict, dict):
+            event = record.event_dict
         elif isinstance(record.msg, str):
             try:
                 event = json.loads(record.msg)
@@ -43,34 +43,12 @@ def setup_logging() -> None:
     axiom_api_key = os.getenv("AXIOM_API_KEY")
     axiom_dataset = os.getenv("AXIOM_DATASET", "kiittime-backend-logs")
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-
-    # Check if a stdout StreamHandler already exists
-    has_stdout = any(
-        isinstance(h, logging.StreamHandler) and not isinstance(h, QueueHandler)
-        for h in root_logger.handlers
-    )
-    if not has_stdout:
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setFormatter(logging.Formatter("%(message)s"))
-        root_logger.addHandler(stdout_handler)
-
-    if axiom_api_key:
-        client = axiom_py.Client(axiom_api_key)
-        axiom_handler = StructlogAxiomHandler(client=client, dataset=axiom_dataset)
-        log_queue: Queue[Any] = Queue(-1)
-        q_handler = QueueHandler(log_queue)
-        root_logger.addHandler(q_handler)
-
-        _queue_listener = QueueListener(log_queue, axiom_handler)
-        _queue_listener.start()
-
     processors = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer(),
+        structlog.stdlib.ExtraAdder(),
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
     ]
 
     structlog.configure(
@@ -79,3 +57,25 @@ def setup_logging() -> None:
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=False,
     )
+
+    stdout_formatter = structlog.stdlib.ProcessorFormatter(
+        processor=structlog.processors.JSONRenderer(),
+    )
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(stdout_formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.handlers.clear()
+    root_logger.addHandler(stdout_handler)
+
+    if axiom_api_key:
+        client = axiom_py.Client(axiom_api_key)
+        axiom_handler = StructlogAxiomHandler(client=client, dataset=axiom_dataset)
+        log_queue: Queue[Any] = Queue(-1)
+        q_handler = QueueHandler(log_queue)
+
+        root_logger.addHandler(q_handler)
+
+        _queue_listener = QueueListener(log_queue, axiom_handler)
+        _queue_listener.start()
