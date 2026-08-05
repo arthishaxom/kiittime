@@ -18,17 +18,14 @@ class StructlogAxiomHandler(AxiomHandler):
     """Custom AxiomHandler that formats structlog log records for Axiom ingestion."""
 
     def emit(self, record: logging.LogRecord) -> None:
-        if isinstance(record.msg, dict):
-            event = record.msg
-        elif hasattr(record, "event_dict") and isinstance(record.event_dict, dict):
+        if hasattr(record, "event_dict") and isinstance(record.event_dict, dict):
             event = record.event_dict
-        elif isinstance(record.msg, str):
-            try:
-                event = json.loads(record.msg)
-            except Exception:
-                event = {"event": record.msg}
         else:
-            event = record.__dict__
+            msg_str = record.getMessage()
+            try:
+                event = json.loads(msg_str)
+            except Exception:
+                event = {"event": msg_str}
 
         self.buffer.append(event)
         if len(self.buffer) >= 1000 or (
@@ -43,30 +40,15 @@ def setup_logging() -> None:
     axiom_api_key = os.getenv("AXIOM_API_KEY")
     axiom_dataset = os.getenv("AXIOM_DATASET", "kiittime-backend-logs")
 
-    processors = [
-        structlog.contextvars.merge_contextvars,
-        structlog.processors.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.stdlib.ExtraAdder(),
-        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-    ]
-
-    structlog.configure(
-        processors=processors,
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        wrapper_class=structlog.stdlib.BoundLogger,
-        cache_logger_on_first_use=False,
-    )
-
-    stdout_formatter = structlog.stdlib.ProcessorFormatter(
-        processor=structlog.processors.JSONRenderer(),
-    )
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setFormatter(stdout_formatter)
-
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-    root_logger.handlers.clear()
+
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processor=structlog.processors.JSONRenderer(),
+    )
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(formatter)
     root_logger.addHandler(stdout_handler)
 
     if axiom_api_key:
@@ -74,8 +56,21 @@ def setup_logging() -> None:
         axiom_handler = StructlogAxiomHandler(client=client, dataset=axiom_dataset)
         log_queue: Queue[Any] = Queue(-1)
         q_handler = QueueHandler(log_queue)
-
+        q_handler.setFormatter(formatter)
         root_logger.addHandler(q_handler)
 
         _queue_listener = QueueListener(log_queue, axiom_handler)
         _queue_listener.start()
+
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.stdlib.ExtraAdder(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+        cache_logger_on_first_use=False,
+    )
