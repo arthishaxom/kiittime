@@ -21,6 +21,7 @@ import {
 } from "#/components/ui/select";
 import { useSections } from "#/hooks/useSections";
 import { sendOtp, verifyOtp } from "@kiittime/api/api";
+import { trackOtpRequested, trackSectionSearched } from "#/lib/analytics";
 import { buildMailto } from "#/lib/mailto";
 import { saveSectionIds, ACTIVE_ROLL_NO_KEY, ACTIVE_ACADEMIC_YEAR_KEY } from "@kiittime/api/storage";
 
@@ -113,12 +114,23 @@ export function SectionSearch({ year }: { year: number }) {
 		}
 	};
 
+	useEffect(() => {
+		const trimmed = search.trim();
+		if (trimmed.length > 0) {
+			const timer = setTimeout(() => {
+				trackSectionSearched(trimmed.length);
+			}, 500);
+			return () => clearTimeout(timer);
+		}
+	}, [search]);
+
 	const handleSendOtp = async () => {
 		if (!rollNoToLink) return;
 		setIsSendingOtp(true);
 		setOtpError(null);
 		try {
 			await sendOtp(rollNoToLink, selectedIds);
+			trackOtpRequested();
 			setIsConfirmLinkOpen(false);
 			setIsOtpOpen(true);
 			setResendCooldown(60);
@@ -340,7 +352,7 @@ export function SectionSearch({ year }: { year: number }) {
 			{/* Enter OTP Modal */}
 			<Dialog
 				open={isOtpOpen}
-				onOpenChange={(open) => {
+				onOpenChange={(open: boolean) => {
 					if (!open) {
 						setIsOtpOpen(false);
 						setOtp("");

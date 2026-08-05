@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ImageBackground } from 'react-native';
+import { ImageBackground, Platform } from 'react-native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { PortalHost } from '@rn-primitives/portal';
 import { Stack } from 'expo-router';
@@ -9,6 +9,7 @@ import { Toaster } from 'sonner-native';
 import { QueryProvider } from '@/lib/query-client';
 import { NAV_THEME } from '@/lib/theme';
 import { checkAndApplyUpdates } from '@/lib/updates';
+import { trackAppOpened } from '@/lib/analytics';
 import '../global.css';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -16,6 +17,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 export default function RootLayout() {
   useEffect(() => {
     checkAndApplyUpdates();
+    trackAppOpened(Platform.OS);
   }, []);
 
   return (

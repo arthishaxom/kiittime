@@ -1,11 +1,15 @@
 import { cn } from '@kiittime/api/utils';
 import { Platform, TextInput } from 'react-native';
 
+interface InputProps extends React.ComponentProps<typeof TextInput> {
+  placeholderClassName?: string;
+}
+
 function Input({
   className,
   placeholderClassName,
   ...props
-}: React.ComponentProps<typeof TextInput> & React.RefAttributes<TextInput>) {
+}: InputProps & React.RefAttributes<TextInput>) {
   return (
     <TextInput
       className={cn(

@@ -15,12 +15,12 @@ jest.mock('sonner-native', () => ({
   Toaster: () => null,
 }));
 
-const originalDev = (global as any).__DEV__;
+const originalDev = (globalThis as any).__DEV__;
 
 beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks();
-  (global as any).__DEV__ = false;
+  (globalThis as any).__DEV__ = false;
   (Updates as any).isEmbeddedLaunch = true;
   (Updates as any).updateId = undefined;
   (Updates.checkForUpdateAsync as jest.Mock).mockResolvedValue({ isAvailable: false });
@@ -28,12 +28,12 @@ beforeEach(async () => {
 });
 
 afterAll(() => {
-  (global as any).__DEV__ = originalDev;
+  (globalThis as any).__DEV__ = originalDev;
 });
 
 describe('checkAndApplyUpdates', () => {
   it('does nothing when in __DEV__ mode', async () => {
-    (global as any).__DEV__ = true;
+    (globalThis as any).__DEV__ = true;
 
     await checkAndApplyUpdates();
 

@@ -29,6 +29,8 @@ import { DAYS, groupSessionsByDay, todayIndex } from '@/lib/timetable';
 import { cn } from '@kiittime/api/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { trackTimetableViewed } from '@/lib/analytics';
+
 function summarizeSections(sections?: string[]) {
   if (!sections || sections.length === 0) return '';
   if (sections.length === 1) return sections[0];
@@ -60,6 +62,12 @@ export default function TimetablePage() {
       setActiveAcademicYear(y);
     })();
   }, []);
+
+  useEffect(() => {
+    if (data?.sessions && sectionIds.length > 0) {
+      trackTimetableViewed(sectionIds.length, activeAcademicYear || 1);
+    }
+  }, [data?.sessions, sectionIds.length, activeAcademicYear]);
 
   async function handleEditSection() {
     if (activeRollNo) {

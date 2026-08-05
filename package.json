@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:mobile": "turbo dev --filter=@kiittime/mobile --filter=@kiittime/backend",
-    "dev:web": "turbo dev --filter=@kiittime/webapp --filter=@kiittime/admin-webapp",
+    "dev:web": "turbo dev --filter=@kiittime/webapp --filter=@kiittime/admin-webapp --filter=@kiittime/backend",
     "dev:core": "turbo dev --filter=@kiittime/mobile --filter=@kiittime/webapp --filter=@kiittime/backend",
     "build": "turbo build",
     "lint": "turbo lint",
