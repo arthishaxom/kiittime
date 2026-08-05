@@ -1,5 +1,6 @@
 from typing import Annotated, Any
 
+import structlog
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,6 +20,9 @@ def get_timetable(
 ) -> Any:
     sessions = get_sessions_by_sections(db, section_id)
     sections = db.execute(select(Section).where(Section.id.in_(section_id))).scalars().all()
+    structlog.contextvars.bind_contextvars(
+        sections=[{"name": s.section_name, "year": s.year} for s in sections]
+    )
 
     return {
         "sections_requested": [s.section_name for s in sections],

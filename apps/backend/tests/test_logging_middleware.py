@@ -75,3 +75,36 @@ def test_axiom_gated_on_env_var():
         with patch("axiom_py.Client") as mock_client:
             setup_logging()
             mock_client.assert_called_once_with("dummy-axiom-key")
+
+
+@pytest.fixture
+def client_with_db(db):
+    from backend.db.session import get_db
+
+    app.dependency_overrides[get_db] = lambda: db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+
+def test_timetable_request_emits_sections_field(client_with_db, db):
+    from backend.db.models import Section
+
+    s1 = Section(section_name="CS-A", year=3)
+    s2 = Section(section_name="CS-B", year=3)
+    db.add_all([s1, s2])
+    db.flush()
+
+    with capture_logs() as captured:
+        response = client_with_db.get(f"/timetable/?section_id={s1.id}&section_id={s2.id}")
+
+    assert response.status_code == 200
+    http_events = [e for e in captured if e.get("event") == "http_request"]
+    assert len(http_events) == 1
+
+    event = http_events[0]
+    assert event["sections"] is not None
+    assert len(event["sections"]) == 2
+    assert {"name": "CS-A", "year": 3} in event["sections"]
+    assert {"name": "CS-B", "year": 3} in event["sections"]
+

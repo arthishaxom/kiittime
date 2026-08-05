@@ -16,6 +16,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(sections=None)
+
         request_id = str(uuid.uuid4())
         start_time = time.perf_counter()
 
@@ -40,6 +43,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 if status_code >= 500
                 else (logger.warning if status_code >= 400 else logger.info)
             )
+            sections = structlog.contextvars.get_contextvars().get("sections")
             log_func(
                 "http_request",
                 method=request.method,
@@ -49,11 +53,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 request_id=request_id,
                 environment=environment,
                 admin_user=admin_user,
-                sections=None,
+                sections=sections,
             )
             return response
         except Exception as exc:
             duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+            sections = structlog.contextvars.get_contextvars().get("sections")
             logger.error(
                 "http_request",
                 method=request.method,
@@ -63,7 +68,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 request_id=request_id,
                 environment=environment,
                 admin_user=admin_user,
-                sections=None,
+                sections=sections,
                 exc_info=exc,
             )
             raise exc
