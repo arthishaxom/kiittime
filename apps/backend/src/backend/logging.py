@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 import time
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
@@ -42,6 +43,29 @@ def setup_logging() -> None:
     axiom_api_key = os.getenv("AXIOM_API_KEY")
     axiom_dataset = os.getenv("AXIOM_DATASET", "kiittime-backend-logs")
 
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Check if a stdout StreamHandler already exists
+    has_stdout = any(
+        isinstance(h, logging.StreamHandler) and not isinstance(h, QueueHandler)
+        for h in root_logger.handlers
+    )
+    if not has_stdout:
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setFormatter(logging.Formatter("%(message)s"))
+        root_logger.addHandler(stdout_handler)
+
+    if axiom_api_key:
+        client = axiom_py.Client(axiom_api_key)
+        axiom_handler = StructlogAxiomHandler(client=client, dataset=axiom_dataset)
+        log_queue: Queue[Any] = Queue(-1)
+        q_handler = QueueHandler(log_queue)
+        root_logger.addHandler(q_handler)
+
+        _queue_listener = QueueListener(log_queue, axiom_handler)
+        _queue_listener.start()
+
     processors = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
@@ -51,20 +75,7 @@ def setup_logging() -> None:
 
     structlog.configure(
         processors=processors,
-        logger_factory=structlog.PrintLoggerFactory(),
-        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=False,
     )
-
-    if axiom_api_key:
-        client = axiom_py.Client(axiom_api_key)
-        axiom_handler = StructlogAxiomHandler(client=client, dataset=axiom_dataset)
-        log_queue: Queue[Any] = Queue(-1)
-        q_handler = QueueHandler(log_queue)
-
-        root_logger = logging.getLogger()
-        root_logger.setLevel(logging.INFO)
-        root_logger.addHandler(q_handler)
-
-        _queue_listener = QueueListener(log_queue, axiom_handler)
-        _queue_listener.start()
