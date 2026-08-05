@@ -1,0 +1,18 @@
+name: analytics
+prefect-version: 3.0.0
+
+build: []
+push: []
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
+
+deployments:
+  - name: nightly-etl
+    version: 1.0.0
+    entrypoint: src/analytics/flows/nightly_etl.py:nightly_etl_flow
+    work_pool:
+      name: gcr-push-pool
+    schedule:
+      cron: "0 2 * * *"
+      timezone: "Asia/Kolkata"
