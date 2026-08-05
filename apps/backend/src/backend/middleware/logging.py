@@ -43,7 +43,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 if status_code >= 500
                 else (logger.warning if status_code >= 400 else logger.info)
             )
-            sections = structlog.contextvars.get_contextvars().get("sections")
+            sections = getattr(request.state, "sections", None)
+            if sections is None:
+                sections = structlog.contextvars.get_contextvars().get("sections")
             log_func(
                 "http_request",
                 method=request.method,
@@ -58,7 +60,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             return response
         except Exception as exc:
             duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
-            sections = structlog.contextvars.get_contextvars().get("sections")
+            sections = getattr(request.state, "sections", None)
+            if sections is None:
+                sections = structlog.contextvars.get_contextvars().get("sections")
             logger.error(
                 "http_request",
                 method=request.method,
