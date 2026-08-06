@@ -20,6 +20,7 @@ import { saveSectionIds, getTempLinkingRollNo, clearTempLinkingRollNo, setActive
 import { cn } from '@kiittime/api/utils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sendOtp, verifyOtp } from '@kiittime/api/api';
+import { trackOtpRequested, trackSectionSearched } from '@/lib/analytics';
 
 
 const MAX_SECTIONS = 5;
@@ -123,12 +124,23 @@ export default function SectionSearch() {
     }
   }
 
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed.length > 0) {
+      const timer = setTimeout(() => {
+        trackSectionSearched(trimmed.length);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [search]);
+
   const handleSendOtp = async () => {
     if (!rollNoToLink) return;
     setIsSendingOtp(true);
     setOtpError(null);
     try {
       await sendOtp(rollNoToLink, selectedIds);
+      trackOtpRequested();
       setIsConfirmLinkOpen(false);
       setIsOtpOpen(true);
       setResendCooldown(60);
@@ -373,7 +385,7 @@ export default function SectionSearch() {
                 }}
                 onFocus={() => setIsOtpInputFocused(true)}
                 onBlur={() => setIsOtpInputFocused(false)}
-                disabled={isVerifyingOtp}
+                editable={!isVerifyingOtp}
                 keyboardType="number-pad"
                 maxLength={6}
                 className="absolute inset-0 w-full h-full opacity-0 z-10"

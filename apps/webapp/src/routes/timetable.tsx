@@ -33,6 +33,7 @@ import { useTimetable } from "#/hooks/useTimetable";
 import { isAnnouncementUnseen } from "@kiittime/api/announcements";
 import type { Session } from "@kiittime/api/api";
 import { formatTime } from "@kiittime/api/api";
+import { trackTimetableViewed } from "#/lib/analytics";
 import { buildMailto } from "#/lib/mailto";
 import { shareTimetable } from "@kiittime/api/share";
 import {
@@ -95,6 +96,13 @@ function TimetablePage() {
 
 	const activeRollNo = localStorage.getItem(ACTIVE_ROLL_NO_KEY);
 	const activeAcademicYear = localStorage.getItem(ACTIVE_ACADEMIC_YEAR_KEY);
+
+	useEffect(() => {
+		if (data?.sessions && section_id.length > 0) {
+			const year = activeAcademicYear ? Number(activeAcademicYear) : 1;
+			trackTimetableViewed(section_id.length, year);
+		}
+	}, [data?.sessions, section_id.length, activeAcademicYear]);
 
 	function handleEditSection() {
 		// Triggers navigation to section selection for editing current linked sections

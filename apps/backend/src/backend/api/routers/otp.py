@@ -116,7 +116,7 @@ def send_otp(
     pipe.incr(f"send_count:{roll_no}")
     pipe.ttl(f"send_count:{roll_no}")
     res = pipe.execute()
-    count = res[0]
+    _ = res[0]
     current_ttl = res[1]
     if current_ttl < 0:
         redis_conn.expire(f"send_count:{roll_no}", 3600)
@@ -129,14 +129,21 @@ def send_otp(
     html = f"""
     <div style="font-family: sans-serif; padding: 20px; color: #333;">
         <h2>KIIT Time Authentication</h2>
-        <p>You requested to link your roll number <strong>{roll_no}</strong> to your timetable sections.</p>
+        <p>
+            You requested to link your roll number <strong>{roll_no}</strong>
+            to your timetable sections.
+        </p>
         <p>Your verification OTP code is:</p>
-        <div style="font-size: 24px; font-weight: bold; background: #f0f0f0; padding: 10px 20px; border-radius: 5px; display: inline-block; letter-spacing: 2px; margin: 10px 0;">
+        <div style="font-size: 24px; font-weight: bold; background: #f0f0f0;
+                    padding: 10px 20px; border-radius: 5px; display: inline-block;
+                    letter-spacing: 2px; margin: 10px 0;">
             {otp_code}
         </div>
         <p>This code will expire in 5 minutes.</p>
         <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #666;">If you did not make this request, please ignore this email.</p>
+        <p style="font-size: 12px; color: #666;">
+            If you did not make this request, please ignore this email.
+        </p>
     </div>
     """
 

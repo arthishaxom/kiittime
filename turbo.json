@@ -8,7 +8,13 @@
         "VITE_API_URL",
         "VITE_API_BASE_URL",
         "EXPO_PUBLIC_WEBAPP_URL",
-        "EXPO_PUBLIC_API_BASE_URL"
+        "EXPO_PUBLIC_API_BASE_URL",
+        "EXPO_PUBLIC_POSTHOG_API_KEY",
+        "EXPO_PUBLIC_POSTHOG_HOST",
+        "EXPO_PUBLIC_ENV",
+        "VITE_POSTHOG_API_KEY",
+        "VITE_POSTHOG_HOST",
+        "VITE_ENV"
       ],
       "inputs": ["$TURBO_DEFAULT$", "pyproject.toml", "uv.lock"],
       "outputs": ["dist/**", "build/**", ".next/**", "web-build/**"]
