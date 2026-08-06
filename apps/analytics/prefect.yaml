@@ -5,10 +5,11 @@ build: []
 push: []
 pull:
   - prefect.deployments.steps.pull.git_clone:
+      id: clone-step
       repository: https://github.com/arthishaxom/kiittime.git
       branch: main
   - prefect.deployments.steps.set_working_directory:
-      directory: kiittime/apps/analytics
+      directory: "{{ clone-step.directory }}/apps/analytics"
 
 deployments:
   - name: nightly-etl
@@ -17,6 +18,8 @@ deployments:
     work_pool:
       name: kiittime-managed
       job_variables:
+        env:
+          PYTHONPATH: "src"
         pip_packages:
           - "axiom-py>=0.12.0"
           - "boto3>=1.37.0"
