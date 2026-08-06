@@ -87,7 +87,7 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
                 FROM (SELECT t.* FROM (SELECT unnest(?) AS t))
                 {where_clause}
             ) TO '{base_bronze_path}'
-            (FORMAT PARQUET, PARTITION_BY (year, month, day), OVERWRITE_OR_IGNORE)
+            (FORMAT PARQUET, PARTITION_BY (year, month, day), OVERWRITE)
         """
         conn.execute(query_sql, [payload])
     finally:
