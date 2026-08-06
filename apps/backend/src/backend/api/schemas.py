@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import date, datetime, time
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -161,3 +161,32 @@ class OTPVerifyResponse(BaseModel):
     status: str
     academic_year: int
     sections: list[SectionOut]
+
+
+class DailyUsageItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    dau: int
+    total_api_calls: int
+    timetable_searches: int
+
+
+class EndpointHealthItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    endpoint: str
+    total_calls: int
+    p95_latency_ms: float
+    error_rate: float
+
+
+class SectionTrendItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date
+    section_name: str
+    section_year: int
+    search_volume: int
+
