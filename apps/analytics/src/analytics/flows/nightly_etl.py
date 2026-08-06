@@ -1,7 +1,14 @@
 """Nightly ETL Prefect flow."""
 
+import sys
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
+
+# Ensure 'src' is on sys.path for remote runners
+src_path = str(Path(__file__).resolve().parents[2])
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 from prefect import flow
 
