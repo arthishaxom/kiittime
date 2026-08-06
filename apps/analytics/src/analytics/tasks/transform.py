@@ -3,8 +3,8 @@
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from deltalake import write_deltalake
 import duckdb
+from deltalake import write_deltalake
 from prefect import task
 
 from analytics.config import Settings, get_duckdb_conn, get_settings
@@ -64,21 +64,53 @@ def transform_bronze_to_silver(
 
     try:
         clean_bronze_path = bronze_path.replace("\\", "/")
+        cols = conn.sql(f"SELECT * FROM read_parquet('{clean_bronze_path}') LIMIT 0").columns
+
+        def get_col_expr(name: str, sql_type: str) -> str:
+            if name in cols:
+                return f"CAST(src.{name} AS {sql_type}) AS {name}"
+            return f"CAST(NULL AS {sql_type}) AS {name}"
+
+        req_id_expr = get_col_expr("request_id", "VARCHAR")
+        ts_expr = get_col_expr("timestamp", "TIMESTAMP")
+        ingested_expr = get_col_expr("ingested_at", "TIMESTAMP")
+        method_expr = get_col_expr("method", "VARCHAR")
+        path_expr = get_col_expr("path", "VARCHAR")
+        status_expr = get_col_expr("status_code", "INTEGER")
+        duration_expr = get_col_expr("duration_ms", "DOUBLE")
+        admin_expr = get_col_expr("admin_user", "VARCHAR")
+        env_expr = get_col_expr("environment", "VARCHAR")
+
+        date_expr = (
+            "CAST(src.timestamp AS DATE) AS date"
+            if "timestamp" in cols
+            else "CAST(NULL AS DATE) AS date"
+        )
+        is_error_expr = (
+            "(src.status_code >= 400) AS is_error"
+            if "status_code" in cols
+            else "CAST(FALSE AS BOOLEAN) AS is_error"
+        )
+        is_timetable_expr = (
+            "(src.path = '/timetable/') AS is_timetable"
+            if "path" in cols
+            else "CAST(FALSE AS BOOLEAN) AS is_timetable"
+        )
 
         api_sql = f"""
             SELECT
-                CAST(src.request_id AS VARCHAR) AS request_id,
-                CAST(src.timestamp AS TIMESTAMP) AS timestamp,
-                CAST(src.ingested_at AS TIMESTAMP) AS ingested_at,
-                CAST(src.timestamp AS DATE) AS date,
-                CAST(src.method AS VARCHAR) AS method,
-                CAST(src.path AS VARCHAR) AS path,
-                CAST(src.status_code AS INTEGER) AS status_code,
-                CAST(src.duration_ms AS DOUBLE) AS duration_ms,
-                CAST(src.admin_user AS VARCHAR) AS admin_user,
-                CAST(src.environment AS VARCHAR) AS environment,
-                (src.status_code >= 400) AS is_error,
-                (src.path = '/timetable/') AS is_timetable,
+                {req_id_expr},
+                {ts_expr},
+                {ingested_expr},
+                {date_expr},
+                {method_expr},
+                {path_expr},
+                {status_expr},
+                {duration_expr},
+                {admin_expr},
+                {env_expr},
+                {is_error_expr},
+                {is_timetable_expr},
                 CAST(? AS TIMESTAMP) AS silver_ingested_at
             FROM read_parquet('{clean_bronze_path}') AS src
         """
@@ -95,21 +127,33 @@ def transform_bronze_to_silver(
             storage_options=storage_options,
         )
 
-        sec_sql = f"""
-            SELECT
-                CAST(sub.request_id AS VARCHAR) AS request_id,
-                CAST(sub.sec.name AS VARCHAR) AS section_name,
-                CAST(sub.sec.year AS INTEGER) AS section_year,
-                CAST(sub.timestamp AS DATE) AS date,
-                CAST(? AS TIMESTAMP) AS silver_ingested_at
-            FROM (
-                SELECT src.request_id, src.timestamp, unnest(src.sections) AS sec
-                FROM read_parquet('{clean_bronze_path}') AS src
-                WHERE src.sections IS NOT NULL
-            ) AS sub
-            WHERE sub.sec.name IS NOT NULL
-        """
-        sec_rel = conn.sql(sec_sql, params=[silver_ingested_at])
+        if "sections" in cols and "request_id" in cols and "timestamp" in cols:
+            sec_sql = f"""
+                SELECT
+                    CAST(sub.request_id AS VARCHAR) AS request_id,
+                    CAST(sub.sec.name AS VARCHAR) AS section_name,
+                    CAST(sub.sec.year AS INTEGER) AS section_year,
+                    CAST(sub.timestamp AS DATE) AS date,
+                    CAST(? AS TIMESTAMP) AS silver_ingested_at
+                FROM (
+                    SELECT src.request_id, src.timestamp, unnest(src.sections) AS sec
+                    FROM read_parquet('{clean_bronze_path}') AS src
+                    WHERE src.sections IS NOT NULL
+                ) AS sub
+                WHERE sub.sec.name IS NOT NULL
+            """
+            sec_rel = conn.sql(sec_sql, params=[silver_ingested_at])
+        else:
+            sec_sql = """
+                SELECT
+                    CAST(NULL AS VARCHAR) AS request_id,
+                    CAST(NULL AS VARCHAR) AS section_name,
+                    CAST(NULL AS INTEGER) AS section_year,
+                    CAST(NULL AS DATE) AS date,
+                    CAST(? AS TIMESTAMP) AS silver_ingested_at
+                WHERE 1 = 0
+            """
+            sec_rel = conn.sql(sec_sql, params=[silver_ingested_at])
 
         write_deltalake(
             silver_section_requests_path,

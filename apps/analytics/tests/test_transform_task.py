@@ -179,3 +179,44 @@ def test_transform_bronze_to_silver_default_target_date(tmp_path):
         silver_base_path=str(silver_base_dir),
     )
     assert isinstance(res_date, date)
+
+
+def test_transform_bronze_to_silver_missing_optional_columns(tmp_path):
+    target_d = date(2026, 8, 4)
+    silver_base_dir = tmp_path / "silver"
+    bronze_dir = tmp_path / "bronze"
+    bronze_dir.mkdir(parents=True, exist_ok=True)
+    parquet_file = bronze_dir / "no_admin.parquet"
+    parquet_str = str(parquet_file).replace("\\", "/")
+
+    conn = duckdb.connect()
+    payload = [
+        {
+            "request_id": "req-1",
+            "timestamp": "2026-08-04T10:00:00Z",
+            "method": "GET",
+            "path": "/timetable/",
+            "status_code": 200,
+            "duration_ms": 12.5,
+            "environment": "production",
+        }
+    ]
+    conn.execute(
+        f"COPY (SELECT t.* FROM (SELECT unnest(?) AS t)) TO '{parquet_str}' (FORMAT PARQUET)",
+        [payload],
+    )
+    conn.close()
+
+    res_date = transform_bronze_to_silver(
+        target_date=target_d,
+        bronze_path=parquet_str,
+        silver_base_path=str(silver_base_dir),
+    )
+    assert res_date == target_d
+
+    api_dt = DeltaTable(str(silver_base_dir / "silver_api_requests"))
+    api_dict = api_dt.to_pyarrow_table().to_pydict()
+    assert api_dict["request_id"] == ["req-1"]
+    assert api_dict["admin_user"] == [None]
+    assert api_dict["ingested_at"] == [None]
+
