@@ -75,14 +75,11 @@ def test_pull_axiom_logs_success(mock_axiom_client_cls, mock_get_duckdb_conn):
     assert opts.start_time is not None
     assert opts.end_time is not None
 
+    mock_conn.register.assert_called_once()
     mock_conn.execute.assert_called_once()
-    sql_query, sql_params = mock_conn.execute.call_args[0]
+    sql_query = mock_conn.execute.call_args[0][0]
     assert "COPY" in sql_query
     assert "PARTITION_BY" in sql_query
-    payload = sql_params[0]
-    assert len(payload) == 1
-    assert "ingested_at" in payload[0]
-    assert payload[0]["ingested_at"] != ""
     mock_conn.close.assert_called_once()
 
 
@@ -116,15 +113,12 @@ def test_pull_axiom_logs_zero_rows(mock_axiom_client_cls, mock_get_duckdb_conn):
     res_date = pull_axiom_logs(target_date=target_d, settings=settings)
     assert res_date == target_d
 
+    mock_conn.register.assert_called_once()
     mock_conn.execute.assert_called_once()
-    sql_query, sql_params = mock_conn.execute.call_args[0]
+    sql_query = mock_conn.execute.call_args[0][0]
     assert "COPY" in sql_query
     assert "WHERE 1=0" in sql_query
     assert "PARTITION_BY" in sql_query
-    payload = sql_params[0]
-    assert len(payload) == 1
-    assert "ingested_at" in payload[0]
-    assert payload[0]["ingested_at"] != ""
     mock_conn.close.assert_called_once()
 
 

@@ -112,7 +112,7 @@ def transform_bronze_to_silver(
                 {is_error_expr},
                 {is_timetable_expr},
                 CAST(? AS TIMESTAMP) AS silver_ingested_at
-            FROM read_parquet('{clean_bronze_path}') AS src
+            FROM read_parquet('{clean_bronze_path}', union_by_name=true) AS src
         """
         api_rel = conn.sql(api_sql, params=[silver_ingested_at])
 
@@ -137,7 +137,7 @@ def transform_bronze_to_silver(
                     CAST(? AS TIMESTAMP) AS silver_ingested_at
                 FROM (
                     SELECT src.request_id, src.timestamp, unnest(src.sections) AS sec
-                    FROM read_parquet('{clean_bronze_path}') AS src
+                    FROM read_parquet('{clean_bronze_path}', union_by_name=true) AS src
                     WHERE src.sections IS NOT NULL
                 ) AS sub
                 WHERE sub.sec.name IS NOT NULL

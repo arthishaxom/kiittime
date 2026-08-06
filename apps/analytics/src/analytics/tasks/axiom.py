@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import axiom_py
+import pyarrow as pa
 from axiom_py import AplOptions
 from prefect import task
 
@@ -11,22 +12,22 @@ from analytics.config import Settings, get_duckdb_conn, get_settings
 
 IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
-EMPTY_LOG_SCHEMA_SAMPLE = [
-    {
-        "timestamp": "",
-        "level": "",
-        "event": "",
-        "method": "",
-        "path": "",
-        "status_code": 0,
-        "duration_ms": 0.0,
-        "admin_user": None,
-        "request_id": "",
-        "environment": "",
-        "sections": [],
-        "ingested_at": "",
-    }
-]
+BRONZE_LOGS_SCHEMA = pa.schema(
+    [
+        ("request_id", pa.string()),
+        ("timestamp", pa.string()),
+        ("ingested_at", pa.string()),
+        ("level", pa.string()),
+        ("event", pa.string()),
+        ("method", pa.string()),
+        ("path", pa.string()),
+        ("status_code", pa.int32()),
+        ("duration_ms", pa.float64()),
+        ("admin_user", pa.string()),
+        ("environment", pa.string()),
+        ("sections", pa.list_(pa.struct([("name", pa.string()), ("year", pa.int32())]))),
+    ]
+)
 
 
 @task(retries=3, retry_delay_seconds=60)
@@ -65,18 +66,19 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
 
     sample_ts = f"{target_date.isoformat()}T00:00:00Z"
     if rows:
-        payload = rows
+        table = pa.Table.from_pylist(rows, schema=BRONZE_LOGS_SCHEMA)
+        where_clause = ""
     else:
         fallback_row = {
-            **EMPTY_LOG_SCHEMA_SAMPLE[0],
             "timestamp": sample_ts,
             "ingested_at": ingested_at,
         }
-        payload = [fallback_row]
-    where_clause = "WHERE 1=0" if not rows else ""
+        table = pa.Table.from_pylist([fallback_row], schema=BRONZE_LOGS_SCHEMA)
+        where_clause = "WHERE 1=0"
 
     conn = get_duckdb_conn(settings)
     try:
+        conn.register("arrow_bronze", table)
         query_sql = f"""
             COPY (
                 SELECT 
@@ -84,14 +86,13 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
                     strftime(timestamp::TIMESTAMP, '%Y') AS year,
                     strftime(timestamp::TIMESTAMP, '%m') AS month,
                     strftime(timestamp::TIMESTAMP, '%d') AS day
-                FROM (SELECT t.* FROM (SELECT unnest(?) AS t))
+                FROM arrow_bronze
                 {where_clause}
             ) TO '{base_bronze_path}'
             (FORMAT PARQUET, PARTITION_BY (year, month, day), OVERWRITE)
         """
-        conn.execute(query_sql, [payload])
+        conn.execute(query_sql)
     finally:
         conn.close()
 
     return target_date
-
