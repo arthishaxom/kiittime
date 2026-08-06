@@ -1,6 +1,7 @@
 """Nightly ETL Prefect flow."""
 
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from prefect import flow
 
@@ -10,10 +11,16 @@ from analytics.tasks.transform import (
     transform_silver_to_gold,
 )
 
+IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
+
 
 @flow(name="nightly-etl-flow")
 def nightly_etl_flow(target_date: date | None = None) -> date:
     """Nightly analytics ETL flow: Bronze -> Silver -> Gold."""
+    if target_date is None:
+        now_ist = datetime.now(IST_TIMEZONE)
+        target_date = (now_ist - timedelta(days=1)).date()
+
     pulled_date = pull_axiom_logs(target_date=target_date)
     transform_bronze_to_silver(target_date=pulled_date)
     transform_silver_to_gold(target_date=pulled_date)
@@ -21,4 +28,5 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
 
 
 if __name__ == "__main__":
-    nightly_etl_flow(target_date=date(2026, 8, 5))
+    nightly_etl_flow()
+
