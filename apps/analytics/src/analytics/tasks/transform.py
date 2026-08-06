@@ -67,20 +67,20 @@ def transform_bronze_to_silver(
 
         api_sql = f"""
             SELECT
-                CAST(request_id AS VARCHAR) AS request_id,
-                CAST(timestamp AS TIMESTAMP) AS timestamp,
-                CAST(ingested_at AS TIMESTAMP) AS ingested_at,
-                CAST(timestamp AS DATE) AS date,
-                CAST(method AS VARCHAR) AS method,
-                CAST(path AS VARCHAR) AS path,
-                CAST(status_code AS INTEGER) AS status_code,
-                CAST(duration_ms AS DOUBLE) AS duration_ms,
-                CAST(admin_user AS VARCHAR) AS admin_user,
-                CAST(environment AS VARCHAR) AS environment,
-                (status_code >= 400) AS is_error,
-                (path = '/timetable/') AS is_timetable,
+                CAST(src.request_id AS VARCHAR) AS request_id,
+                CAST(src.timestamp AS TIMESTAMP) AS timestamp,
+                CAST(src.ingested_at AS TIMESTAMP) AS ingested_at,
+                CAST(src.timestamp AS DATE) AS date,
+                CAST(src.method AS VARCHAR) AS method,
+                CAST(src.path AS VARCHAR) AS path,
+                CAST(src.status_code AS INTEGER) AS status_code,
+                CAST(src.duration_ms AS DOUBLE) AS duration_ms,
+                CAST(src.admin_user AS VARCHAR) AS admin_user,
+                CAST(src.environment AS VARCHAR) AS environment,
+                (src.status_code >= 400) AS is_error,
+                (src.path = '/timetable/') AS is_timetable,
                 CAST(? AS TIMESTAMP) AS silver_ingested_at
-            FROM read_parquet('{clean_bronze_path}')
+            FROM read_parquet('{clean_bronze_path}') AS src
         """
         api_rel = conn.sql(api_sql, params=[silver_ingested_at])
 
@@ -97,17 +97,17 @@ def transform_bronze_to_silver(
 
         sec_sql = f"""
             SELECT
-                CAST(request_id AS VARCHAR) AS request_id,
-                CAST(sec.name AS VARCHAR) AS section_name,
-                CAST(sec.year AS INTEGER) AS section_year,
-                CAST(timestamp AS DATE) AS date,
+                CAST(sub.request_id AS VARCHAR) AS request_id,
+                CAST(sub.sec.name AS VARCHAR) AS section_name,
+                CAST(sub.sec.year AS INTEGER) AS section_year,
+                CAST(sub.timestamp AS DATE) AS date,
                 CAST(? AS TIMESTAMP) AS silver_ingested_at
             FROM (
-                SELECT request_id, timestamp, unnest(sections) AS sec
-                FROM read_parquet('{clean_bronze_path}')
-                WHERE sections IS NOT NULL
-            )
-            WHERE sec.name IS NOT NULL
+                SELECT src.request_id, src.timestamp, unnest(src.sections) AS sec
+                FROM read_parquet('{clean_bronze_path}') AS src
+                WHERE src.sections IS NOT NULL
+            ) AS sub
+            WHERE sub.sec.name IS NOT NULL
         """
         sec_rel = conn.sql(sec_sql, params=[silver_ingested_at])
 
