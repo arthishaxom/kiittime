@@ -4,8 +4,11 @@ prefect-version: 3.0.0
 build: []
 push: []
 pull:
+  - prefect.deployments.steps.pull.git_clone:
+      repository: https://github.com/arthishaxom/kiittime.git
+      branch: main
   - prefect.deployments.steps.set_working_directory:
-      directory: /app
+      directory: kiittime/apps/analytics
 
 deployments:
   - name: nightly-etl
