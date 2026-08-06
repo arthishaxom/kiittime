@@ -3,8 +3,8 @@
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import duckdb
 from deltalake import write_deltalake
+import duckdb
 from prefect import task
 
 from analytics.config import Settings, get_duckdb_conn, get_settings
@@ -67,16 +67,16 @@ def transform_bronze_to_silver(
 
         api_sql = f"""
             SELECT
-                request_id::VARCHAR AS request_id,
-                timestamp::TIMESTAMP AS timestamp,
-                ingested_at::TIMESTAMP AS ingested_at,
-                CAST(timestamp::TIMESTAMP AS DATE) AS date,
-                method::VARCHAR AS method,
-                path::VARCHAR AS path,
-                status_code::INTEGER AS status_code,
-                duration_ms::DOUBLE AS duration_ms,
-                admin_user::VARCHAR AS admin_user,
-                environment::VARCHAR AS environment,
+                CAST(request_id AS VARCHAR) AS request_id,
+                CAST(timestamp AS TIMESTAMP) AS timestamp,
+                CAST(ingested_at AS TIMESTAMP) AS ingested_at,
+                CAST(timestamp AS DATE) AS date,
+                CAST(method AS VARCHAR) AS method,
+                CAST(path AS VARCHAR) AS path,
+                CAST(status_code AS INTEGER) AS status_code,
+                CAST(duration_ms AS DOUBLE) AS duration_ms,
+                CAST(admin_user AS VARCHAR) AS admin_user,
+                CAST(environment AS VARCHAR) AS environment,
                 (status_code >= 400) AS is_error,
                 (path = '/timetable/') AS is_timetable,
                 CAST(? AS TIMESTAMP) AS silver_ingested_at
@@ -97,10 +97,10 @@ def transform_bronze_to_silver(
 
         sec_sql = f"""
             SELECT
-                request_id::VARCHAR AS request_id,
-                sec.name::VARCHAR AS section_name,
-                sec.year::INTEGER AS section_year,
-                CAST(timestamp::TIMESTAMP AS DATE) AS date,
+                CAST(request_id AS VARCHAR) AS request_id,
+                CAST(sec.name AS VARCHAR) AS section_name,
+                CAST(sec.year AS INTEGER) AS section_year,
+                CAST(timestamp AS DATE) AS date,
                 CAST(? AS TIMESTAMP) AS silver_ingested_at
             FROM (
                 SELECT request_id, timestamp, unnest(sections) AS sec
