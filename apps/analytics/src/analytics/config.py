@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     R2_SECRET_KEY: str = ""
     CF_ACCOUNT_ID: str = ""
     AXIOM_API_KEY: str = ""
+    AXIOM_DATASET: str = "kiittime-backend-logs"
     ENVIRONMENT: str = "dev"
     R2_BUCKET_NAME: str = "kiittime-analytics"
 
@@ -41,7 +42,8 @@ def get_duckdb_conn(settings: Settings | None = None) -> duckdb.DuckDBPyConnecti
                 TYPE R2,
                 KEY_ID '{settings.R2_ACCESS_KEY}',
                 SECRET '{settings.R2_SECRET_KEY}',
-                ACCOUNT_ID '{settings.CF_ACCOUNT_ID}'
+                ACCOUNT_ID '{settings.CF_ACCOUNT_ID}',
+                SCOPE ('s3://', 'r2://')
             );
         """)
 

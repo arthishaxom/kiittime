@@ -78,8 +78,8 @@ PostHog's native S3-compatible batch export delivers events to `r2://kiittime-an
 ```
 r2://kiittime-analytics/
   bronze/
-    backend_logs/year=YYYY/month=MM/day=DD/   <- nightly pull from Axiom Query API
-    posthog/year=YYYY/month=MM/day=DD/         <- PostHog native batch export
+    backend_logs/year=YYYY/month=MM/day=DD/   <- nightly pull from Axiom Query API (Hive-partitioned)
+    posthog/YYYY/MM/DD/                        <- PostHog native batch export (plain date path via PostHog template vars)
   silver/
     api_requests/                              <- Delta Lake, partitioned by date
     section_requests/                          <- Delta Lake, partitioned by date
@@ -87,9 +87,37 @@ r2://kiittime-analytics/
     daily_usage/                               <- Delta Lake, partitioned by date
     endpoint_health/                           <- Delta Lake, partitioned by date
     section_trends/                            <- Delta Lake, partitioned by date
+  _metadata/
+    pipeline_runs.parquet                      <- control table for idempotent ETL (see section 4a)
 ```
 
 R2 free tier: 10 GB storage, 1M Class A writes/mo, 10M Class B reads/mo. Sufficient at KIITTime's data volume (estimated <200k log rows/day).
+
+### 5. Silver Schema
+
+**Axiom Bronze schema** (`bronze/backend_logs/`) — one row per backend request as logged:
+
+| Column | Type | Notes |
+|---|---|---|
+| `timestamp` | TIMESTAMP | When the API request happened (from structlog) |
+| `ingested_at` | TIMESTAMP UTC | When our Prefect task pulled this row from Axiom — added by `pull_axiom_logs()` at write time. Distinct from `timestamp`: if we re-pull a date, `ingested_at` changes, `timestamp` does not. |
+| `level`, `event`, `method`, `path`, `status_code`, `duration_ms`, `admin_user`, `request_id`, `environment`, `sections` | (see section 2) | Unchanged from Axiom log schema |
+
+**PostHog Bronze schema** (`bronze/posthog/YYYY/MM/DD/`) — written directly by PostHog, not our code:
+
+PostHog writes Parquet files. We do not add `ingested_at` because we are not in the write path. Row-level lineage uses PostHog's own `_inserted_at` field (when PostHog stored the event in their DB). Pipeline-level lineage is tracked by the control table `processed_at` (see section 4a).
+
+Key PostHog fields used in transforms:
+
+| Field | Type | Notes |
+|---|---|---|
+| `distinct_id` | VARCHAR | Anonymous device identity — used for DAU |
+| `event` | VARCHAR | Event name (`app_opened`, `timetable_viewed`, etc.) |
+| `timestamp` | TIMESTAMP | When the event happened on the device |
+| `_inserted_at` | TIMESTAMP | When PostHog stored it internally — nearest equivalent to `ingested_at` for PostHog rows |
+| `properties` | JSON | Event properties (platform, section_count, year, etc.) |
+
+---
 
 ### 5. Silver Schema
 
@@ -99,6 +127,7 @@ R2 free tier: 10 GB storage, 1M Class A writes/mo, 10M Class B reads/mo. Suffici
 |---|---|---|
 | `request_id` | VARCHAR | from log |
 | `timestamp` | TIMESTAMP | from log |
+| `ingested_at` | TIMESTAMP | from Bronze — when Axiom row was pulled |
 | `date` | DATE | partition key, truncated from `timestamp` |
 | `method` | VARCHAR | from log |
 | `path` | VARCHAR | from log |
@@ -108,6 +137,7 @@ R2 free tier: 10 GB storage, 1M Class A writes/mo, 10M Class B reads/mo. Suffici
 | `environment` | VARCHAR | from log |
 | `is_error` | BOOLEAN | derived: `status_code >= 400` |
 | `is_timetable` | BOOLEAN | derived: `path = '/timetable/'` |
+| `silver_ingested_at` | TIMESTAMP UTC | Added at Silver transform time — when our ETL wrote this Silver row. For PostHog-sourced Silver rows this is the only pipeline-side timestamp we own. |
 
 **`silver_section_requests`** (exploded from `sections` array — one row per section per request):
 
@@ -149,6 +179,42 @@ The array is exploded at Silver transform time using DuckDB `UNNEST`. Keeping `s
 | `section_name` | VARCHAR |
 | `section_year` | INTEGER |
 | `search_volume` | INTEGER |
+
+### 4a. Pipeline Control Table (Idempotency)
+
+The nightly ETL uses a **control table** stored at `r2://kiittime-analytics/_metadata/pipeline_runs.parquet` to make every run idempotent. At startup the flow scans for all incomplete dates and retries them before processing the new day — missed days due to crashes or bugs are automatically caught on the next run.
+
+**Schema:**
+
+| Column | Type | Description |
+|---|---|---|
+| `date` | DATE | Calendar date being processed (IST) |
+| `source` | VARCHAR | `axiom`, `posthog`, or null for cross-source stages |
+| `stage` | VARCHAR | `bronze`, `silver`, or `gold` |
+| `status` | VARCHAR | `success` or `failed` |
+| `processed_at` | TIMESTAMP UTC | When this row was written |
+| `file_count` | INTEGER | Parquet files written (bronze stages only) |
+
+**Flow logic:**
+
+```python
+pending = get_pending_dates(conn)   # all dates where gold != success, oldest first
+for date in pending:
+    if not success(date, 'axiom',   'bronze'): pull_axiom_logs(date)
+    if not success(date, 'posthog', 'bronze'): check_posthog_files(date)
+    if not success(date, None,      'silver'): run_silver(date)
+    if not success(date, None,      'gold'):   run_gold(date)
+```
+
+Each task calls `mark_success` or `mark_failed` after completing. A `(date, stage)` already marked `success` is never re-processed.
+
+**Watermark:** derived as `max(date WHERE stage='gold' AND status='success')` — used by the admin dashboard to show data freshness.
+
+**PostHog timing:** The `check_posthog_files` task lists objects at `bronze/posthog/YYYY/MM/DD/` for the target date. If PostHog's export has not yet landed (files absent), the task marks the date pending and returns — the next run retries. No fixed sleep or deadline assumed.
+
+**Why not Postgres:** keeping the control table in R2 Parquet via DuckDB maintains full decoupling of the analytics pipeline from the OLTP Postgres instance.
+
+---
 
 ### 7. Transformation Engine: DuckDB + deltalake
 

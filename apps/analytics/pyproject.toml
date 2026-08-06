@@ -32,3 +32,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Logger 'prefect.task_runs' attempted to send logs:UserWarning",
+]
+
+
