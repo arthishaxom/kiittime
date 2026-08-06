@@ -16,6 +16,11 @@ router = APIRouter(
 )
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def _get_gold_table_arrow(table_name: str):
     """Loads a Gold Delta table from R2 or local storage into a PyArrow table."""
     settings = get_settings()
@@ -36,7 +41,8 @@ def _get_gold_table_arrow(table_name: str):
     try:
         dt = DeltaTable(table_path, storage_options=storage_options)
         return dt.to_pyarrow_table()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to load Gold table '{table_name}' from {table_path}: {e}")
         return None
 
 

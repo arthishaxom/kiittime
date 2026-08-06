@@ -48,6 +48,13 @@ function RouteComponent() {
 							>
 								Announcements
 							</Link>
+							<Link
+								to="/analytics"
+								activeProps={{ className: "text-foreground font-medium" }}
+								className="text-muted-foreground hover:text-foreground"
+							>
+								Analytics
+							</Link>
 						</nav>
 					</div>
 					<div className="flex items-center gap-3">
