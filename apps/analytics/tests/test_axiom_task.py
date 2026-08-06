@@ -63,7 +63,7 @@ def test_pull_axiom_logs_success(mock_axiom_client_cls, mock_get_duckdb_conn):
     res_date = pull_axiom_logs(target_date=target_d, settings=settings)
     assert res_date == target_d
 
-    mock_axiom_client_cls.assert_called_once_with("test-key")
+    mock_axiom_client_cls.assert_called_once_with("test-key", org_id=None)
     mock_client.apl_query.assert_called_once()
     apl_str, opts_kwargs = (
         mock_client.apl_query.call_args[0][0],

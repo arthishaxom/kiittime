@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     R2_SECRET_KEY: str = ""
     CF_ACCOUNT_ID: str = ""
     AXIOM_API_KEY: str = ""
+    AXIOM_ORG_ID: str = ""
     AXIOM_DATASET: str = "kiittime-backend-logs"
     ENVIRONMENT: str = "dev"
     R2_BUCKET_NAME: str = "kiittime-analytics"

@@ -48,7 +48,10 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
 
     ingested_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    client = axiom_py.Client(settings.AXIOM_API_KEY)
+    client = axiom_py.Client(
+        settings.AXIOM_API_KEY,
+        org_id=settings.AXIOM_ORG_ID or None,
+    )
     opts = AplOptions(start_time=start_time, end_time=end_time)
     res = client.apl_query(f"['{settings.AXIOM_DATASET}']", opts=opts)
 
