@@ -16,8 +16,8 @@
     "check": "biome check"
   },
   "dependencies": {
-    "@kiittime/api": "workspace:*",
     "@hookform/resolvers": "^5.4.0",
+    "@kiittime/api": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-query": "latest",
@@ -33,6 +33,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.81.0",
+    "recharts": "^3.10.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^4.1.18",
@@ -40,8 +41,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@kiittime/tsconfig": "workspace:*",
     "@biomejs/biome": "2.4.5",
+    "@kiittime/tsconfig": "workspace:*",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",

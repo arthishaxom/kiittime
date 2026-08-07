@@ -61,6 +61,12 @@ def setup_logging() -> None:
 
         _queue_listener = QueueListener(log_queue, axiom_handler)
         _queue_listener.start()
+        print("✅ Axiom log ingestion initialized.", file=sys.stderr)
+    else:
+        print(
+            "⚠️ [LOGGING WARNING] AXIOM_API_KEY is missing in environment. Axiom log ingestion is DISABLED.",
+            file=sys.stderr,
+        )
 
     structlog.configure(
         processors=[
