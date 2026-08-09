@@ -1,3 +1,9 @@
 {
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "ignoreCommand": "if [ \"$VERCEL_ENV\" != \"production\" ]; then exit 0; else npx turbo query affected --tasks=build --packages=@kiittime/admin-webapp --base=${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} --exit-code; fi"
 }
