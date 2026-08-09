@@ -189,4 +189,3 @@ class SectionTrendItem(BaseModel):
     section_name: str
     section_year: int
     search_volume: int
-

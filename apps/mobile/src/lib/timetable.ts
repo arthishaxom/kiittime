@@ -15,7 +15,7 @@ export function groupSessionsByDay(sessions: Session[]): Map<Day, Session[]> {
   }
 
   for (const list of map.values()) {
-    list.sort((a, b) => a.period_number - b.period_number);
+    list.sort((a, b) => a.start_time.localeCompare(b.start_time));
   }
 
   return map;
