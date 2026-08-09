@@ -330,11 +330,11 @@ export default function TimetablePage() {
                         <View
                           key={i}
                           className="bg-surface rounded-lg p-4 flex-row justify-between items-center">
-                          <View>
+                          <View className="max-w-[60%] shrink">
                             <Text className="text-brand text-2xl font-bold">{s.course_code}</Text>
                             <Text className="text-text text-lg">{s.room_number}</Text>
                           </View>
-                          <Text className="text-text text-xl font-medium">
+                          <Text className="text-text text-xl font-medium shrink-0">
                             {formatTime(s.start_time)}
                           </Text>
                         </View>
