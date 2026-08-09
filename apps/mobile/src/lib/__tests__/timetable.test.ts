@@ -34,10 +34,10 @@ describe('groupSessionsByDay', () => {
     expect(grouped.get('WED')).toEqual([]);
   });
 
-  it('sorts sessions within a day by period_number ascending', () => {
-    const third = session({ day: 'Monday', period_number: 3, course_code: 'THIRD' });
-    const first = session({ day: 'Monday', period_number: 1, course_code: 'FIRST' });
-    const second = session({ day: 'Monday', period_number: 2, course_code: 'SECOND' });
+  it('sorts sessions within a day by start_time ascending', () => {
+    const third = session({ day: 'Monday', start_time: '12:00:00', period_number: 1, course_code: 'THIRD' });
+    const first = session({ day: 'Monday', start_time: '08:00:00', period_number: 3, course_code: 'FIRST' });
+    const second = session({ day: 'Monday', start_time: '10:00:00', period_number: 2, course_code: 'SECOND' });
 
     const grouped = groupSessionsByDay([third, first, second]);
 
