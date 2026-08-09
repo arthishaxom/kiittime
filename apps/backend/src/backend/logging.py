@@ -28,9 +28,7 @@ class StructlogAxiomHandler(AxiomHandler):
                 event = {"event": msg_str}
 
         self.buffer.append(event)
-        if len(self.buffer) >= 1000 or (
-            time.monotonic() - self.last_flush > self.interval
-        ):
+        if len(self.buffer) >= 1000 or (time.monotonic() - self.last_flush > self.interval):
             self.flush()
 
 
