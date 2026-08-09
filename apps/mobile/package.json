@@ -1,7 +1,7 @@
 {
   "name": "@kiittime/mobile",
   "main": "expo-router/entry",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "dependencies": {
     "@expo/ui": "~57.0.4",
     "@gorhom/bottom-sheet": "^5.2.14",
