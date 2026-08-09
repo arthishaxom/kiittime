@@ -17,6 +17,11 @@ vi.mock("@tanstack/react-router", () => ({
 	createFileRoute: () => () => ({
 		useSearch: () => ({}),
 	}),
+	Link: ({ children, to, onClick, className }: any) => (
+		<a href={to} onClick={onClick} className={className}>
+			{children}
+		</a>
+	),
 }));
 
 vi.mock("@kiittime/api/api", () => ({
@@ -41,14 +46,14 @@ describe("Landing Component (Web Onboarding)", () => {
 
 	it("renders roll number input by default", () => {
 		render(<Landing />);
-		expect(screen.getByPlaceholderText("e.g. 2105123")).toBeDefined();
+		expect(screen.getByPlaceholderText("e.g. 22053062")).toBeDefined();
 		expect(screen.getByText("Find your Timetable")).toBeDefined();
 		expect(screen.getByText("Select sections manually")).toBeDefined();
 	});
 
 	it("calls fetchRollNumberMapping, saves section IDs, and navigates on successful submission", async () => {
 		const mockMapping = {
-			roll_no: "2105123",
+			roll_no: "22053062",
 			academic_year: 3,
 			sections: [{ id: 42, section_name: "CS1", year: 3 }],
 		};
@@ -56,14 +61,14 @@ describe("Landing Component (Web Onboarding)", () => {
 
 		render(<Landing />);
 
-		const input = screen.getByPlaceholderText("e.g. 2105123");
-		fireEvent.change(input, { target: { value: "2105123" } });
+		const input = screen.getByPlaceholderText("e.g. 22053062");
+		fireEvent.change(input, { target: { value: "22053062" } });
 
 		const submitBtn = screen.getByRole("button", { name: "Find Timetable" });
 		fireEvent.click(submitBtn);
 
 		await waitFor(() => {
-			expect(api.fetchRollNumberMapping).toHaveBeenCalledWith("2105123");
+			expect(api.fetchRollNumberMapping).toHaveBeenCalledWith("22053062");
 			expect(storage.saveSectionIds).toHaveBeenCalledWith([42]);
 			expect(mockNavigate).toHaveBeenCalledWith({
 				to: "/timetable",
@@ -80,8 +85,8 @@ describe("Landing Component (Web Onboarding)", () => {
 
 		render(<Landing />);
 
-		const input = screen.getByPlaceholderText("e.g. 2105123");
-		fireEvent.change(input, { target: { value: "2105123" } });
+		const input = screen.getByPlaceholderText("e.g. 22053062");
+		fireEvent.change(input, { target: { value: "22053062" } });
 
 		const submitBtn = screen.getByRole("button", { name: "Find Timetable" });
 		fireEvent.click(submitBtn);
@@ -95,7 +100,7 @@ describe("Landing Component (Web Onboarding)", () => {
 		const retryBtn = screen.getByRole("button", { name: "Try Again" });
 		fireEvent.click(retryBtn);
 
-		expect(screen.getByPlaceholderText("e.g. 2105123")).toBeDefined();
+		expect(screen.getByPlaceholderText("e.g. 22053062")).toBeDefined();
 	});
 
 	it("displays standard error message when roll number is not found", async () => {
@@ -106,7 +111,7 @@ describe("Landing Component (Web Onboarding)", () => {
 
 		render(<Landing />);
 
-		const input = screen.getByPlaceholderText("e.g. 2105123");
+		const input = screen.getByPlaceholderText("e.g. 22053062");
 		fireEvent.change(input, { target: { value: "9999999" } });
 
 		const submitBtn = screen.getByRole("button", { name: "Find Timetable" });
@@ -125,7 +130,7 @@ describe("Landing Component (Web Onboarding)", () => {
 
 		// Should now show "Find by Section" manual selection components
 		expect(screen.getByText("Find by Section")).toBeDefined();
-		expect(screen.queryByPlaceholderText("e.g. 2105123")).toBeNull();
+		expect(screen.queryByPlaceholderText("e.g. 22053062")).toBeNull();
 
 		// Can select a year
 		const yearBtn = screen.getByRole("button", { name: "3" });
@@ -135,6 +140,6 @@ describe("Landing Component (Web Onboarding)", () => {
 		const backBtn = screen.getByRole("button", { name: "" }); // The ArrowLeft button has no explicit name text
 		fireEvent.click(backBtn);
 
-		expect(screen.getByPlaceholderText("e.g. 2105123")).toBeDefined();
+		expect(screen.getByPlaceholderText("e.g. 22053062")).toBeDefined();
 	});
 });

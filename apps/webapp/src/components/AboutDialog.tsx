@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
 	Dialog,
 	DialogContent,
@@ -43,6 +44,13 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
 						>
 							GitHub
 						</a>
+						<Link
+							to="/privacy"
+							onClick={() => onOpenChange(false)}
+							className="text-brand underline cursor-pointer"
+						>
+							Privacy Policy
+						</Link>
 					</div>
 
 					<p className="text-text-muted text-sm">MIT License</p>

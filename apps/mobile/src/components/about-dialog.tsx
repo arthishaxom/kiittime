@@ -40,6 +40,9 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
             <Pressable onPress={() => Linking.openURL('https://github.com/arthishaxom/kiittime')}>
               <Text className="text-brand underline">GitHub</Text>
             </Pressable>
+            <Pressable onPress={() => Linking.openURL('https://kiittime.apothal.dev/privacy')}>
+              <Text className="text-brand underline">Privacy Policy</Text>
+            </Pressable>
           </View>
 
           <Text className="text-text-muted text-sm">MIT License</Text>
