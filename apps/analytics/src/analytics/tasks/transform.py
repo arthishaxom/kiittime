@@ -1,5 +1,6 @@
 """DuckDB transformation tasks for Bronze to Silver pipeline."""
 
+import logging
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -296,7 +297,12 @@ def transform_silver_to_gold(
             ).fetchone()
             if res and res[0] is not None:
                 dau_val = int(res[0])
-        except Exception:
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "PostHog Bronze Parquet not found for %s (DAU=0): %s",
+                target_date_str,
+                exc,
+            )
             dau_val = 0
 
         # 1. gold_daily_usage
