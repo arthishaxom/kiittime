@@ -13,11 +13,11 @@ export function AuthenticatedLayout() {
 	}
 
 	return (
-		<div className="flex min-h-screen flex-col">
-			<header className="sticky top-0 z-10 border-b bg-card text-card-foreground shadow-sm">
+		<div className="flex min-h-screen flex-col bg-transparent text-foreground">
+			<header className="sticky top-0 z-10 border-b border-white/10 bg-[#12141c]/80 backdrop-blur-md text-foreground shadow-sm">
 				<div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
 					<div className="flex items-center gap-6">
-						<span className="font-semibold">KIIT Time Admin</span>
+						<span className="font-semibold text-white">KIIT Time Admin</span>
 						<nav
 							aria-label="Main navigation"
 							className="hidden items-center gap-4 text-sm md:flex"

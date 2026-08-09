@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { MockInstance } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnalyticsDashboard } from "../../components/AnalyticsDashboard";
-import * as AuthModule from "../auth";
 import * as ApiModule from "../api";
+import * as AuthModule from "../auth";
 
 // Mock recharts to avoid DOM size measurement issues in jsdom
 vi.mock("recharts", () => ({
@@ -35,7 +36,7 @@ vi.mock("recharts", () => ({
 
 describe("Analytics Dashboard Component", () => {
 	let queryClient: QueryClient;
-	let mockApiFetch: ReturnType<typeof vi.fn>;
+	let mockApiFetch: MockInstance;
 
 	beforeEach(() => {
 		vi.restoreAllMocks();
@@ -47,13 +48,10 @@ describe("Analytics Dashboard Component", () => {
 			logout: vi.fn(),
 		});
 
-		mockApiFetch = vi.fn().mockResolvedValue({
+		mockApiFetch = vi.spyOn(ApiModule, "apiFetch").mockResolvedValue({
 			ok: true,
 			json: async () => [],
-		});
-		vi.spyOn(ApiModule, "apiFetch").mockImplementation((...args) =>
-			mockApiFetch(...args),
-		);
+		} as Response);
 
 		queryClient = new QueryClient({
 			defaultOptions: {
@@ -123,9 +121,9 @@ describe("Analytics Dashboard Component", () => {
 							timetable_searches: 450,
 						},
 					],
-				};
+				} as unknown as Response;
 			}
-			return { ok: true, json: async () => [] };
+			return { ok: true, json: async () => [] } as unknown as Response;
 		});
 
 		renderComponent();
@@ -159,9 +157,9 @@ describe("Analytics Dashboard Component", () => {
 							error_rate: 0.001,
 						},
 					],
-				};
+				} as unknown as Response;
 			}
-			return { ok: true, json: async () => [] };
+			return { ok: true, json: async () => [] } as unknown as Response;
 		});
 
 		renderComponent();
