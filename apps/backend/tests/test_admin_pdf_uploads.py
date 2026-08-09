@@ -8,6 +8,8 @@ from backend.db.models import AdminUser
 from backend.db.session import get_db
 from backend.main import app
 
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "Section wise_Timetable_Scheme A_05-07-26.pdf"
+
 
 @pytest.fixture
 def admin_client(db):
@@ -20,8 +22,7 @@ def admin_client(db):
 
 
 def test_create_pdf_upload(admin_client):
-    pdf_path = Path("/home/justashish/Dev/kiittime/Section wise_Timetable_Scheme A_05-07-26.pdf")
-    with open(pdf_path, "rb") as f:
+    with open(FIXTURE_PATH, "rb") as f:
         pdf_bytes = f.read()
 
     response = admin_client.post(

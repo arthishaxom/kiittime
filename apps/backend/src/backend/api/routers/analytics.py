@@ -1,5 +1,4 @@
-"""Analytics router for admin dashboard."""
-
+import logging
 from datetime import UTC, datetime, timedelta
 
 from deltalake import DeltaTable
@@ -9,16 +8,13 @@ from backend.api.schemas import DailyUsageItem, EndpointHealthItem, SectionTrend
 from backend.auth.dependencies import get_current_admin
 from backend.config import get_duckdb_conn, get_settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/admin/analytics",
     tags=["analytics"],
     dependencies=[Depends(get_current_admin)],
 )
-
-
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 def _get_gold_table_arrow(table_name: str):

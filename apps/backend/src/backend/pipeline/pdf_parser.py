@@ -32,7 +32,9 @@ def parse_normal_cell(
     for line in lines[2:]:
         if line.startswith("Room:"):
             in_room = True
-            room_lines.append(line[5:].strip())
+            val = line[5:].strip()
+            if val:
+                room_lines.append(val)
         elif in_room:
             room_lines.append(line)
 
@@ -69,7 +71,9 @@ def parse_elective_cell(
     for line in lines[1:]:
         if line.startswith("Room:"):
             in_room = True
-            room_lines.append(line[5:].strip())
+            val = line[5:].strip()
+            if val:
+                room_lines.append(val)
         elif in_room:
             room_lines.append(line)
 
@@ -91,7 +95,7 @@ def parse_elective_cell(
 
 
 def parse_pdf_timetable(file_bytes: bytes, year: int) -> list[SessionRow]:
-    rows = []
+    rows: list[SessionRow] = []
 
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         current_section = None
@@ -195,4 +199,21 @@ def parse_pdf_timetable(file_bytes: bytes, year: int) -> list[SessionRow]:
                             if session_row:
                                 rows.append(session_row)
 
-    return rows
+    # Deduplicate rows by all attributes
+    seen: set[tuple[int, str, str, int, time, str, str]] = set()
+    unique_rows: list[SessionRow] = []
+    for r in rows:
+        key = (
+            r.year,
+            r.section,
+            r.day,
+            r.period_number,
+            r.start_time,
+            r.course_code,
+            r.room_number,
+        )
+        if key not in seen:
+            seen.add(key)
+            unique_rows.append(r)
+
+    return unique_rows

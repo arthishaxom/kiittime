@@ -39,7 +39,8 @@ def validate_environment() -> dict[str, bool]:
         )
     if not has_r2:
         print(
-            "⚠️ [ENV WARNING] R2 storage credentials (R2_ACCESS_KEY, R2_SECRET_KEY, CF_ACCOUNT_ID) are missing or incomplete! Analytics Gold Delta tables cannot be loaded from R2.",
+            "⚠️ [ENV WARNING] R2 storage credentials (R2_ACCESS_KEY, R2_SECRET_KEY, CF_ACCOUNT_ID) "
+            "are missing or incomplete! Analytics Gold Delta tables cannot be loaded from R2.",
             file=sys.stderr,
         )
 
