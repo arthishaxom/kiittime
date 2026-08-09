@@ -28,9 +28,7 @@ class StructlogAxiomHandler(AxiomHandler):
                 event = {"event": msg_str}
 
         self.buffer.append(event)
-        if len(self.buffer) >= 1000 or (
-            time.monotonic() - self.last_flush > self.interval
-        ):
+        if len(self.buffer) >= 1000 or (time.monotonic() - self.last_flush > self.interval):
             self.flush()
 
 
@@ -64,7 +62,8 @@ def setup_logging() -> None:
         print("✅ Axiom log ingestion initialized.", file=sys.stderr)
     else:
         print(
-            "⚠️ [LOGGING WARNING] AXIOM_API_KEY is missing in environment. Axiom log ingestion is DISABLED.",
+            "⚠️ [LOGGING WARNING] AXIOM_API_KEY is missing in environment. "
+            "Axiom log ingestion is DISABLED.",
             file=sys.stderr,
         )
 

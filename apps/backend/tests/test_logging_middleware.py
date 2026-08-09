@@ -107,4 +107,3 @@ def test_timetable_request_emits_sections_field(client_with_db, db):
     assert len(event["sections"]) == 2
     assert {"name": "CS-A", "year": 3} in event["sections"]
     assert {"name": "CS-B", "year": 3} in event["sections"]
-

@@ -29,6 +29,7 @@ from backend.pipeline.diff import compute_diff
 from backend.pipeline.gold import ScopeViolationError, gold_upsert
 from backend.pipeline.orchestrate import process_upload
 from backend.pipeline.parser import parse_section_grid
+from backend.pipeline.pdf_parser import parse_pdf_timetable
 from backend.pipeline.resolve import ResolvedSession, resolve_all
 from backend.pipeline.schemas import SessionRow
 from backend.pipeline.scope import UpsertScope
@@ -107,6 +108,39 @@ def create_upload(
             db,
             rows,
             source_filename=file.filename or "unknown",
+            uploaded_by=current_admin.username,
+        )
+    except ValidationError as e:
+        db.rollback()
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+
+    db.commit()
+
+    diff = _build_diff_summary(db, rows, resolved)
+    return {"upload_id": snapshot.id, "diff": diff, "status": "pending"}
+
+
+@router.post("/uploads/pdf", response_model=UploadResponse, status_code=status.HTTP_200_OK)
+def create_pdf_upload(
+    file: UploadFile,
+    year: int = Form(...),
+    current_admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    contents = file.file.read()
+    try:
+        rows = parse_pdf_timetable(contents, year=year)
+    except Exception as e:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Failed to parse PDF file: {e}",
+        )
+
+    try:
+        snapshot, resolved = process_upload(
+            db,
+            rows,
+            source_filename=file.filename or "unknown_pdf",
             uploaded_by=current_admin.username,
         )
     except ValidationError as e:

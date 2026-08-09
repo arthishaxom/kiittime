@@ -125,7 +125,7 @@ function TimetablePage() {
 			}
 		}
 		for (const list of map.values()) {
-			list.sort((a, b) => a.period_number - b.period_number);
+			list.sort((a, b) => a.start_time.localeCompare(b.start_time));
 		}
 		return map;
 	}, [data]);
@@ -373,13 +373,15 @@ function TimetablePage() {
 												key={i}
 												className="bg-surface rounded-lg p-4 flex justify-between items-center"
 											>
-												<div>
-													<p className="text-brand text-2xl font-bold">
+												<div className="max-w-[60%]">
+													<p className="text-brand text-2xl font-bold break-words">
 														{s.course_code}
 													</p>
-													<p className="text-white text-lg">{s.room_number}</p>
+													<p className="text-white text-lg break-words">
+														{s.room_number}
+													</p>
 												</div>
-												<p className="text-white text-xl font-medium">
+												<p className="text-white text-xl font-medium shrink-0">
 													{formatTime(s.start_time)}
 												</p>
 											</div>
