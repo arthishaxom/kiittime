@@ -105,3 +105,36 @@ def test_parse_pdf_timetable_no_duplicate_slots():
     slot_counts = Counter((s.section, s.day, s.period_number) for s in sessions)
     conflicts = [slot for slot, count in slot_counts.items() if count > 1]
     assert conflicts == []
+
+
+def test_parse_pdf_timetable_deduplicates_elective_sub_sections_across_pages():
+    with open(FIXTURE_PATH, "rb") as f:
+        pdf_bytes = f.read()
+
+    sessions = parse_pdf_timetable(pdf_bytes, year=1)
+
+    # Deduplication key: (year, section, day, start_time, course_code, room_number)
+    unique_keys = Counter(
+        (s.year, s.section, s.day, s.start_time, s.course_code, s.room_number) for s in sessions
+    )
+    duplicate_keys = [k for k, count in unique_keys.items() if count > 1]
+    assert duplicate_keys == []
+
+    # Exactly one row for BCE-05 on Monday 10:10 and Tuesday 10:10
+    bce5_mon = [
+        s
+        for s in sessions
+        if s.section == "BCE-05" and s.day == "Monday" and s.start_time == time(10, 10)
+    ]
+    assert len(bce5_mon) == 1
+    assert bce5_mon[0].course_code == "BCE"
+    assert bce5_mon[0].room_number == "Campus-8, 104"
+
+    bce5_tue = [
+        s
+        for s in sessions
+        if s.section == "BCE-05" and s.day == "Tuesday" and s.start_time == time(10, 10)
+    ]
+    assert len(bce5_tue) == 1
+    assert bce5_tue[0].course_code == "BCE"
+    assert bce5_tue[0].room_number == "Campus-8, 104"

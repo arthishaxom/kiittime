@@ -199,15 +199,14 @@ def parse_pdf_timetable(file_bytes: bytes, year: int) -> list[SessionRow]:
                             if session_row:
                                 rows.append(session_row)
 
-    # Deduplicate rows by all attributes
-    seen: set[tuple[int, str, str, int, time, str, str]] = set()
+    # Deduplicate rows by (year, section, day, start_time, course_code, room_number)
+    seen: set[tuple[int, str, str, time, str, str]] = set()
     unique_rows: list[SessionRow] = []
     for r in rows:
         key = (
             r.year,
             r.section,
             r.day,
-            r.period_number,
             r.start_time,
             r.course_code,
             r.room_number,
