@@ -217,4 +217,141 @@ describe("Upload Dashboard Component", () => {
 			expect(screen.getByText("Invalid Excel format")).toBeDefined();
 		});
 	});
+
+	it("renders Excel | PDF segmented toggle at the top of Timetable card", () => {
+		renderComponent();
+
+		const excelToggle = screen.getByRole("button", { name: /^excel$/i });
+		const pdfToggle = screen.getByRole("button", { name: /^pdf$/i });
+
+		expect(excelToggle).toBeDefined();
+		expect(pdfToggle).toBeDefined();
+
+		// Default is Excel active
+		expect(excelToggle.className).toContain("bg-[#f57c00]");
+	});
+
+	it("handles PDF timetable upload happy path: select PDF mode → attach file → pick year 2 → click Upload → asserts navigation", async () => {
+		let capturedPath = "";
+		let capturedBody: FormData | undefined;
+
+		mockApiFetch.mockImplementation(async (path: string, options?: RequestInit) => {
+			if (path === "/admin/uploads/pdf") {
+				capturedPath = path;
+				capturedBody = options?.body as FormData;
+				return {
+					ok: true,
+					json: async () => ({ upload_id: 42, status: "pending_review" }),
+				} as unknown as Response;
+			}
+			return { ok: true, json: async () => ({}) } as unknown as Response;
+		});
+
+		renderComponent();
+
+		// Switch to PDF mode
+		const pdfToggle = screen.getByRole("button", { name: /^pdf$/i });
+		fireEvent.click(pdfToggle);
+
+		// Sheet selector should not exist
+		expect(screen.queryByText("Select a sheet")).toBeNull();
+
+		// Check file input accept attribute
+		const timetableFileInput = screen.getByTestId("timetable-file-input") as HTMLInputElement;
+		expect(timetableFileInput.accept).toBe(".pdf");
+
+		// Year selector pills are rendered
+		const year2Buttons = screen.getAllByRole("button", { name: "2" });
+		const timetableYear2 = year2Buttons[0];
+
+		// Upload button exists and is disabled initially
+		const uploadButton = screen.getByRole("button", { name: /^upload$/i });
+		expect(uploadButton.hasAttribute("disabled")).toBe(true);
+
+		// Attach PDF file
+		const testFile = new File(["pdf dummy content"], "timetable_y2.pdf", {
+			type: "application/pdf",
+		});
+		fireEvent.change(timetableFileInput, { target: { files: [testFile] } });
+
+		expect(screen.getByText("timetable_y2.pdf")).toBeDefined();
+
+		// Upload button still disabled until year is selected
+		expect(uploadButton.hasAttribute("disabled")).toBe(true);
+
+		// Pick Year 2
+		fireEvent.click(timetableYear2);
+		expect(uploadButton.hasAttribute("disabled")).toBe(false);
+
+		// Click Upload
+		fireEvent.click(uploadButton);
+
+		await waitFor(() => {
+			expect(capturedPath).toBe("/admin/uploads/pdf");
+			expect(capturedBody?.get("year")).toBe("2");
+			expect(capturedBody?.get("file")).toBeDefined();
+			expect(mockNavigate).toHaveBeenCalledWith({
+				to: "/review/$uploadId",
+				params: { uploadId: "42" },
+			});
+		});
+	});
+
+	it("displays error in destructive alert when PDF upload fails", async () => {
+		mockApiFetch.mockImplementation(async (path: string) => {
+			if (path === "/admin/uploads/pdf") {
+				return {
+					ok: false,
+					statusText: "Unprocessable Entity",
+					json: async () => ({ detail: "Failed to parse PDF file: Missing timetable grid" }),
+				} as unknown as Response;
+			}
+			return { ok: true, json: async () => ({}) } as unknown as Response;
+		});
+
+		renderComponent();
+
+		// Switch to PDF mode
+		fireEvent.click(screen.getByRole("button", { name: /^pdf$/i }));
+
+		const timetableFileInput = screen.getByTestId("timetable-file-input");
+		const testFile = new File(["bad pdf"], "broken.pdf", {
+			type: "application/pdf",
+		});
+		fireEvent.change(timetableFileInput, { target: { files: [testFile] } });
+
+		const year1 = screen.getAllByRole("button", { name: "1" })[0];
+		fireEvent.click(year1);
+
+		const uploadBtn = screen.getByRole("button", { name: /^upload$/i });
+		fireEvent.click(uploadBtn);
+
+		await waitFor(() => {
+			expect(
+				screen.getByText("Failed to parse PDF file: Missing timetable grid"),
+			).toBeDefined();
+		});
+	});
+
+	it("switching mode resets file and year selection for that mode", async () => {
+		renderComponent();
+
+		// Switch to PDF mode
+		fireEvent.click(screen.getByRole("button", { name: /^pdf$/i }));
+
+		const timetableFileInput = screen.getByTestId("timetable-file-input");
+		const pdfFile = new File(["pdf"], "year3.pdf", { type: "application/pdf" });
+		fireEvent.change(timetableFileInput, { target: { files: [pdfFile] } });
+		fireEvent.click(screen.getAllByRole("button", { name: "3" })[0]);
+
+		expect(screen.getByText("year3.pdf")).toBeDefined();
+
+		// Switch back to Excel mode
+		fireEvent.click(screen.getByRole("button", { name: /^excel$/i }));
+
+		// State should be reset
+		expect(screen.queryByText("year3.pdf")).toBeNull();
+		expect((screen.getByTestId("timetable-file-input") as HTMLInputElement).accept).toBe(".xlsx,.xls");
+	});
 });
+

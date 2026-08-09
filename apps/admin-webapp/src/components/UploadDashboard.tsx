@@ -6,6 +6,7 @@ import {
 	ChevronDown,
 	ChevronUp,
 	FileSpreadsheet,
+	FileText,
 	Loader2,
 	Trash2,
 	Upload,
@@ -69,6 +70,7 @@ export function UploadDashboard() {
 	const rollFileInputRef = useRef<HTMLInputElement>(null);
 
 	// Timetable state
+	const [timetableMode, setTimetableMode] = useState<"excel" | "pdf">("excel");
 	const [file, setFile] = useState<File | null>(null);
 	const [sheetName, setSheetName] = useState<string>("");
 	const [year, setYear] = useState<number | null>(null);
@@ -127,10 +129,21 @@ export function UploadDashboard() {
 			if (!file) throw new Error("No file selected");
 			const formData = new FormData();
 			formData.append("file", file);
-			formData.append("sheet_name", sheetName);
-			formData.append("year", String(year));
+
+			let endpoint = "/admin/uploads";
+			if (timetableMode === "excel") {
+				if (!sheetName || year === null)
+					throw new Error("Sheet and year are required");
+				formData.append("sheet_name", sheetName);
+				formData.append("year", String(year));
+			} else {
+				if (year === null) throw new Error("No academic year selected");
+				endpoint = "/admin/uploads/pdf";
+				formData.append("year", String(year));
+			}
+
 			const res = await apiFetch(
-				"/admin/uploads",
+				endpoint,
 				{
 					method: "POST",
 					body: formData,
@@ -317,12 +330,28 @@ export function UploadDashboard() {
 		},
 	});
 
+	function handleModeChange(newMode: "excel" | "pdf") {
+		if (newMode === timetableMode) return;
+		setTimetableMode(newMode);
+		setFile(null);
+		setSheetName("");
+		setYear(null);
+		setError(null);
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
+		inspectMutation.reset();
+		uploadMutation.reset();
+	}
+
 	function handleFileSelected(selectedFile: File) {
 		setFile(selectedFile);
 		setSheetName("");
 		setYear(null);
 		setError(null);
-		inspectMutation.mutate(selectedFile);
+		if (timetableMode === "excel") {
+			inspectMutation.mutate(selectedFile);
+		}
 	}
 
 	function handleRollFileSelected(selectedFile: File) {
@@ -335,8 +364,9 @@ export function UploadDashboard() {
 		rollInspectMutation.mutate({ f: selectedFile });
 	}
 
-	function handleParse() {
-		if (!file || !sheetName || year === null) return;
+	function handleTimetableSubmit() {
+		if (!file || year === null) return;
+		if (timetableMode === "excel" && !sheetName) return;
 		uploadMutation.mutate();
 	}
 
@@ -346,6 +376,7 @@ export function UploadDashboard() {
 	}
 
 	const parseDisabled = !sheetName || year === null || uploadMutation.isPending;
+	const pdfUploadDisabled = !file || year === null || uploadMutation.isPending;
 	const showSheetForm = inspectMutation.isSuccess && inspectMutation.data;
 
 	return (
@@ -356,27 +387,63 @@ export function UploadDashboard() {
 				className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-neutral-900/80 bg-white/5 p-4 shadow-xl backdrop-blur-md md:p-6"
 			>
 				<CardHeader className="p-0">
-					<CardTitle className="text-xl font-bold tracking-tight text-white md:text-2xl">
-						Upload Timetable
-					</CardTitle>
-					<CardDescription className="text-sm text-neutral-400">
-						Select an Excel file (.xlsx, .xls) to parse and configure timetable
-						data
-					</CardDescription>
+					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<CardTitle className="text-xl font-bold tracking-tight text-white md:text-2xl">
+								Upload Timetable
+							</CardTitle>
+							<CardDescription className="text-sm text-neutral-400">
+								{timetableMode === "excel"
+									? "Select an Excel file (.xlsx, .xls) to parse and configure timetable data"
+									: "Select a PDF file (.pdf) to parse and configure timetable data"}
+							</CardDescription>
+						</div>
+						{/* Segmented Toggle: Excel | PDF */}
+						<div className="flex items-center gap-1 rounded-full border border-white/10 bg-neutral-950/60 p-1 w-fit">
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={() => handleModeChange("excel")}
+								className={`h-8 rounded-full px-4 text-xs font-semibold transition-all ${
+									timetableMode === "excel"
+										? "bg-[#f57c00] text-black shadow-sm hover:bg-[#f57c00]/90 hover:text-black"
+										: "text-neutral-400 hover:bg-white/10 hover:text-white"
+								}`}
+							>
+								Excel
+							</Button>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={() => handleModeChange("pdf")}
+								className={`h-8 rounded-full px-4 text-xs font-semibold transition-all ${
+									timetableMode === "pdf"
+										? "bg-[#f57c00] text-black shadow-sm hover:bg-[#f57c00]/90 hover:text-black"
+										: "text-neutral-400 hover:bg-white/10 hover:text-white"
+								}`}
+							>
+								PDF
+							</Button>
+						</div>
+					</div>
 				</CardHeader>
 
 				<CardContent className="flex flex-col gap-5 p-0">
 					{/* Drop Zone */}
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="timetable-file-input" className="text-neutral-200">
-							Excel Timetable File
+							{timetableMode === "excel"
+								? "Excel Timetable File"
+								: "PDF Timetable File"}
 						</Label>
 						<input
 							id="timetable-file-input"
 							data-testid="timetable-file-input"
 							ref={fileInputRef}
 							type="file"
-							accept=".xlsx,.xls"
+							accept={timetableMode === "excel" ? ".xlsx,.xls" : ".pdf"}
 							className="hidden"
 							onChange={(e) => {
 								const f = e.target.files?.[0];
@@ -401,7 +468,7 @@ export function UploadDashboard() {
 								const f = e.dataTransfer.files?.[0];
 								if (f) handleFileSelected(f);
 							}}
-							disabled={inspectMutation.isPending}
+							disabled={inspectMutation.isPending || uploadMutation.isPending}
 							className={`relative flex min-h-[100px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-all focus-visible:ring-2 focus-visible:ring-[#f57c00] focus-visible:outline-none ${
 								isTimetableDragging
 									? "border-[#f57c00] bg-[#f57c00]/15"
@@ -418,7 +485,11 @@ export function UploadDashboard() {
 							) : file ? (
 								<div className="flex flex-col items-center gap-1.5">
 									<div className="flex items-center gap-2 text-[#f57c00]">
-										<FileSpreadsheet className="size-5 shrink-0" />
+										{timetableMode === "excel" ? (
+											<FileSpreadsheet className="size-5 shrink-0" />
+										) : (
+											<FileText className="size-5 shrink-0" />
+										)}
 										<span className="max-w-[280px] truncate text-sm font-semibold sm:max-w-md">
 											{file.name}
 										</span>
@@ -431,24 +502,28 @@ export function UploadDashboard() {
 								<div className="flex flex-col items-center gap-1.5">
 									<Upload className="size-6 text-[#f57c00]" />
 									<span className="text-sm font-medium text-neutral-200">
-										Drop timetable file here or click to browse
+										{timetableMode === "excel"
+											? "Drop timetable file here or click to browse"
+											: "Drop PDF timetable file here or click to browse"}
 									</span>
 									<span className="text-xs text-neutral-400">
-										Supports Excel files (.xlsx, .xls)
+										{timetableMode === "excel"
+											? "Supports Excel files (.xlsx, .xls)"
+											: "Supports PDF files (.pdf)"}
 									</span>
 								</div>
 							)}
 						</button>
 					</div>
 
-					{inspectMutation.isPending && (
+					{timetableMode === "excel" && inspectMutation.isPending && (
 						<div className="flex flex-col gap-3 pt-2">
 							<Skeleton className="h-5 w-3/4 rounded-md bg-white/10" />
 							<Skeleton className="h-11 w-full rounded-xl bg-white/10" />
 						</div>
 					)}
 
-					{showSheetForm && (
+					{timetableMode === "excel" && showSheetForm && (
 						<div className="flex flex-col gap-5 pt-1">
 							{/* Sheet selector */}
 							<div className="flex flex-col gap-2">
@@ -499,7 +574,7 @@ export function UploadDashboard() {
 
 							{/* Parse Button */}
 							<Button
-								onClick={handleParse}
+								onClick={handleTimetableSubmit}
 								disabled={parseDisabled}
 								className="h-11 min-h-[44px] w-full rounded-xl bg-[#f57c00] font-semibold text-black shadow-lg transition-all hover:bg-[#f57c00]/90 disabled:opacity-50"
 							>
@@ -510,6 +585,47 @@ export function UploadDashboard() {
 									</>
 								) : (
 									"Parse"
+								)}
+							</Button>
+						</div>
+					)}
+
+					{timetableMode === "pdf" && (
+						<div className="flex flex-col gap-5 pt-1">
+							{/* Year selector pills */}
+							<div className="flex flex-col gap-2">
+								<Label className="text-neutral-200">Year</Label>
+								<div className="grid grid-cols-4 gap-2">
+									{[1, 2, 3, 4].map((y) => (
+										<Button
+											key={y}
+											type="button"
+											className={`h-11 min-h-[44px] rounded-full text-sm font-semibold transition-all ${
+												year === y
+													? "bg-[#f57c00] text-black shadow-md hover:bg-[#f57c00]/90"
+													: "border border-white/10 bg-neutral-850 bg-white/10 text-neutral-200 hover:bg-neutral-700 hover:text-white"
+											}`}
+											onClick={() => setYear(y)}
+										>
+											{y}
+										</Button>
+									))}
+								</div>
+							</div>
+
+							{/* Upload Button */}
+							<Button
+								onClick={handleTimetableSubmit}
+								disabled={pdfUploadDisabled}
+								className="h-11 min-h-[44px] w-full rounded-xl bg-[#f57c00] font-semibold text-black shadow-lg transition-all hover:bg-[#f57c00]/90 disabled:opacity-50"
+							>
+								{uploadMutation.isPending ? (
+									<>
+										<Loader2 className="size-4 animate-spin" />
+										<span>Uploading...</span>
+									</>
+								) : (
+									"Upload"
 								)}
 							</Button>
 						</div>
