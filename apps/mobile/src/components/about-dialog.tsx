@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 import { Image, Linking, Pressable, View } from 'react-native';
 import {
   Dialog,
@@ -40,7 +41,11 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
             <Pressable onPress={() => Linking.openURL('https://github.com/arthishaxom/kiittime')}>
               <Text className="text-brand underline">GitHub</Text>
             </Pressable>
-            <Pressable onPress={() => Linking.openURL('https://kiittime.apothal.dev/privacy')}>
+            <Pressable
+              onPress={() => {
+                onOpenChange(false);
+                WebBrowser.openBrowserAsync('https://kiittime.apothal.dev/privacy');
+              }}>
               <Text className="text-brand underline">Privacy Policy</Text>
             </Pressable>
           </View>
