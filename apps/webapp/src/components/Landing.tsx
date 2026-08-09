@@ -160,7 +160,7 @@ export function Landing() {
 								type="text"
 								pattern="[0-9]*"
 								inputMode="numeric"
-								placeholder="e.g. 2105123"
+								placeholder="e.g. 22053062"
 								value={rollNo}
 								onFocus={() => setIsInputFocused(true)}
 								onBlur={() => setIsInputFocused(false)}

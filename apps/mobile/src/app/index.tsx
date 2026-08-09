@@ -166,7 +166,7 @@ export default function Index() {
                   {/* Hidden TextInput */}
                   <TextInput
                     ref={inputRef}
-                    placeholder="e.g. 2105123"
+                    placeholder="e.g. 22053062"
                     placeholderTextColor="#a3a3a3"
                     value={rollNo}
                     onFocus={() => setIsInputFocused(true)}
