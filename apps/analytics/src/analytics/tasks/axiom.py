@@ -46,6 +46,8 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
     start_time = start_time_ist.astimezone(UTC).replace(tzinfo=None)
     end_time = end_time_ist.astimezone(UTC).replace(tzinfo=None)
 
+    ingested_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
     if not settings.AXIOM_API_KEY:
         raise ValueError(
             "AXIOM_API_KEY is not configured in settings/environment. Cannot query Axiom logs."
