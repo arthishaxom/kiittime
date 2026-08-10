@@ -199,7 +199,7 @@ def transform_silver_to_gold(
     if posthog_bronze_path is None:
         posthog_bronze_path = (
             f"s3://{settings.R2_BUCKET_NAME}/bronze/posthog/"
-            f"{year}/{month}/{day}/*.parquet"
+            f"{year}/{month}/{day}/*.parquet*"
         )
 
     if gold_base_path is None:
