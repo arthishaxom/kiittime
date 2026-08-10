@@ -440,16 +440,43 @@ def test_transform_silver_to_gold_missing_posthog(tmp_path):
     assert daily_dict["timetable_searches"] == [0]
 
 
-def test_transform_silver_to_gold_default_target_date(tmp_path):
+def test_transform_silver_to_gold_posthog_zst(tmp_path):
+    target_d = date(2026, 8, 9)
+
+    posthog_dir = tmp_path / "bronze" / "posthog" / "2026" / "08" / "09"
+    posthog_dir.mkdir(parents=True, exist_ok=True)
+    posthog_file = posthog_dir / "events.parquet.zst"
+    posthog_str = str(posthog_file).replace("\\", "/")
+
+    conn = duckdb.connect()
+    posthog_payload = [
+        {"distinct_id": "user-1", "event": "app_opened"},
+        {"distinct_id": "user-2", "event": "app_opened"},
+        {"distinct_id": "user-1", "event": "timetable_viewed"},
+    ]
+    conn.execute(
+        f"COPY (SELECT t.* FROM (SELECT unnest(?) AS t)) TO '{posthog_str}' (FORMAT PARQUET, CODEC 'ZSTD')",
+        [posthog_payload],
+    )
+    conn.close()
+
     silver_base_dir = tmp_path / "silver"
     gold_base_dir = tmp_path / "gold"
 
+    # Test with glob pattern default
+    posthog_glob = f"{tmp_path}/bronze/posthog/2026/08/09/*.parquet*"
+
     res_date = transform_silver_to_gold.fn(
-        target_date=None,
+        target_date=target_d,
         silver_base_path=str(silver_base_dir),
-        posthog_bronze_path=str(tmp_path / "missing.parquet"),
+        posthog_bronze_path=posthog_glob,
         gold_base_path=str(gold_base_dir),
     )
-    assert isinstance(res_date, date)
+    assert res_date == target_d
+
+    daily_dt = DeltaTable(str(gold_base_dir / "gold_daily_usage"))
+    daily_dict = daily_dt.to_pyarrow_table().to_pydict()
+    assert daily_dict["dau"] == [2]
+
 
 
