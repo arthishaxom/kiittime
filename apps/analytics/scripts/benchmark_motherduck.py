@@ -27,7 +27,7 @@ RANGES = (7, 30, 90, 365)
 ANALYTICS_DIR = Path(__file__).resolve().parents[1]
 
 
-def connect() -> duckdb.DuckDBPyConnection:
+def connect(*, configure_r2: bool = True) -> duckdb.DuckDBPyConnection:
     token = os.environ.get("MOTHERDUCK_TOKEN")
     database = os.environ.get("MOTHERDUCK_DATABASE", "my_db")
     if not token:
@@ -35,11 +35,12 @@ def connect() -> duckdb.DuckDBPyConnection:
     conn = duckdb.connect(f"md:{database}?motherduck_token={token}")
     conn.execute("INSTALL httpfs; LOAD httpfs;")
     conn.execute("INSTALL delta; LOAD delta;")
-    conn.execute(
-        """CREATE OR REPLACE SECRET r2 (TYPE S3, KEY_ID ?, SECRET ?,
-        REGION 'auto', ENDPOINT ?);""",
-        [os.environ["R2_ACCESS_KEY"], os.environ["R2_SECRET_KEY"], r2_endpoint()],
-    )
+    if configure_r2:
+        conn.execute(
+            """CREATE OR REPLACE SECRET r2 (TYPE S3, KEY_ID ?, SECRET ?,
+            REGION 'auto', ENDPOINT ?);""",
+            [os.environ["R2_ACCESS_KEY"], os.environ["R2_SECRET_KEY"], r2_endpoint()],
+        )
     return conn
 
 
@@ -93,7 +94,9 @@ def main() -> None:
         conn.close()
 
     def worker(_: int) -> dict[str, object]:
-        local = connect()
+        # The R2 secret is catalog-scoped. Creating it in every worker causes
+        # concurrent catalog write conflicts; the main connection creates it once.
+        local = connect(configure_r2=False)
         try:
             return query(local, 30)
         finally:
