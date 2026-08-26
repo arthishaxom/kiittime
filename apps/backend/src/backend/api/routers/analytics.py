@@ -4,7 +4,8 @@ from datetime import UTC, datetime, timedelta
 from deltalake import DeltaTable
 from fastapi import APIRouter, Depends, Query
 
-from backend.api.schemas import DailyUsageItem, EndpointHealthItem, SectionTrendItem
+from backend.analytics.reader import get_analytics_reader
+from backend.api.schemas import AnalyticsDashboard, DailyUsageItem, EndpointHealthItem, SectionTrendItem
 from backend.auth.dependencies import get_current_admin
 from backend.config import get_duckdb_conn, get_settings
 
@@ -15,6 +16,19 @@ router = APIRouter(
     tags=["analytics"],
     dependencies=[Depends(get_current_admin)],
 )
+
+
+@router.get("/dashboard", response_model=AnalyticsDashboard)
+def get_dashboard(days: int = Query(30, ge=1, le=365)) -> AnalyticsDashboard:
+    """Return one consistent snapshot from the configured analytics compute backend."""
+    result = get_analytics_reader().dashboard(days)
+    return AnalyticsDashboard(
+        usage=[DailyUsageItem(date=r[0], dau=r[1], total_api_calls=r[2], timetable_searches=r[3]) for r in result.usage],
+        endpoint_health=[EndpointHealthItem(date=r[0], endpoint=r[1], total_calls=r[2], p95_latency_ms=r[3], error_rate=r[4]) for r in result.endpoint_health],
+        section_trends=[SectionTrendItem(date=r[0], section_name=r[1], section_year=r[2], search_volume=r[3]) for r in result.section_trends],
+        data_as_of=result.data_as_of,
+        stale=result.stale,
+    )
 
 
 def _get_gold_table_arrow(table_name: str):

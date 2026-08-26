@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     CF_ACCOUNT_ID: str = ""
     R2_BUCKET_NAME: str = "kiittime-analytics"
     GOLD_BASE_PATH: str | None = None
+    ANALYTICS_QUERY_BACKEND: str = "local"
+    MOTHERDUCK_DATABASE: str = ""
+    MOTHERDUCK_TOKEN: str = ""
+    ANALYTICS_QUERY_TIMEOUT_SECONDS: int = 10
+    ANALYTICS_POOL_SIZE: int = 4
     AXIOM_API_KEY: str = ""
     AXIOM_DATASET: str = "kiittime-backend-logs"
 

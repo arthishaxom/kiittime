@@ -189,3 +189,11 @@ class SectionTrendItem(BaseModel):
     section_name: str
     section_year: int
     search_volume: int
+
+
+class AnalyticsDashboard(BaseModel):
+    usage: list[DailyUsageItem]
+    endpoint_health: list[EndpointHealthItem]
+    section_trends: list[SectionTrendItem]
+    data_as_of: datetime
+    stale: bool = False
