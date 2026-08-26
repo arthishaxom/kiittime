@@ -31,7 +31,9 @@ BRONZE_LOGS_SCHEMA = pa.schema(
 
 
 @task(retries=3, retry_delay_seconds=60)
-def pull_axiom_logs(target_date: date | None = None, settings: Settings | None = None) -> date:
+def pull_axiom_logs(
+    target_date: date | None = None, settings: Settings | None = None
+) -> date | None:
     """Queries Axiom Query API for target_date's backend logs and writes to R2 Bronze Parquet."""
     if settings is None:
         settings = get_settings()
@@ -70,19 +72,11 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
                 row["ingested_at"] = ingested_at
                 rows.append(row)
 
-    base_bronze_path = f"s3://{settings.R2_BUCKET_NAME}/bronze/backend_logs"
+    if not rows:
+        return None
 
-    sample_ts = f"{target_date.isoformat()}T00:00:00Z"
-    if rows:
-        table = pa.Table.from_pylist(rows, schema=BRONZE_LOGS_SCHEMA)
-        where_clause = ""
-    else:
-        fallback_row = {
-            "timestamp": sample_ts,
-            "ingested_at": ingested_at,
-        }
-        table = pa.Table.from_pylist([fallback_row], schema=BRONZE_LOGS_SCHEMA)
-        where_clause = "WHERE 1=0"
+    base_bronze_path = f"s3://{settings.R2_BUCKET_NAME}/bronze/backend_logs"
+    table = pa.Table.from_pylist(rows, schema=BRONZE_LOGS_SCHEMA)
 
     conn = get_duckdb_conn(settings)
     try:
@@ -95,7 +89,6 @@ def pull_axiom_logs(target_date: date | None = None, settings: Settings | None =
                     strftime(timestamp::TIMESTAMP, '%m') AS month,
                     strftime(timestamp::TIMESTAMP, '%d') AS day
                 FROM arrow_bronze
-                {where_clause}
             ) TO '{base_bronze_path}'
             (FORMAT PARQUET, PARTITION_BY (year, month, day), OVERWRITE)
         """

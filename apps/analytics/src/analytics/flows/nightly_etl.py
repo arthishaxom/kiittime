@@ -29,6 +29,8 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
         target_date = (now_ist - timedelta(days=1)).date()
 
     pulled_date = pull_axiom_logs(target_date=target_date)
+    if pulled_date is None:
+        return target_date
     transform_bronze_to_silver(target_date=pulled_date)
     transform_silver_to_gold(target_date=pulled_date)
     return pulled_date
@@ -36,4 +38,3 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
 
 if __name__ == "__main__":
     nightly_etl_flow()
-
