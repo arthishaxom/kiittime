@@ -23,6 +23,11 @@ TABLES = {
     "endpoint_health": "gold/gold_endpoint_health",
     "section_trends": "gold/gold_section_trends",
 }
+PROJECTIONS = {
+    "daily_usage": "date, dau, total_api_calls, timetable_searches",
+    "endpoint_health": "date, endpoint, total_calls, p95_latency_ms, error_rate",
+    "section_trends": "date, section_name, section_year, search_volume",
+}
 RANGES = (7, 30, 90, 365)
 ANALYTICS_DIR = Path(__file__).resolve().parents[1]
 
@@ -61,12 +66,31 @@ def query(conn: duckdb.DuckDBPyConnection, days: int) -> dict[str, object]:
     start = end - timedelta(days=days - 1)
     result: dict[str, object] = {"days": days, "start": str(start), "end": str(end)}
     for name, relative in TABLES.items():
-        sql = """SELECT * FROM delta_scan(?) WHERE date BETWEEN ? AND ?"""
+        sql = f"""SELECT {PROJECTIONS[name]} FROM delta_scan(?) WHERE date BETWEEN ? AND ?"""
         started = time.perf_counter()
         rows = conn.execute(sql, [table_path(relative), start, end]).fetchall()
         elapsed = (time.perf_counter() - started) * 1000
         result[name] = {"rows": len(rows), "latency_ms": round(elapsed, 2)}
     return result
+
+
+def dashboard_query(conn: duckdb.DuckDBPyConnection, days: int) -> dict[str, object]:
+    """Measures one API-shaped request loading all dashboard panels once."""
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    started = time.perf_counter()
+    panel_rows = {}
+    for name, relative in TABLES.items():
+        sql = f"""SELECT {PROJECTIONS[name]} FROM delta_scan(?)
+                  WHERE date BETWEEN ? AND ? ORDER BY date"""
+        panel_rows[name] = len(conn.execute(sql, [table_path(relative), start, end]).fetchall())
+    return {
+        "days": days,
+        "start": str(start),
+        "end": str(end),
+        "panel_rows": panel_rows,
+        "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+    }
 
 
 def main() -> None:
@@ -90,6 +114,7 @@ def main() -> None:
                 [table_path(relative)],
             ).fetchall()
         ranges = [query(conn, days) for days in RANGES]
+        dashboard = dashboard_query(conn, 30)
     finally:
         conn.close()
 
@@ -110,6 +135,7 @@ def main() -> None:
     report = {
         "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "ranges": ranges,
+        "dashboard_30d": dashboard,
         "concurrency": {"users": args.concurrency, "wall_ms": round(total_ms, 2),
                          "daily_usage_p50_ms": statistics.median(latencies)},
         "plans": plans,
