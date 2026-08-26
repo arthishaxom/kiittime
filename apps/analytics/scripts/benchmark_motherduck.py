@@ -16,6 +16,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import duckdb
+from dotenv import load_dotenv
 
 TABLES = {
     "daily_usage": "gold/gold_daily_usage",
@@ -23,6 +24,7 @@ TABLES = {
     "section_trends": "gold/gold_section_trends",
 }
 RANGES = (7, 30, 90, 365)
+ANALYTICS_DIR = Path(__file__).resolve().parents[1]
 
 
 def connect() -> duckdb.DuckDBPyConnection:
@@ -67,6 +69,7 @@ def query(conn: duckdb.DuckDBPyConnection, days: int) -> dict[str, object]:
 
 
 def main() -> None:
+    load_dotenv(ANALYTICS_DIR / ".env")
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("motherduck-benchmark.json"))
     parser.add_argument("--concurrency", type=int, default=4)

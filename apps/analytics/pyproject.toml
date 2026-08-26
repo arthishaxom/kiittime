@@ -13,6 +13,7 @@ dependencies = [
     "deltalake>=0.25.0",
     "duckdb>=1.2.0",
     "prefect>=3.2.0",
+    "python-dotenv>=1.2.0",
     "pydantic-settings>=2.8.0",
     "pyarrow>=15.0.0",
 ]
@@ -38,5 +39,4 @@ select = ["E", "F", "I", "UP"]
 filterwarnings = [
     "ignore:Logger 'prefect.task_runs' attempted to send logs:UserWarning",
 ]
-
 
