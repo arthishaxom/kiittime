@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -37,19 +38,26 @@ class _ConnectionPool:
     def __init__(self, factory, size: int):
         self._factory = factory
         self._connections = queue.LifoQueue(maxsize=max(1, size))
-        self._size = max(1, size)
+        self._slots = threading.BoundedSemaphore(max(1, size))
 
     def acquire(self):
+        self._slots.acquire()
         try:
             return self._connections.get_nowait()
         except queue.Empty:
-            return self._factory()
+            try:
+                return self._factory()
+            except Exception:
+                self._slots.release()
+                raise
 
     def release(self, conn):
         try:
             self._connections.put_nowait(conn)
         except queue.Full:
             conn.close()
+        finally:
+            self._slots.release()
 
 
 class LocalAnalyticsReader:
