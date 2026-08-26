@@ -2,7 +2,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from deltalake import DeltaTable
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.analytics.reader import get_analytics_reader
 from backend.api.schemas import AnalyticsDashboard, DailyUsageItem, EndpointHealthItem, SectionTrendItem
@@ -21,7 +21,10 @@ router = APIRouter(
 @router.get("/dashboard", response_model=AnalyticsDashboard)
 def get_dashboard(days: int = Query(30, ge=1, le=365)) -> AnalyticsDashboard:
     """Return one consistent snapshot from the configured analytics compute backend."""
-    result = get_analytics_reader().dashboard(days)
+    try:
+        result = get_analytics_reader().dashboard(days)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Analytics temporarily unavailable") from exc
     return AnalyticsDashboard(
         usage=[DailyUsageItem(date=r[0], dau=r[1], total_api_calls=r[2], timetable_searches=r[3]) for r in result.usage],
         endpoint_health=[EndpointHealthItem(date=r[0], endpoint=r[1], total_calls=r[2], p95_latency_ms=r[3], error_rate=r[4]) for r in result.endpoint_health],

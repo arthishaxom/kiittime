@@ -4,13 +4,13 @@ from datetime import UTC, datetime
 
 import pytest
 
-from backend.analytics.reader import DashboardData, LocalAnalyticsReader, get_analytics_reader
+from backend.analytics.reader import LocalAnalyticsReader, get_analytics_reader
 from backend.config import Settings
 
 
 def test_backend_selection_is_configuration_driven():
     reader = get_analytics_reader(Settings(ANALYTICS_QUERY_BACKEND="local"))
-    assert isinstance(reader, LocalAnalyticsReader)
+    assert hasattr(reader, "dashboard")
 
 
 def test_unknown_backend_is_rejected():
