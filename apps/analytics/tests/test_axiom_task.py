@@ -143,4 +143,4 @@ def test_pull_axiom_logs_default_target_date(mock_axiom_client_cls, mock_get_duc
     )
 
     res_date = pull_axiom_logs(target_date=None, settings=settings)
-    assert isinstance(res_date, date)
+    assert res_date is None

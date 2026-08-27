@@ -38,8 +38,7 @@ def pull_axiom_logs(
     if settings is None:
         settings = get_settings()
 
-    default_target_date = target_date is None
-    if default_target_date:
+    if target_date is None:
         now_ist = datetime.now(IST_TIMEZONE)
         target_date = (now_ist - timedelta(days=1)).date()
 
@@ -74,7 +73,7 @@ def pull_axiom_logs(
                 rows.append(row)
 
     if not rows:
-        return target_date if default_target_date else None
+        return None
 
     base_bronze_path = f"s3://{settings.R2_BUCKET_NAME}/bronze/backend_logs"
     table = pa.Table.from_pylist(rows, schema=BRONZE_LOGS_SCHEMA)
