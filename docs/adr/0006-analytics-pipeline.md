@@ -216,15 +216,15 @@ Each task calls `mark_success` or `mark_failed` after completing. A `(date, stag
 
 ---
 
-### 7. Transformation Engine: DuckDB + deltalake
+### 7. Transformation Engine: DuckDB + MotherDuck
 
-All Bronze → Silver → Gold transforms use **DuckDB** (SQL-first, in-process columnar engine) with the `deltalake` Python library for Delta format writes.
+All Bronze → Silver → Gold transforms use **DuckDB running through MotherDuck**. Gold remains persisted as Delta tables in R2. Local DuckDB remains the development/test engine.
 
 **Why DuckDB over Pandas/Polars:**
 - All transforms are SQL aggregations (GROUP BY, PERCENTILE_CONT, UNNEST, FILTER). DuckDB expresses these natively; no DataFrame API adds value.
 - DuckDB reads R2 Parquet/Delta files directly via `httpfs` without loading to disk (`read_parquet('s3://...')`). No intermediate download step.
-- Runs in-process inside the GCR container — no server to provision.
-- The same DuckDB connection is reused by the FastAPI backend to serve Gold data to the admin dashboard, keeping one mental model across ETL and serving.
+- MotherDuck provides managed cloud compute for ETL and serving; the API/ETL worker does not perform large analytical scans locally.
+- The same DuckDB SQL model works locally and remotely.
 - At estimated data volumes (<200k rows/day), DuckDB processes a full day's Silver in milliseconds on a single vCPU.
 
 **Pandas is not replaced in the existing OLTP timetable pipeline** (`apps/backend/pipeline/`) — that pipeline does row-oriented Excel parsing and ORM inserts, which Pandas handles correctly. DuckDB is introduced only in `apps/analytics/`.
@@ -236,7 +236,7 @@ All Bronze → Silver → Gold transforms use **DuckDB** (SQL-first, in-process 
 | Concern | Tool |
 |---|---|
 | Scheduling, retries, observability UI | Prefect Cloud Hobby (free: 5 deployments, 500 serverless min/mo) |
-| Compute | Google Cloud Run via Prefect Push Work Pool (~50 hrs/mo free) |
+| Compute | MotherDuck for analytical SQL; Cloud Run only for orchestration/task execution |
 | Pipeline code | `apps/analytics/` — new Python 3.12 package in the monorepo |
 
 The nightly ETL flow runs at 02:00 IST. Steps:
@@ -274,9 +274,9 @@ Analytics pipeline secrets (Axiom API key, Cloudflare R2 access key + secret, Pr
 - Cloud Audit Logs provides secret access audit trail automatically.
 - The Prefect Cloud API key is the bootstrap exception: it is set as a GCR environment variable to initialise the Prefect worker, which then accesses all other secrets via GSM.
 
-### 11. DuckDB ↔ R2 Connectivity
+### 11. MotherDuck ↔ R2 Connectivity
 
-R2 is S3-compatible. DuckDB reads it via the `httpfs` extension:
+R2 is S3-compatible. MotherDuck/DuckDB reads external Delta data through the S3-compatible interface:
 
 ```python
 conn.execute("""
@@ -291,25 +291,31 @@ conn.execute("""
 """)
 ```
 
-A `get_duckdb_conn()` factory in `config.py` configures this once and is injected into every task and the FastAPI analytics endpoints.
+A connection factory configures MotherDuck authentication and the R2 secret. Credentials are service-account scoped and separated by read/write role. Exact external Delta/R2 compatibility is a production gate tested before rollout.
 
 ### 12. Admin Dashboard API
 
-FastAPI serves Gold data to the admin webapp using in-process DuckDB queries against R2 Gold Delta files:
+FastAPI serves Gold data through a thin `AnalyticsReader` adapter. The production reader uses the DuckDB Python client connected to MotherDuck; MotherDuck executes the query and returns the small result to FastAPI:
 
 ```
-Admin webapp -> GET /admin/analytics/* -> FastAPI -> DuckDB -> R2 Gold -> JSON
+Admin webapp -> GET /admin/analytics/dashboard -> FastAPI -> MotherDuck -> R2 Gold -> JSON
 ```
 
-Three endpoints, one per Gold table:
+One consolidated dashboard endpoint:
 
-| Endpoint | Query param | Gold table |
+| Endpoint | Query param | Internal queries |
 |---|---|---|
-| `GET /admin/analytics/usage` | `days=30` | `gold_daily_usage` |
-| `GET /admin/analytics/endpoint-health` | `days=30` | `gold_endpoint_health` |
-| `GET /admin/analytics/section-trends` | `days=7` | `gold_section_trends` |
+| `GET /admin/analytics/dashboard` | `days=30` | daily usage, endpoint health, section trends |
 
-The `days` parameter enables time-range filtering. The admin webapp exposes a preset range selector (`7D · 30D · 90D · 1Y · Custom`). TanStack Query fetches the three endpoints independently so charts load in parallel.
+The `days` parameter enables time-range filtering. The admin webapp exposes a preset range selector (`7D · 30D · 90D · 1Y · Custom`). FastAPI executes bounded, predefined SQL queries and returns one consistent `data_as_of` value.
+
+The reader is selected by `ANALYTICS_QUERY_BACKEND=motherduck|local`. A bounded reused connection pool is used in production; the local reader is retained for tests and temporary rollback. Browser clients never receive MotherDuck credentials.
+
+The API queries only dates marked successful in the R2 pipeline control metadata. If MotherDuck fails, the API serves the last successful result with `stale=true` when available; otherwise it returns `503`.
+
+MotherDuck read scaling is enabled only if concurrency benchmarks require it. Redis caching is deferred until production measurements show repeated identical queries justify it.
+
+During the rollout, the existing R2 Delta writer remains unchanged while remote MotherDuck Delta writes are validated separately. If MotherDuck is unavailable, a bounded FastAPI-side cache may serve the last complete dashboard result with `stale=true`; partial mixed-freshness dashboard responses are not returned.
 
 **Admin dashboard sections:**
 - **Usage Overview** — DAU line chart, API calls vs timetable searches dual-line chart, today's KPI stat cards
@@ -319,6 +325,10 @@ The `days` parameter enables time-range filtering. The admin webapp exposes a pr
 ### 13. Industry Standard Caveat
 
 The Axiom Query API nightly poll is a small-scale adaptation of the enterprise pattern (enterprise uses Kafka/Kinesis → real-time S3 streaming). At KIITTime's scale a nightly pull is correct and sufficient. The Observability Platform → Data Lake Medallion Architecture pattern (Bronze/Silver/Gold) is industry standard regardless of scale.
+
+### 14. MotherDuck Adoption Gates
+
+MotherDuck adoption is phased: first dashboard reads, then ETL compute after successful observation. Production requires R2 Delta compatibility, successful 7/30/90/365-day reads, p95 dashboard latency within the agreed approximately two-second target, concurrent-user testing, bounded cost, timeout/retry behavior, stale-data behavior, and a verified R2 rebuild/backfill path. The previous local/R2 reader remains behind the feature flag during rollout. Implementation begins with Phase 1 only after explicit approval; ETL changes remain deferred until Phase 1 is validated.
 
 ---
 
@@ -333,7 +343,8 @@ The Axiom Query API nightly poll is a small-scale adaptation of the enterprise p
 
 **Negative / Trade-offs:**
 - Nightly ETL means dashboard data is always 1 day behind. Real-time analytics would require Kafka + streaming, which is out of scope and out of budget.
-- Render free tier spins down after 15 minutes of inactivity — the FastAPI analytics endpoints have cold-start latency on first admin dashboard load.
+- MotherDuck adds a managed compute and external-storage dependency; latency and cost depend on query shape, R2 layout, region, and concurrency.
+- Render free tier spins down after 15 minutes of inactivity — FastAPI still has ordinary application cold-start latency, but does not perform the analytical scan.
 - Aiven Postgres can auto-sleep — the backend must handle reconnection gracefully (already managed by SQLAlchemy connection pooling).
 - Google Secret Manager introduces a GCP dependency for the analytics pipeline. If the project moves off GCP compute, secrets must be migrated.
 - Axiom 30-day retention means Bronze backend logs older than 30 days cannot be re-pulled. Once written to R2, Bronze is the permanent record — the nightly pull must not be skipped.

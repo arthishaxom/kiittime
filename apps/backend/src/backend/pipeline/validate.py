@@ -49,8 +49,9 @@ def _append_year_hint(
     near-identical duplicate rows)."""
     has_different_content = False
     for conflict_sid, conflict_day, conflict_period in conflicts:
-        distinct: set[tuple[str, str, str]] = set()
+        distinct: set[tuple[str, str | None, str]] = set()
         for i, s in enumerate(sessions):
+
             if (
                 s.section_id == conflict_sid
                 and s.day == conflict_day

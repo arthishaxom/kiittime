@@ -178,3 +178,88 @@ def test_analytics_days_filter(admin_client, monkeypatch, tmp_path):
     data = res.json()
     assert len(data) == 1
     assert data[0]["date"] == recent_date.isoformat()
+
+
+def test_dashboard_unauthenticated_returns_401(unauthenticated_client):
+    res = unauthenticated_client.get("/admin/analytics/dashboard")
+    assert res.status_code == 401
+
+
+def test_dashboard_cold_start_returns_200(admin_client, monkeypatch, tmp_path):
+    from backend.analytics.reader import reset_reader_cache
+    reset_reader_cache()
+    monkeypatch.setenv("GOLD_BASE_PATH", str(tmp_path / "empty_gold"))
+    monkeypatch.setenv("ANALYTICS_QUERY_BACKEND", "local")
+
+    res = admin_client.get("/admin/analytics/dashboard?days=30")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["usage"] == []
+    assert data["endpoint_health"] == []
+    assert data["section_trends"] == []
+    assert data["stale"] is False
+    assert "data_as_of" in data
+
+
+def test_dashboard_preseeded_data(admin_client, monkeypatch, tmp_path):
+    from backend.analytics.reader import reset_reader_cache
+    reset_reader_cache()
+    gold_dir = tmp_path / "gold"
+    gold_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("GOLD_BASE_PATH", str(gold_dir))
+    monkeypatch.setenv("ANALYTICS_QUERY_BACKEND", "local")
+
+    conn = duckdb.connect()
+    today_dt = datetime.now(UTC).date()
+    d1 = today_dt - timedelta(days=5)
+
+    usage_data = [{"date": d1, "dau": 10, "total_api_calls": 100, "timetable_searches": 40}]
+    usage_rel = conn.sql("SELECT t.* FROM (SELECT unnest(?) AS t)", params=[usage_data])
+    write_deltalake(str(gold_dir / "gold_daily_usage"), usage_rel, mode="overwrite")
+
+    health_data = [{"date": d1, "endpoint": "/timetable/", "total_calls": 100, "p95_latency_ms": 15.0, "error_rate": 0.02}]
+    health_rel = conn.sql("SELECT t.* FROM (SELECT unnest(?) AS t)", params=[health_data])
+    write_deltalake(str(gold_dir / "gold_endpoint_health"), health_rel, mode="overwrite")
+
+    trends_data = [{"date": d1, "section_name": "22CSE1", "section_year": 2, "search_volume": 40}]
+    trends_rel = conn.sql("SELECT t.* FROM (SELECT unnest(?) AS t)", params=[trends_data])
+    write_deltalake(str(gold_dir / "gold_section_trends"), trends_rel, mode="overwrite")
+    conn.close()
+
+    res = admin_client.get("/admin/analytics/dashboard?days=30")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["usage"]) == 1
+    assert data["usage"][0]["dau"] == 10
+    assert len(data["endpoint_health"]) == 1
+    assert data["endpoint_health"][0]["endpoint"] == "/timetable/"
+    assert len(data["section_trends"]) == 1
+    assert data["section_trends"][0]["section_name"] == "22CSE1"
+    assert data["stale"] is False
+
+
+def test_dashboard_bounds_validation(admin_client):
+    r_low = admin_client.get("/admin/analytics/dashboard?days=0")
+    assert r_low.status_code == 422
+
+    r_high = admin_client.get("/admin/analytics/dashboard?days=366")
+    assert r_high.status_code == 422
+
+    r_valid = admin_client.get("/admin/analytics/dashboard?days=1")
+    assert r_valid.status_code in (200, 503)
+
+
+def test_dashboard_unavailable_returns_503(admin_client, monkeypatch):
+    from backend.analytics.reader import reset_reader_cache
+    reset_reader_cache()
+
+    class BrokenReader:
+        def dashboard(self, days: int):
+            raise RuntimeError("Database unreachable")
+
+    monkeypatch.setattr("backend.api.routers.analytics.get_analytics_reader", lambda: BrokenReader())
+
+    res = admin_client.get("/admin/analytics/dashboard?days=30")
+    assert res.status_code == 503
+    assert res.json()["detail"] == "Analytics temporarily unavailable"
+

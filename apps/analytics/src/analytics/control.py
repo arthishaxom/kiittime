@@ -49,12 +49,14 @@ def stage_succeeded(
     stage: str,
 ) -> bool:
     _ensure_table(conn, path)
-    return bool(conn.execute(
+    row = conn.execute(
         "SELECT COUNT(*) FROM pipeline_runs "
         "WHERE date = ? AND source IS NOT DISTINCT FROM ? "
         "AND stage = ? AND status = 'success'",
         [target_date, source, stage],
-    ).fetchone()[0])
+    ).fetchone()
+    return bool(row[0]) if row is not None else False
+
 
 
 def mark_stage(
