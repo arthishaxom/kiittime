@@ -44,7 +44,9 @@ filterwarnings = [
 [tool.basedpyright]
 typeCheckingMode = "standard"
 include = ["src"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
 reportUninitializedInstanceVariable = "none"
 reportMissingTypeArgument = "none"
-
 

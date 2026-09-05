@@ -61,7 +61,9 @@ entrypoint = "backend.main:app"
 typeCheckingMode = "standard"
 include = ["src"]
 exclude = ["src/backend/db/migrations"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
 reportUninitializedInstanceVariable = "none"
 reportMissingTypeArgument = "none"
-
 
