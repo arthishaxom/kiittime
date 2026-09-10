@@ -16,6 +16,8 @@ dependencies = [
     "python-dotenv>=1.2.0",
     "pydantic-settings>=2.8.0",
     "pyarrow>=15.0.0",
+    "psycopg[binary]>=3.3.4",
+    "sqlalchemy>=2.0.51",
 ]
 
 [build-system]
@@ -49,4 +51,3 @@ venv = ".venv"
 pythonVersion = "3.14"
 reportUninitializedInstanceVariable = "none"
 reportMissingTypeArgument = "none"
-

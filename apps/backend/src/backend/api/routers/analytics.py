@@ -3,7 +3,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend.analytics.reader import get_analytics_reader
-from backend.api.schemas import AnalyticsDashboard, DailyUsageItem, EndpointHealthItem, SectionTrendItem
+from backend.api.schemas import (
+    AnalyticsDashboard,
+    DailyUsageItem,
+    EndpointHealthItem,
+    SectionTrendItem,
+)
 from backend.auth.dependencies import get_current_admin
 
 logger = logging.getLogger(__name__)
@@ -17,7 +22,7 @@ router = APIRouter(
 
 @router.get("/dashboard", response_model=AnalyticsDashboard)
 def get_dashboard(days: int = Query(30, ge=1, le=365)) -> AnalyticsDashboard:
-    """Return one consistent snapshot from the configured analytics compute backend."""
+    """Return one consistent snapshot from the PostgreSQL serving snapshot."""
     try:
         result = get_analytics_reader().dashboard(days)
     except Exception as exc:
@@ -52,6 +57,7 @@ def get_dashboard(days: int = Query(30, ge=1, le=365)) -> AnalyticsDashboard:
             for r in result.section_trends
         ],
         data_as_of=result.data_as_of,
+        synced_at=result.synced_at,
         stale=result.stale,
     )
 
@@ -115,4 +121,3 @@ def get_section_trends(
         )
         for r in result.section_trends
     ]
-

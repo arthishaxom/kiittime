@@ -4,7 +4,7 @@ Date: 2026-08-04
 
 ## Status
 
-Accepted
+Accepted — the analytics serving path is superseded in part by [ADR-0007](0007-postgresql-analytics-serving-snapshot.md). Data collection, Bronze/Silver/Gold storage, source processing, orchestration, and pipeline control decisions remain in force unless ADR-0007 explicitly changes them.
 
 ## Context
 
@@ -294,6 +294,8 @@ conn.execute("""
 A connection factory configures MotherDuck authentication and the R2 secret. Credentials are service-account scoped and separated by read/write role. Exact external Delta/R2 compatibility is a production gate tested before rollout.
 
 ### 12. Admin Dashboard API
+
+> The serving design in this section is historical. The current serving design is recorded in [ADR-0007](0007-postgresql-analytics-serving-snapshot.md).
 
 FastAPI serves Gold data through a thin `AnalyticsReader` adapter. The production reader uses the DuckDB Python client connected to MotherDuck; MotherDuck executes the query and returns the small result to FastAPI:
 

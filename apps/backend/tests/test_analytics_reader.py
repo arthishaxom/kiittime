@@ -1,68 +1,197 @@
-"""Tests for the analytics compute seam."""
+"""Tests for the PostgreSQL serving-snapshot reader (ADR-0007)."""
 
-from datetime import UTC, datetime
+import os
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
+import sqlalchemy as sa
 
 from backend.analytics.reader import (
-    DailyUsageRecord,
+    AnalyticsSnapshotUnavailable,
     DashboardData,
-    EndpointHealthRecord,
     LocalAnalyticsReader,
-    MotherDuckAnalyticsReader,
-    SectionTrendRecord,
+    PostgresAnalyticsReader,
     _ConnectionPool,
     _FallbackReader,
     get_analytics_reader,
     reset_reader_cache,
 )
+from backend.analytics.tables import (
+    gold_daily_usage,
+    gold_endpoint_health,
+    gold_section_trends,
+    sync_metadata,
+)
 from backend.config import Settings
+
+
+def _pg_url() -> str:
+    url = os.environ.get("DATABASE_URL", "")
+    assert url, "DATABASE_URL must be set (testcontainers fixture provides it)"
+    return url
+
+
+def _engine():
+    return sa.create_engine(_pg_url())
+
+
+def _clear(engine) -> None:
+    with engine.begin() as conn:
+        for table in (gold_endpoint_health, gold_section_trends, gold_daily_usage, sync_metadata):
+            conn.execute(table.delete())
+
+
+def _seed_published(engine, day: date, *, status: str = "published") -> None:
+    _clear(engine)
+    with engine.begin() as conn:
+        conn.execute(
+            gold_daily_usage.insert().values(
+                date=day, dau=10, total_api_calls=100, timetable_searches=40
+            )
+        )
+        conn.execute(
+            gold_endpoint_health.insert().values(
+                date=day,
+                endpoint="/timetable/",
+                total_calls=100,
+                p95_latency_ms=15.0,
+                error_rate=0.02,
+            )
+        )
+        conn.execute(
+            gold_section_trends.insert().values(
+                date=day, section_name="22CSE1", section_year=2, search_volume=40
+            )
+        )
+        conn.execute(
+            sync_metadata.insert().values(
+                id=1,
+                data_as_of=day,
+                synced_at=datetime.now(UTC),
+                expected_date=day,
+                status=status,
+                error_message=None,
+            )
+        )
+
+
+def _reader(engine) -> PostgresAnalyticsReader:
+    reset_reader_cache()
+    return PostgresAnalyticsReader(Settings(ANALYTICS_DATABASE_URL=_pg_url()), engine=engine)
+
+
+def test_postgres_dashboard_returns_consistent_snapshot(db):
+    engine = _engine()
+    day = datetime.now(UTC).date() - timedelta(days=2)
+    _seed_published(engine, day)
+
+    result = _reader(engine).dashboard(30)
+
+    assert len(result.usage) == 1
+    assert result.usage[0].dau == 10
+    assert len(result.endpoint_health) == 1
+    assert len(result.section_trends) == 1
+    assert result.stale is False
+    assert result.data_as_of.date() == day
+    assert result.synced_at.tzinfo is not None
+
+
+def test_postgres_no_snapshot_raises(db):
+    engine = _engine()
+    _clear(engine)
+
+    with pytest.raises(AnalyticsSnapshotUnavailable):
+        _reader(engine).dashboard(30)
+
+
+def test_postgres_pending_keeps_prior_snapshot_stale(db):
+    engine = _engine()
+    day = datetime.now(UTC).date() - timedelta(days=2)
+    _seed_published(engine, day)
+    expected = day + timedelta(days=1)
+    with engine.begin() as conn:
+        conn.execute(
+            sync_metadata.update()
+            .where(sync_metadata.c.id == 1)
+            .values(status="pending", expected_date=expected)
+        )
+
+    result = _reader(engine).dashboard(30)
+
+    assert len(result.usage) == 1
+    assert result.stale is True
+
+
+def test_postgres_failed_keeps_prior_snapshot_stale(db):
+    engine = _engine()
+    day = datetime.now(UTC).date() - timedelta(days=2)
+    _seed_published(engine, day)
+    expected = day + timedelta(days=1)
+    with engine.begin() as conn:
+        conn.execute(
+            sync_metadata.update()
+            .where(sync_metadata.c.id == 1)
+            .values(status="failed", expected_date=expected, error_message="boom")
+        )
+
+    result = _reader(engine).dashboard(30)
+
+    assert len(result.usage) == 1
+    assert result.stale is True
+
+
+def test_postgres_days_filter_bounded(db):
+    engine = _engine()
+    today = datetime.now(UTC).date()
+    old, recent = today - timedelta(days=10), today - timedelta(days=2)
+    _clear(engine)
+    with engine.begin() as conn:
+        conn.execute(
+            gold_daily_usage.insert(),
+            [
+                {"date": old, "dau": 5, "total_api_calls": 50, "timetable_searches": 10},
+                {"date": recent, "dau": 20, "total_api_calls": 200, "timetable_searches": 100},
+            ],
+        )
+        conn.execute(
+            sync_metadata.insert().values(
+                id=1,
+                data_as_of=recent,
+                synced_at=datetime.now(UTC),
+                expected_date=recent,
+                status="published",
+            )
+        )
+
+    result = _reader(engine).dashboard(5)
+
+    assert [r.date for r in result.usage] == [recent]
 
 
 def test_backend_selection_is_configuration_driven():
     reset_reader_cache()
-    reader = get_analytics_reader(Settings(ANALYTICS_QUERY_BACKEND="local"))
+    reader = get_analytics_reader(Settings(ANALYTICS_QUERY_BACKEND="local_r2"))
     assert hasattr(reader, "dashboard")
-
-
-def test_unknown_backend_is_rejected():
     reset_reader_cache()
     with pytest.raises(ValueError, match="ANALYTICS_QUERY_BACKEND"):
         get_analytics_reader(Settings(ANALYTICS_QUERY_BACKEND="unknown"))
 
 
-def test_local_dashboard_returns_one_consistent_snapshot(monkeypatch, tmp_path):
-    reader = LocalAnalyticsReader(Settings(GOLD_BASE_PATH=str(tmp_path)))
-    values = {
-        "gold_daily_usage": [(datetime(2026, 1, 1).date(), 4, 9, 2)],
-        "gold_endpoint_health": [(datetime(2026, 1, 1).date(), "/health", 9, 12.5, 0.0)],
-        "gold_section_trends": [(datetime(2026, 1, 1).date(), "22CSE1", 2, 3)],
-    }
-    monkeypatch.setattr(reader, "_query", lambda name, columns, order, days: values[name])
-
-    result = reader.dashboard(30)
-
-    assert result.usage == [DailyUsageRecord(datetime(2026, 1, 1).date(), 4, 9, 2)]
-    assert result.endpoint_health == [EndpointHealthRecord(datetime(2026, 1, 1).date(), "/health", 9, 12.5, 0.0)]
-    assert result.section_trends == [SectionTrendRecord(datetime(2026, 1, 1).date(), "22CSE1", 2, 3)]
-    assert result.stale is False
-    assert result.data_as_of.tzinfo == UTC
-    assert result.data_as_of.date() == datetime(2026, 1, 1).date()
-
-
-
-def test_motherduck_requires_server_side_token():
+def test_default_backend_is_postgres_reader():
     reset_reader_cache()
-    with pytest.raises(ValueError, match="MOTHERDUCK_TOKEN"):
-        get_analytics_reader(Settings(ANALYTICS_QUERY_BACKEND="motherduck", MOTHERDUCK_TOKEN=""))
+    reader = get_analytics_reader(
+        Settings(ANALYTICS_QUERY_BACKEND="postgres", ANALYTICS_DATABASE_URL=_pg_url())
+    )
+    assert isinstance(reader, PostgresAnalyticsReader)
 
 
 def test_fallback_reader_caches_and_serves_stale():
     mock_data = DashboardData(
-        usage=[(datetime(2026, 1, 1).date(), 10, 100, 50)],
+        usage=[],
         endpoint_health=[],
         section_trends=[],
         data_as_of=datetime.now(UTC),
+        synced_at=datetime.now(UTC),
         stale=False,
     )
 
@@ -74,23 +203,19 @@ def test_fallback_reader_caches_and_serves_stale():
             self.calls += 1
             if self.calls == 1:
                 return mock_data
-            raise ConnectionError("MotherDuck timeout")
+            raise ConnectionError("rollback store timeout")
 
     flaky = FlakyReader()
     fallback = _FallbackReader(flaky, max_entries=2)
 
-    # 1. First call succeeds
     res1 = fallback.dashboard(30)
     assert res1.stale is False
-    assert res1.usage == mock_data.usage
 
-    # 2. Second call fails, falls back to stale
     res2 = fallback.dashboard(30)
     assert res2.stale is True
     assert res2.usage == mock_data.usage
 
-    # 3. Uncached days query fails and raises
-    with pytest.raises(ConnectionError, match="MotherDuck timeout"):
+    with pytest.raises(ConnectionError, match="rollback store timeout"):
         fallback.dashboard(7)
 
 
@@ -111,3 +236,18 @@ def test_connection_pool_acquire_and_release():
     assert c1_reacquired == "conn_1"
     pool.release(c1_reacquired)
 
+
+def test_local_rollback_dashboard_returns_consistent_snapshot(monkeypatch, tmp_path):
+    reader = LocalAnalyticsReader(Settings(GOLD_BASE_PATH=str(tmp_path)))
+    values = {
+        "gold_daily_usage": [(date(2026, 1, 1), 4, 9, 2)],
+        "gold_endpoint_health": [(date(2026, 1, 1), "/health", 9, 12.5, 0.0)],
+        "gold_section_trends": [(date(2026, 1, 1), "22CSE1", 2, 3)],
+    }
+    monkeypatch.setattr(reader, "_query", lambda name, columns, order, days: values[name])
+
+    result = reader.dashboard(30)
+
+    assert result.usage[0].dau == 4
+    assert result.stale is False
+    assert result.data_as_of.date() == date(2026, 1, 1)

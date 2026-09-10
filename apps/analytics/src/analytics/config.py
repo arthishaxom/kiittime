@@ -1,4 +1,4 @@
-"""Analytics package configuration and DuckDB connection factory."""
+"""Analytics worker configuration and DuckDB ETL connection factory."""
 
 import duckdb
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,6 +13,15 @@ class Settings(BaseSettings):
     AXIOM_DATASET: str = "kiittime-backend-logs"
     ENVIRONMENT: str = "dev"
     R2_BUCKET_NAME: str = "kiittime-analytics"
+    GOLD_BASE_PATH: str | None = None
+    DATABASE_URL: str = ""
+    ANALYTICS_DATABASE_URL: str = ""
+    ANALYTICS_WRITER_DATABASE_URL: str = ""
+    ANALYTICS_POOL_SIZE: int = 4
+    POSTHOG_API_KEY: str = ""
+    POSTHOG_PROJECT_ID: str = ""
+    POSTHOG_HOST: str = "https://us.posthog.com"
+    POSTHOG_EMPTY_DATES: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

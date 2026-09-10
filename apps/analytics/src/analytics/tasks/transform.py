@@ -1,7 +1,7 @@
 """DuckDB transformation tasks for Bronze to Silver pipeline."""
 
-import logging
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import duckdb
@@ -9,8 +9,13 @@ from deltalake import DeltaTable, write_deltalake
 from prefect import task
 
 from analytics.config import Settings, get_duckdb_conn, get_settings
+from analytics.tasks.posthog import SourceState
 
 IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
+
+
+class SourceIncompleteError(RuntimeError):
+    """Raised when a source interval is not safe to publish."""
 
 
 @task(retries=3, retry_delay_seconds=60)
@@ -178,6 +183,7 @@ def transform_silver_to_gold(
     settings: Settings | None = None,
     silver_base_path: str | None = None,
     posthog_bronze_path: str | None = None,
+    posthog_status: SourceState | str | None = None,
     gold_base_path: str | None = None,
     conn: duckdb.DuckDBPyConnection | None = None,
 ) -> date:
@@ -198,8 +204,7 @@ def transform_silver_to_gold(
 
     if posthog_bronze_path is None:
         posthog_bronze_path = (
-            f"s3://{settings.R2_BUCKET_NAME}/bronze/posthog/"
-            f"{year}/{month}/{day}/*.parquet*"
+            f"s3://{settings.R2_BUCKET_NAME}/bronze/posthog/{year}/{month}/{day}/*.parquet*"
         )
 
     if gold_base_path is None:
@@ -288,22 +293,41 @@ def transform_silver_to_gold(
                 )
             """)
 
-        # Calculate DAU from PostHog Bronze Parquet
-        dau_val = 0
-        try:
-            clean_posthog_path = posthog_bronze_path.replace("\\", "/")
-            res = conn.sql(
-                f"SELECT COUNT(DISTINCT distinct_id) FROM read_parquet('{clean_posthog_path}')"
-            ).fetchone()
-            if res and res[0] is not None:
-                dau_val = int(res[0])
-        except Exception as exc:
-            logging.getLogger(__name__).warning(
-                "PostHog Bronze Parquet not found for %s (DAU=0): %s",
-                target_date_str,
-                exc,
+        # DAU is zero only after the source has been authoritatively classified
+        # as empty. An absent export is pending, never an empty interval.
+        if posthog_status is None:
+            if posthog_bronze_path.startswith(("s3://", "r2://")):
+                source_state = SourceState.DATA
+            else:
+                source_state = (
+                    SourceState.DATA
+                    if list(Path(posthog_bronze_path).parent.glob(Path(posthog_bronze_path).name))
+                    else SourceState.PENDING
+                )
+        elif hasattr(posthog_status, "state"):
+            source_state = SourceState(posthog_status.state)
+        else:
+            source_state = SourceState(posthog_status)
+
+        if source_state in {SourceState.PENDING, SourceState.FAILED}:
+            raise SourceIncompleteError(
+                f"PostHog source for {target_date_str} is {source_state.value}; "
+                "Gold is not publishable"
             )
-            dau_val = 0
+
+        dau_val = 0
+        if source_state is SourceState.DATA:
+            try:
+                clean_posthog_path = posthog_bronze_path.replace("\\", "/")
+                res = conn.sql(
+                    f"SELECT COUNT(DISTINCT distinct_id) FROM read_parquet('{clean_posthog_path}')"
+                ).fetchone()
+                if res and res[0] is not None:
+                    dau_val = int(res[0])
+            except Exception as exc:
+                raise SourceIncompleteError(
+                    f"PostHog data for {target_date_str} could not be read"
+                ) from exc
 
         # 1. gold_daily_usage
         daily_usage_sql = f"""
@@ -381,4 +405,3 @@ def transform_silver_to_gold(
             conn.close()
 
     return target_date
-

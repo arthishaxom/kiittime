@@ -24,6 +24,19 @@ def test_pending_dates_are_oldest_and_exclude_complete_dates(tmp_path):
     old = date(2026, 8, 1)
     current = date(2026, 8, 4)
     mark_stage(conn, path, old, None, "gold", "success")
+    mark_stage(conn, path, old, None, "serving", "success")
     mark_stage(conn, path, current, None, "gold", "failed")
 
     assert get_pending_dates(conn, path, current) == [current]
+
+
+def test_gold_without_serving_remains_pending(tmp_path):
+    conn = duckdb.connect()
+    path = str(tmp_path / "pipeline_runs.parquet")
+    old = date(2026, 8, 1)
+    current = date(2026, 8, 4)
+    mark_stage(conn, path, old, None, "gold", "success")
+    mark_stage(conn, path, current, None, "gold", "success")
+    mark_stage(conn, path, current, None, "serving", "success")
+
+    assert get_pending_dates(conn, path, current) == [old, current]

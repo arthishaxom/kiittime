@@ -21,8 +21,7 @@ def _table_exists(conn: duckdb.DuckDBPyConnection, path: str) -> bool:
 def _ensure_table(conn: duckdb.DuckDBPyConnection, path: str) -> None:
     if _table_exists(conn, path):
         conn.execute(
-            f"CREATE OR REPLACE TEMP TABLE pipeline_runs AS "
-            f"SELECT * FROM read_parquet('{path}')"
+            f"CREATE OR REPLACE TEMP TABLE pipeline_runs AS SELECT * FROM read_parquet('{path}')"
         )
     else:
         conn.execute(f"CREATE OR REPLACE TEMP TABLE pipeline_runs ({CONTROL_SCHEMA})")
@@ -33,7 +32,8 @@ def get_pending_dates(conn: duckdb.DuckDBPyConnection, path: str, target_date: d
     _ensure_table(conn, path)
     rows = conn.execute(
         """SELECT date FROM pipeline_runs GROUP BY date
-           HAVING NOT BOOL_OR(stage = 'gold' AND status = 'success')
+           HAVING NOT (COALESCE(BOOL_OR(stage = 'gold' AND status = 'success'), FALSE)
+                       AND COALESCE(BOOL_OR(stage = 'serving' AND status = 'success'), FALSE))
            ORDER BY date"""
     ).fetchall()
     dates = {row[0] for row in rows}
@@ -56,7 +56,6 @@ def stage_succeeded(
         [target_date, source, stage],
     ).fetchone()
     return bool(row[0]) if row is not None else False
-
 
 
 def mark_stage(

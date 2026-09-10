@@ -196,4 +196,5 @@ class AnalyticsDashboard(BaseModel):
     endpoint_health: list[EndpointHealthItem]
     section_trends: list[SectionTrendItem]
     data_as_of: datetime
+    synced_at: datetime
     stale: bool = False
