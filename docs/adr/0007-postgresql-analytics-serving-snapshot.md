@@ -21,6 +21,13 @@ KIITTime's admin dashboard serves three small, pre-aggregated Gold datasets. Rea
 - MotherDuck is removed from the FastAPI request path. MotherDuck ETL migration is deferred. The existing local R2 reader remains temporarily available as an explicit rollback path during cutover.
 - The analytics worker uses a write-capable database credential; FastAPI uses a read-only analytics credential. Credentials remain server-side.
 
+### Ops notes (2026-09-11 post-135 review)
+
+- Credential split enforced via `ANALYTICS_WRITER_DATABASE_URL` (worker) vs `ANALYTICS_DATABASE_URL` (FastAPI), both falling back to `DATABASE_URL` locally with a startup warning. `render.yaml` wires all three; in-schema COMMENT records the contract (Aiven Free has a single DB user, so separation is by connection string, not PG roles).
+- Pool budget: backend main 4 + reader 2 + worker 2 per process, `max_overflow=0`. Two processes = 16 conns, under the 20-conn Free limit. `ANALYTICS_POOL_SIZE` defaults to 2, hard-capped at 2.
+- `POSTHOG_EMPTY_DATES` (comma-separated YYYY-MM-DD) is an explicit operator override for authoritatively empty PostHog intervals. It is the only config-based empty path; absent files alone never imply empty.
+- Flow return: `nightly_etl_flow` returns the pending date on PENDING (not the requested target). Callers check `sync_metadata.status` to distinguish stale vs published.
+- `mark_pending`/`mark_failed` run in a single transaction (`SELECT … FOR UPDATE` + upsert) to avoid read-modify-write clobber on concurrent flows.
 ### Source completeness
 
 The pipeline never infers zero activity from an absent PostHog object:

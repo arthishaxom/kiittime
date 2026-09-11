@@ -38,7 +38,12 @@ def _delivery_state(delivery: PostHogDelivery | bool) -> PostHogDelivery:
 
 @flow(name="nightly-etl-flow")
 def nightly_etl_flow(target_date: date | None = None) -> date:
-    """Process incomplete dates oldest-first and publish only complete snapshots."""
+    """Process incomplete dates oldest-first and publish only complete snapshots.
+
+    Returns the last attempted date. On PENDING the return is the pending
+    date (not the requested target); callers must check repository status
+    to distinguish stale vs published.
+    """
     if target_date is None:
         now_ist = datetime.now(IST_TIMEZONE)
         target_date = (now_ist - timedelta(days=1)).date()
@@ -102,7 +107,7 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
                     delivery.file_count,
                 )
                 repository.mark_pending(current_date)
-                break
+                return current_date
             if delivery.state is SourceState.FAILED:
                 error = RuntimeError(delivery.detail or "PostHog delivery failed")
                 mark_stage(conn, control_path, current_date, "posthog", "bronze", "failed")

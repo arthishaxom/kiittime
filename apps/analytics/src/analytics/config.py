@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     ANALYTICS_DATABASE_URL: str = ""
     ANALYTICS_WRITER_DATABASE_URL: str = ""
-    ANALYTICS_POOL_SIZE: int = 4
+    # Shared Aiven Free budget (20 conns/processes): backend main 4 + reader 2 + worker 2.
+    ANALYTICS_POOL_SIZE: int = 2
     POSTHOG_API_KEY: str = ""
     POSTHOG_PROJECT_ID: str = ""
     POSTHOG_HOST: str = "https://us.posthog.com"

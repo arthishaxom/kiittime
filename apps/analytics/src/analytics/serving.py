@@ -7,7 +7,7 @@ import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 import sqlalchemy as sa
@@ -22,8 +22,10 @@ logger = logging.getLogger(__name__)
 IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
 ANALYTICS_SCHEMA = "analytics"
 
+SyncStatus = Literal["published", "pending", "failed"]
 
-def _table(name: str, *columns: sa.Column, primary_key: Sequence[str]) -> sa.Table:
+
+def _serving_table(name: str, *columns: sa.Column, primary_key: Sequence[str]) -> sa.Table:
     return sa.Table(
         name,
         sa.MetaData(),
@@ -33,7 +35,7 @@ def _table(name: str, *columns: sa.Column, primary_key: Sequence[str]) -> sa.Tab
     )
 
 
-gold_daily_usage = _table(
+gold_daily_usage = _serving_table(
     "gold_daily_usage",
     sa.Column("date", sa.Date),
     sa.Column("dau", sa.Integer),
@@ -41,7 +43,7 @@ gold_daily_usage = _table(
     sa.Column("timetable_searches", sa.Integer),
     primary_key=("date",),
 )
-gold_endpoint_health = _table(
+gold_endpoint_health = _serving_table(
     "gold_endpoint_health",
     sa.Column("date", sa.Date),
     sa.Column("endpoint", sa.String),
@@ -50,7 +52,7 @@ gold_endpoint_health = _table(
     sa.Column("error_rate", sa.Float),
     primary_key=("date", "endpoint"),
 )
-gold_section_trends = _table(
+gold_section_trends = _serving_table(
     "gold_section_trends",
     sa.Column("date", sa.Date),
     sa.Column("section_name", sa.String),
@@ -84,14 +86,16 @@ class SyncMetadata:
     data_as_of: date | None
     synced_at: datetime | None
     expected_date: date | None
-    status: str
+    status: SyncStatus
     error_message: str | None
 
 
 def _writer_database_url(settings: Settings) -> str:
+    if settings.ANALYTICS_WRITER_DATABASE_URL:
+        return settings.ANALYTICS_WRITER_DATABASE_URL
+    logger.warning("ANALYTICS_WRITER_DATABASE_URL unset, falling back to shared DATABASE_URL")
     database_url = (
-        settings.ANALYTICS_WRITER_DATABASE_URL
-        or settings.ANALYTICS_DATABASE_URL
+        settings.ANALYTICS_DATABASE_URL
         or settings.DATABASE_URL
         or os.environ.get("DATABASE_URL", "")
     )
@@ -103,9 +107,10 @@ def _writer_database_url(settings: Settings) -> str:
 
 
 def _make_engine(settings: Settings) -> Engine:
+    # Shared Aiven Free budget (20 conns): backend main 4 + reader 2 + worker 2 per process.
     return sa.create_engine(
         _writer_database_url(settings),
-        pool_size=min(max(1, settings.ANALYTICS_POOL_SIZE), 4),
+        pool_size=min(max(1, settings.ANALYTICS_POOL_SIZE), 2),
         max_overflow=0,
         pool_pre_ping=True,
     )
@@ -150,7 +155,7 @@ class PostgresServingRepository:
         data_as_of: date | None,
         synced_at: datetime | None,
         expected_date: date | None,
-        status: str,
+        status: SyncStatus,
         error_message: str | None,
     ) -> None:
         values = {
@@ -170,26 +175,44 @@ class PostgresServingRepository:
         connection.execute(stmt)
 
     def mark_pending(self, expected_date: date) -> None:
-        current = self.metadata()
         with self.engine.begin() as connection:
+            current_row = (
+                connection.execute(
+                    sa.select(
+                        sync_metadata.c.data_as_of,
+                        sync_metadata.c.synced_at,
+                    ).where(sync_metadata.c.id == 1).with_for_update()
+                )
+                .mappings()
+                .one_or_none()
+            )
             self._metadata_upsert(
                 connection,
-                data_as_of=current.data_as_of if current else None,
-                synced_at=current.synced_at if current else None,
+                data_as_of=current_row["data_as_of"] if current_row else None,
+                synced_at=current_row["synced_at"] if current_row else None,
                 expected_date=expected_date,
                 status="pending",
                 error_message=None,
             )
 
     def mark_failed(self, expected_date: date, error: Exception | str) -> None:
-        current = self.metadata()
         message = str(error)[:1000]
         try:
             with self.engine.begin() as connection:
+                current_row = (
+                    connection.execute(
+                        sa.select(
+                            sync_metadata.c.data_as_of,
+                            sync_metadata.c.synced_at,
+                        ).where(sync_metadata.c.id == 1).with_for_update()
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
                 self._metadata_upsert(
                     connection,
-                    data_as_of=current.data_as_of if current else None,
-                    synced_at=current.synced_at if current else None,
+                    data_as_of=current_row["data_as_of"] if current_row else None,
+                    synced_at=current_row["synced_at"] if current_row else None,
                     expected_date=expected_date,
                     status="failed",
                     error_message=message,
@@ -221,9 +244,12 @@ class PostgresServingRepository:
         *,
         expected_date: date,
         data_as_of: date,
-        replace_all: bool,
+        replace_all: bool | None = None,
+        rebuild: bool | None = None,
     ) -> datetime:
         """Atomically replace changed serving dates and publish sync metadata."""
+        if rebuild is None:
+            rebuild = bool(replace_all) if replace_all is not None else False
         dates = {
             row["date"]
             for rows in (
@@ -237,7 +263,7 @@ class PostgresServingRepository:
         synced_at = datetime.now(UTC)
         with self.engine.begin() as connection:
             for table in (gold_daily_usage, gold_endpoint_health, gold_section_trends):
-                if replace_all:
+                if rebuild:
                     connection.execute(table.delete())
                 else:
                     connection.execute(table.delete().where(table.c.date.in_(dates)))
@@ -336,5 +362,5 @@ def sync_gold_to_postgres(
         snapshot,
         expected_date=target_date,
         data_as_of=data_as_of,
-        replace_all=rebuild,
+        rebuild=rebuild,
     )

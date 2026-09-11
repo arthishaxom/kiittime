@@ -295,9 +295,11 @@ def transform_silver_to_gold(
 
         # DAU is zero only after the source has been authoritatively classified
         # as empty. An absent export is pending, never an empty interval.
+        # Direct callers must pass an explicit posthog_status; remote paths
+        # default to PENDING so check_posthog_files remains the classifier.
         if posthog_status is None:
             if posthog_bronze_path.startswith(("s3://", "r2://")):
-                source_state = SourceState.DATA
+                source_state = SourceState.PENDING
             else:
                 source_state = (
                     SourceState.DATA

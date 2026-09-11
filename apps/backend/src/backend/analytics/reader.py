@@ -13,7 +13,7 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import sqlalchemy as sa
 from deltalake import DeltaTable
@@ -25,6 +25,8 @@ from .tables import gold_daily_usage, gold_endpoint_health, gold_section_trends,
 
 logger = logging.getLogger(__name__)
 _reader_instances: dict[tuple[str, str, int], Any] = {}
+
+SyncStatus = Literal["published", "pending", "failed"]
 
 
 @dataclass(frozen=True)
@@ -113,7 +115,7 @@ class _ConnectionPool:
 
     def __init__(self, factory, size: int):
         self._factory = factory
-        bounded_size = min(max(1, size), 4)
+        bounded_size = min(max(1, size), 2)
         self._connections = queue.LifoQueue(maxsize=bounded_size)
         self._slots = threading.BoundedSemaphore(bounded_size)
 
@@ -167,9 +169,11 @@ class PostgresAnalyticsReader:
             )
             if not database_url:
                 raise ValueError("ANALYTICS_DATABASE_URL or DATABASE_URL is required")
+            if not self.settings.ANALYTICS_DATABASE_URL:
+                logger.warning("ANALYTICS_DATABASE_URL unset, using shared DATABASE_URL")
             self.engine = sa.create_engine(
                 database_url,
-                pool_size=min(max(1, self.settings.ANALYTICS_POOL_SIZE), 4),
+                pool_size=min(max(1, self.settings.ANALYTICS_POOL_SIZE), 2),
                 max_overflow=0,
                 pool_pre_ping=True,
             )
@@ -233,6 +237,8 @@ class PostgresAnalyticsReader:
                 .order_by(gold_section_trends.c.date, gold_section_trends.c.section_name)
             ).all()
 
+        # Any non-published status is stale, even when expected_date is old
+        # (old-date reprocess pending must not render as fresh).
         stale = metadata_row["status"] != "published" or (
             metadata_row["expected_date"] is not None and metadata_row["expected_date"] > data_as_of
         )
