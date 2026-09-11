@@ -10,6 +10,7 @@ from analytics.config import Settings
 from analytics.serving import (
     GoldSnapshot,
     PostgresServingRepository,
+    _writer_database_url,
     gold_daily_usage,
     gold_endpoint_health,
     gold_section_trends,
@@ -105,7 +106,7 @@ def test_reprocessed_date_upserts_without_duplicating(repository):
     assert count == 1
 
 
-def test_incremental_wipe_of_empty_health_is_authoritative(repository):
+def test_incremental_empty_health_preserves_prior_rows(repository):
     day = date(2026, 8, 4)
     repository.publish(_snapshot(day), expected_date=day, data_as_of=day, replace_all=True)
     empty_health = GoldSnapshot(
@@ -114,6 +115,27 @@ def test_incremental_wipe_of_empty_health_is_authoritative(repository):
         section_trends=[],
     )
     repository.publish(empty_health, expected_date=day, data_as_of=day, replace_all=False)
+
+    with repository.engine.begin() as conn:
+        health = conn.execute(sa.select(sa.func.count()).select_from(gold_endpoint_health)).scalar()
+        trends = conn.execute(sa.select(sa.func.count()).select_from(gold_section_trends)).scalar()
+        usage = conn.execute(sa.select(sa.func.count()).select_from(gold_daily_usage)).scalar()
+    assert health == 1
+    assert trends == 1
+    assert usage == 1
+
+
+def test_authoritative_empty_wipes_expected_date(repository):
+    day = date(2026, 8, 4)
+    repository.publish(_snapshot(day), expected_date=day, data_as_of=day, replace_all=True)
+    empty_health = GoldSnapshot(
+        daily_usage=[{"date": day, "dau": 0, "total_api_calls": 0, "timetable_searches": 0}],
+        endpoint_health=[],
+        section_trends=[],
+    )
+    repository.publish(
+        empty_health, expected_date=day, data_as_of=day, rebuild=False, authoritative_empty=True
+    )
 
     with repository.engine.begin() as conn:
         health = conn.execute(sa.select(sa.func.count()).select_from(gold_endpoint_health)).scalar()
@@ -222,3 +244,40 @@ def test_publish_records_synced_at(repository):
     )
     assert synced_at.tzinfo is not None
     assert synced_at >= before - timedelta(seconds=60)
+
+
+def test_writer_requires_dedicated_url_in_prod(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    settings = Settings(
+        ENVIRONMENT="prod",
+        ANALYTICS_WRITER_DATABASE_URL="",
+        ANALYTICS_DATABASE_URL="postgresql://read",
+        DATABASE_URL="postgresql://shared",
+    )
+    with pytest.raises(ValueError, match="ANALYTICS_WRITER_DATABASE_URL"):
+        _writer_database_url(settings)
+
+
+def test_writer_fallback_dev_only(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    settings = Settings(
+        ENVIRONMENT="dev",
+        ANALYTICS_WRITER_DATABASE_URL="",
+        ANALYTICS_DATABASE_URL="postgresql://read",
+        DATABASE_URL="",
+    )
+    assert _writer_database_url(settings) == "postgresql://read"
+
+
+def test_writer_env_prod_fallback(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.setenv("ENV", "prod")
+    settings = Settings(
+        ENVIRONMENT="",
+        ANALYTICS_WRITER_DATABASE_URL="",
+        ANALYTICS_DATABASE_URL="postgresql://read",
+        DATABASE_URL="postgresql://shared",
+    )
+    with pytest.raises(ValueError, match="ANALYTICS_WRITER_DATABASE_URL"):
+        _writer_database_url(settings)

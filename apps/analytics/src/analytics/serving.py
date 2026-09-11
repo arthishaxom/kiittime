@@ -90,9 +90,21 @@ class SyncMetadata:
     error_message: str | None
 
 
+def _is_prod(settings: Settings) -> bool:
+    env = getattr(settings, "ENVIRONMENT", "") or os.environ.get(
+        "ENVIRONMENT", os.environ.get("ENV", "dev")
+    )
+    return str(env).lower() in ("prod", "production")
+
+
 def _writer_database_url(settings: Settings) -> str:
     if settings.ANALYTICS_WRITER_DATABASE_URL:
         return settings.ANALYTICS_WRITER_DATABASE_URL
+    if _is_prod(settings):
+        raise ValueError(
+            "ANALYTICS_WRITER_DATABASE_URL is required in production "
+            "(shared-URL fallback is dev-only)"
+        )
     logger.warning("ANALYTICS_WRITER_DATABASE_URL unset, falling back to shared DATABASE_URL")
     database_url = (
         settings.ANALYTICS_DATABASE_URL
@@ -246,27 +258,33 @@ class PostgresServingRepository:
         data_as_of: date,
         replace_all: bool | None = None,
         rebuild: bool | None = None,
+        authoritative_empty: bool = False,
     ) -> datetime:
-        """Atomically replace changed serving dates and publish sync metadata."""
+        """Atomically replace changed serving dates and publish sync metadata.
+
+        Empty health/trends lists never delete prior rows unless
+        ``authoritative_empty`` is set, in which case ``expected_date`` is
+        cleared for those tables (confirmed empty reprocess).
+        """
         if rebuild is None:
             rebuild = bool(replace_all) if replace_all is not None else False
-        dates = {
-            row["date"]
-            for rows in (
-                snapshot.daily_usage,
-                snapshot.endpoint_health,
-                snapshot.section_trends,
-            )
-            for row in rows
-        }
-        dates.add(expected_date)
+        table_rows: tuple[tuple[sa.Table, list[dict[str, Any]]], ...] = (
+            (gold_daily_usage, snapshot.daily_usage),
+            (gold_endpoint_health, snapshot.endpoint_health),
+            (gold_section_trends, snapshot.section_trends),
+        )
         synced_at = datetime.now(UTC)
         with self.engine.begin() as connection:
-            for table in (gold_daily_usage, gold_endpoint_health, gold_section_trends):
+            for table, rows in table_rows:
                 if rebuild:
                     connection.execute(table.delete())
                 else:
-                    connection.execute(table.delete().where(table.c.date.in_(dates)))
+                    table_dates = {row["date"] for row in rows}
+                    if not rows and authoritative_empty:
+                        table_dates.add(expected_date)
+                    if not table_dates:
+                        continue
+                    connection.execute(table.delete().where(table.c.date.in_(table_dates)))
             self._upsert(connection, gold_daily_usage, snapshot.daily_usage)
             self._upsert(connection, gold_endpoint_health, snapshot.endpoint_health)
             self._upsert(connection, gold_section_trends, snapshot.section_trends)

@@ -251,3 +251,39 @@ def test_local_rollback_dashboard_returns_consistent_snapshot(monkeypatch, tmp_p
     assert result.usage[0].dau == 4
     assert result.stale is False
     assert result.data_as_of.date() == date(2026, 1, 1)
+
+
+def test_postgres_old_date_pending_stays_stale(db):
+    engine = _engine()
+    day = datetime.now(UTC).date() - timedelta(days=2)
+    _seed_published(engine, day)
+    old_expected = day - timedelta(days=5)
+    with engine.begin() as conn:
+        conn.execute(
+            sync_metadata.update()
+            .where(sync_metadata.c.id == 1)
+            .values(status="pending", expected_date=old_expected)
+        )
+
+    result = _reader(engine).dashboard(30)
+
+    assert len(result.usage) == 1
+    assert result.stale is True
+
+
+def test_reader_requires_dedicated_url_in_prod(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shared")
+    settings = Settings(ENVIRONMENT="prod", ANALYTICS_DATABASE_URL="")
+    with pytest.raises(ValueError, match="ANALYTICS_DATABASE_URL"):
+        PostgresAnalyticsReader(settings)
+
+
+def test_reader_fallback_dev_only(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shared")
+    reset_reader_cache()
+    reader = PostgresAnalyticsReader(
+        Settings(ENVIRONMENT="dev", ANALYTICS_DATABASE_URL="")
+    )
+    assert reader.engine is not None
+    reader.engine.dispose()
+    reset_reader_cache()

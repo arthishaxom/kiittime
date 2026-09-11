@@ -29,6 +29,17 @@ _reader_instances: dict[tuple[str, str, int], Any] = {}
 SyncStatus = Literal["published", "pending", "failed"]
 
 
+def _is_prod_env(value: str | None) -> bool:
+    return str(value or "dev").lower() in ("prod", "production")
+
+
+def _is_prod(settings: Settings) -> bool:
+    env = getattr(settings, "ENVIRONMENT", "") or os.environ.get(
+        "ENVIRONMENT", os.environ.get("ENV", "dev")
+    )
+    return _is_prod_env(env)
+
+
 @dataclass(frozen=True)
 class DailyUsageRecord:
     date: date
@@ -164,6 +175,11 @@ class PostgresAnalyticsReader:
         if engine is not None:
             self.engine = engine
         else:
+            if not self.settings.ANALYTICS_DATABASE_URL and _is_prod(self.settings):
+                raise ValueError(
+                    "ANALYTICS_DATABASE_URL is required in production "
+                    "(shared-URL fallback is dev-only)"
+                )
             database_url = self.settings.ANALYTICS_DATABASE_URL or os.environ.get(
                 "DATABASE_URL", ""
             )

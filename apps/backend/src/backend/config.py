@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     GOLD_BASE_PATH: str | None = None
     ANALYTICS_QUERY_BACKEND: str = "postgres"
     ANALYTICS_DATABASE_URL: str = ""
+    ENVIRONMENT: str = "dev"
     # Shared Aiven Free budget (20 conns): main 4 + reader 2 + worker 2 per process.
     ANALYTICS_POOL_SIZE: int = 2
     AXIOM_API_KEY: str = ""

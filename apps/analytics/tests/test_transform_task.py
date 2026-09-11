@@ -442,6 +442,23 @@ def test_transform_silver_to_gold_missing_posthog(tmp_path):
         )
 
 
+def test_transform_silver_to_gold_remote_none_stays_pending(tmp_path):
+    """Remote paths default to PENDING when status omitted — never infer empty."""
+    target_d = date(2026, 8, 4)
+
+    silver_base_dir = tmp_path / "silver"
+    gold_base_dir = tmp_path / "gold"
+
+    with pytest.raises(SourceIncompleteError, match="pending"):
+        transform_silver_to_gold.fn(
+            target_date=target_d,
+            silver_base_path=str(silver_base_dir),
+            posthog_bronze_path="s3://test-bucket/bronze/posthog/2026/08/04/*.parquet*",
+            posthog_status=None,
+            gold_base_path=str(gold_base_dir),
+        )
+
+
 def test_transform_silver_to_gold_confirmed_empty_publishes_zero(tmp_path):
     target_d = date(2026, 8, 4)
 

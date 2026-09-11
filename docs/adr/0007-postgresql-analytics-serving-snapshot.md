@@ -28,6 +28,8 @@ KIITTime's admin dashboard serves three small, pre-aggregated Gold datasets. Rea
 - `POSTHOG_EMPTY_DATES` (comma-separated YYYY-MM-DD) is an explicit operator override for authoritatively empty PostHog intervals. It is the only config-based empty path; absent files alone never imply empty.
 - Flow return: `nightly_etl_flow` returns the pending date on PENDING (not the requested target). Callers check `sync_metadata.status` to distinguish stale vs published.
 - `mark_pending`/`mark_failed` run in a single transaction (`SELECT … FOR UPDATE` + upsert) to avoid read-modify-write clobber on concurrent flows.
+- Post-139: `publish()` never deletes prior health/trends rows for an empty list (per-table dates, skip-when-empty guard). Confirmed-empty reprocess requiring a wipe passes `authoritative_empty=True`, which clears `expected_date` for empty tables. Any non-`published` status renders `stale=true`, even for old-date reprocess pending.
+- Post-139: credential split fails hard in prod (`ENVIRONMENT=prod/production` requires `ANALYTICS_WRITER_DATABASE_URL` on worker, `ANALYTICS_DATABASE_URL` on FastAPI). Shared-`DATABASE_URL` fallback is dev-only with warning.
 ### Source completeness
 
 The pipeline never infers zero activity from an absent PostHog object:
