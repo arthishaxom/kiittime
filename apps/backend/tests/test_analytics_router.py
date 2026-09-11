@@ -112,17 +112,19 @@ def admin_client(db):
 
 
 def test_analytics_unauthenticated_returns_401(unauthenticated_client):
-    assert unauthenticated_client.get("/admin/analytics/usage").status_code == 401
-    assert unauthenticated_client.get("/admin/analytics/endpoint-health").status_code == 401
-    assert unauthenticated_client.get("/admin/analytics/section-trends").status_code == 401
     assert unauthenticated_client.get("/admin/analytics/dashboard").status_code == 401
+
+
+def test_removed_partial_endpoints_return_404(admin_client):
+    assert admin_client.get("/admin/analytics/usage?days=30").status_code == 404
+    assert admin_client.get("/admin/analytics/endpoint-health?days=30").status_code == 404
+    assert admin_client.get("/admin/analytics/section-trends?days=7").status_code == 404
 
 
 def test_analytics_no_snapshot_returns_503(admin_client):
     _clear_snapshot()
 
     assert admin_client.get("/admin/analytics/dashboard?days=30").status_code == 503
-    assert admin_client.get("/admin/analytics/usage?days=30").status_code == 503
 
 
 def test_dashboard_published_snapshot(admin_client):
@@ -141,20 +143,18 @@ def test_dashboard_published_snapshot(admin_client):
     assert "synced_at" in data
 
 
-def test_legacy_endpoints_read_published_snapshot(admin_client):
-    day = _seed_published()
+def test_removed_partial_endpoints_return_404_authenticated(admin_client):
+    _seed_published()
 
-    r1 = admin_client.get("/admin/analytics/usage?days=30")
-    assert r1.status_code == 200
-    assert r1.json()[0]["date"] == day.isoformat()
+    assert admin_client.get("/admin/analytics/usage?days=30").status_code == 404
+    assert admin_client.get("/admin/analytics/endpoint-health?days=30").status_code == 404
+    assert admin_client.get("/admin/analytics/section-trends?days=7").status_code == 404
 
-    r2 = admin_client.get("/admin/analytics/endpoint-health?days=30")
-    assert r2.status_code == 200
-    assert r2.json()[0]["endpoint"] == "/timetable/"
 
-    r3 = admin_client.get("/admin/analytics/section-trends?days=7")
-    assert r3.status_code == 200
-    assert r3.json()[0]["section_name"] == "22CSE1"
+def test_removed_partial_endpoints_return_404_unauthenticated(unauthenticated_client):
+    assert unauthenticated_client.get("/admin/analytics/usage?days=30").status_code == 404
+    assert unauthenticated_client.get("/admin/analytics/endpoint-health?days=30").status_code == 404
+    assert unauthenticated_client.get("/admin/analytics/section-trends?days=7").status_code == 404
 
 
 def test_dashboard_pending_snapshot_is_stale(admin_client):
@@ -201,10 +201,10 @@ def test_dashboard_days_filter(admin_client):
         engine.dispose()
     reset_reader_cache()
 
-    res = admin_client.get("/admin/analytics/usage?days=5")
+    res = admin_client.get("/admin/analytics/dashboard?days=5")
     assert res.status_code == 200
-    assert len(res.json()) == 1
-    assert res.json()[0]["date"] == recent.isoformat()
+    assert len(res.json()["usage"]) == 1
+    assert res.json()["usage"][0]["date"] == recent.isoformat()
 
 
 def test_dashboard_bounds_validation(admin_client):
