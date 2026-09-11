@@ -296,6 +296,22 @@ describe("Analytics Dashboard Component", () => {
 		});
 	});
 
+	it("distinguishes stale snapshot from empty data when both occur", async () => {
+		mockApiFetch.mockResolvedValue({
+			ok: true,
+			json: async () => consolidatedResponse({ stale: true }),
+		} as unknown as Response);
+
+		renderComponent();
+
+		await waitFor(() => {
+			expect(screen.getByText(/Stale snapshot/)).toBeDefined();
+			expect(
+				screen.getByText(/No usage data available for the last 30 days/),
+			).toBeDefined();
+		});
+	});
+
 	it("renders error state when consolidated endpoint fails", async () => {
 		mockApiFetch.mockResolvedValue({
 			ok: false,
