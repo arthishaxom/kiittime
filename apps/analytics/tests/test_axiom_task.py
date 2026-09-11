@@ -111,15 +111,10 @@ def test_pull_axiom_logs_zero_rows(mock_axiom_client_cls, mock_get_duckdb_conn):
 
     target_d = date(2026, 8, 4)
     res_date = pull_axiom_logs(target_date=target_d, settings=settings)
-    assert res_date == target_d
-
-    mock_conn.register.assert_called_once()
-    mock_conn.execute.assert_called_once()
-    sql_query = mock_conn.execute.call_args[0][0]
-    assert "COPY" in sql_query
-    assert "WHERE 1=0" in sql_query
-    assert "PARTITION_BY" in sql_query
-    mock_conn.close.assert_called_once()
+    assert res_date is None
+    mock_conn.register.assert_not_called()
+    mock_conn.execute.assert_not_called()
+    mock_conn.close.assert_not_called()
 
 
 @patch("analytics.tasks.axiom.get_duckdb_conn")
@@ -148,5 +143,4 @@ def test_pull_axiom_logs_default_target_date(mock_axiom_client_cls, mock_get_duc
     )
 
     res_date = pull_axiom_logs(target_date=None, settings=settings)
-    assert isinstance(res_date, date)
-
+    assert res_date is None
