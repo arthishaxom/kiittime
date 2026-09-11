@@ -27,6 +27,10 @@ deployments:
           AXIOM_DATASET: "kiittime-backend-logs"
           R2_BUCKET_NAME: "kiittime-analytics"
           ANALYTICS_WRITER_DATABASE_URL: "{{ prefect.blocks.secret.analytics-writer-database-url.value }}"
+          POSTHOG_API_KEY: "{{ prefect.blocks.secret.posthog-api-key.value }}"
+          POSTHOG_PROJECT_ID: "{{ prefect.blocks.secret.posthog-project-id.value }}"
+          POSTHOG_HOST: "https://us.posthog.com"
+          POSTHOG_EMPTY_DATES: ""
         pip_packages:
           - "axiom-py>=0.12.0"
           - "boto3>=1.37.0"
