@@ -26,6 +26,7 @@ deployments:
           CF_ACCOUNT_ID: "{{ prefect.blocks.secret.cf-account-id.value }}"
           AXIOM_DATASET: "kiittime-backend-logs"
           R2_BUCKET_NAME: "kiittime-analytics"
+          ANALYTICS_WRITER_DATABASE_URL: "{{ prefect.blocks.secret.analytics-writer-database-url.value }}"
         pip_packages:
           - "axiom-py>=0.12.0"
           - "boto3>=1.37.0"
@@ -33,6 +34,8 @@ deployments:
           - "duckdb>=1.2.0"
           - "pydantic-settings>=2.8.0"
           - "pyarrow>=15.0.0"
+          - "sqlalchemy>=2.0.51"
+          - "psycopg[binary]>=3.3.4"
     schedule:
       cron: "0 2 * * *"
       timezone: "Asia/Kolkata"

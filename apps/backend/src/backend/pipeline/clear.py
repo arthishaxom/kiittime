@@ -1,5 +1,7 @@
+from typing import Any, cast
+
 from pydantic import BaseModel
-from sqlalchemy import delete
+from sqlalchemy import CursorResult, delete
 from sqlalchemy.orm import Session
 
 from backend.db.models import (
@@ -23,6 +25,7 @@ class ClearAllResult(BaseModel):
 
 
 def clear_all(session: Session) -> ClearAllResult:
+
     """Irreversibly wipe every gold and bronze table.
 
     No insert step — this is a hard reset for the start of a new semester
@@ -33,13 +36,13 @@ def clear_all(session: Session) -> ClearAllResult:
     No commit happens here — the caller owns the transaction (same
     convention as gold_upsert).
     """
-    class_sessions_deleted = session.execute(delete(ClassSession)).rowcount
+    class_sessions_deleted = cast(CursorResult[Any], session.execute(delete(ClassSession))).rowcount
     session.execute(delete(RollNumberMapping))
-    sections_deleted = session.execute(delete(Section)).rowcount
-    courses_deleted = session.execute(delete(Course)).rowcount
-    faculty_deleted = session.execute(delete(Faculty)).rowcount
-    rooms_deleted = session.execute(delete(Room)).rowcount
-    bronze_snapshots_deleted = session.execute(delete(BronzeSnapshot)).rowcount
+    sections_deleted = cast(CursorResult[Any], session.execute(delete(Section))).rowcount
+    courses_deleted = cast(CursorResult[Any], session.execute(delete(Course))).rowcount
+    faculty_deleted = cast(CursorResult[Any], session.execute(delete(Faculty))).rowcount
+    rooms_deleted = cast(CursorResult[Any], session.execute(delete(Room))).rowcount
+    bronze_snapshots_deleted = cast(CursorResult[Any], session.execute(delete(BronzeSnapshot))).rowcount
 
     session.flush()
     return ClearAllResult(

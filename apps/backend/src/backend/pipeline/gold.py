@@ -1,6 +1,9 @@
+from typing import Any, cast
+
 from pydantic import BaseModel
-from sqlalchemy import delete, insert, select
+from sqlalchemy import CursorResult, delete, insert, select
 from sqlalchemy.orm import Session
+
 
 from backend.db.models import ClassSession, Section
 from backend.pipeline.resolve import ResolvedSession
@@ -69,7 +72,8 @@ def gold_upsert(
         deleted_count = 0
     else:
         delete_stmt = delete(ClassSession).where(ClassSession.section_id.in_(target_ids))
-        deleted_count = session.execute(delete_stmt).rowcount
+        deleted_count = cast(CursorResult[Any], session.execute(delete_stmt)).rowcount
+
 
     # 3. Bulk insert via Core insert() with a list of dicts. For ~230 rows this
     # is more efficient than ORM add_all(): it bypasses the identity map and

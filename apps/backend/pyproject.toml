@@ -38,6 +38,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.39.10",
     "httpx2>=2.7.0",
     "ipykernel>=7.3.0",
     "pytest>=9.1.1",
@@ -55,3 +56,14 @@ select = ["E", "F", "I", "UP"]
 
 [tool.fastapi]
 entrypoint = "backend.main:app"
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+include = ["src"]
+exclude = ["src/backend/db/migrations"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+reportUninitializedInstanceVariable = "none"
+reportMissingTypeArgument = "none"
+

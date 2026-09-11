@@ -3,9 +3,15 @@
 from datetime import date
 
 import duckdb
+import pytest
 from deltalake import DeltaTable
 
-from analytics.tasks.transform import transform_bronze_to_silver, transform_silver_to_gold
+from analytics.tasks.posthog import SourceState
+from analytics.tasks.transform import (
+    SourceIncompleteError,
+    transform_bronze_to_silver,
+    transform_silver_to_gold,
+)
 
 
 def test_transform_bronze_to_silver_retries_configured():
@@ -397,6 +403,7 @@ def test_transform_silver_to_gold_idempotence(tmp_path):
         target_date=target_d,
         silver_base_path=str(silver_base_dir),
         posthog_bronze_path=str(tmp_path / "non_existent.parquet"),
+        posthog_status=SourceState.EMPTY,
         gold_base_path=str(gold_base_dir),
     )
 
@@ -405,6 +412,7 @@ def test_transform_silver_to_gold_idempotence(tmp_path):
         target_date=target_d,
         silver_base_path=str(silver_base_dir),
         posthog_bronze_path=str(tmp_path / "non_existent.parquet"),
+        posthog_status=SourceState.EMPTY,
         gold_base_path=str(gold_base_dir),
     )
 
@@ -419,6 +427,39 @@ def test_transform_silver_to_gold_idempotence(tmp_path):
 
 
 def test_transform_silver_to_gold_missing_posthog(tmp_path):
+    """Absent PostHog export is pending, never zero — Gold must not publish."""
+    target_d = date(2026, 8, 4)
+
+    silver_base_dir = tmp_path / "silver"
+    gold_base_dir = tmp_path / "gold"
+
+    with pytest.raises(SourceIncompleteError, match="pending"):
+        transform_silver_to_gold.fn(
+            target_date=target_d,
+            silver_base_path=str(silver_base_dir),
+            posthog_bronze_path=str(tmp_path / "missing_posthog.parquet"),
+            gold_base_path=str(gold_base_dir),
+        )
+
+
+def test_transform_silver_to_gold_remote_none_stays_pending(tmp_path):
+    """Remote paths default to PENDING when status omitted — never infer empty."""
+    target_d = date(2026, 8, 4)
+
+    silver_base_dir = tmp_path / "silver"
+    gold_base_dir = tmp_path / "gold"
+
+    with pytest.raises(SourceIncompleteError, match="pending"):
+        transform_silver_to_gold.fn(
+            target_date=target_d,
+            silver_base_path=str(silver_base_dir),
+            posthog_bronze_path="s3://test-bucket/bronze/posthog/2026/08/04/*.parquet*",
+            posthog_status=None,
+            gold_base_path=str(gold_base_dir),
+        )
+
+
+def test_transform_silver_to_gold_confirmed_empty_publishes_zero(tmp_path):
     target_d = date(2026, 8, 4)
 
     silver_base_dir = tmp_path / "silver"
@@ -428,6 +469,7 @@ def test_transform_silver_to_gold_missing_posthog(tmp_path):
         target_date=target_d,
         silver_base_path=str(silver_base_dir),
         posthog_bronze_path=str(tmp_path / "missing_posthog.parquet"),
+        posthog_status=SourceState.EMPTY,
         gold_base_path=str(gold_base_dir),
     )
     assert res_date == target_d
@@ -477,6 +519,3 @@ def test_transform_silver_to_gold_posthog_zst(tmp_path):
     daily_dt = DeltaTable(str(gold_base_dir / "gold_daily_usage"))
     daily_dict = daily_dt.to_pyarrow_table().to_pydict()
     assert daily_dict["dau"] == [2]
-
-
-

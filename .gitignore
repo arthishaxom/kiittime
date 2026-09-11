@@ -22,3 +22,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+# Local timetable PDFs (PII-ish, never commit)
+*.pdf

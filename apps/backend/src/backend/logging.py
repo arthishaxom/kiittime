@@ -18,9 +18,11 @@ class StructlogAxiomHandler(AxiomHandler):
     """Custom AxiomHandler that formats structlog log records for Axiom ingestion."""
 
     def emit(self, record: logging.LogRecord) -> None:
-        if hasattr(record, "event_dict") and isinstance(record.event_dict, dict):
-            event = record.event_dict
+        event_dict = getattr(record, "event_dict", None)
+        if isinstance(event_dict, dict):
+            event = event_dict
         else:
+
             msg_str = record.getMessage()
             try:
                 event = json.loads(msg_str)

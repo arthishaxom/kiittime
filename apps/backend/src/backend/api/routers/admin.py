@@ -1,10 +1,11 @@
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
-from sqlalchemy import delete, select
+from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.orm import Session
+
 
 from backend.api.dao.announcement_dao import create_announcement, deactivate_current
 from backend.api.schemas import (
@@ -93,11 +94,18 @@ def create_upload(
             detail=f"Sheet {sheet_name!r} not found. Available sheets: {xl.sheet_names}",
         )
 
-    df = xl.parse(sheet_name=sheet_name)
+    parsed_sheet = xl.parse(sheet_name=sheet_name)
+    if not isinstance(parsed_sheet, pd.DataFrame):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Sheet {sheet_name!r} is not a valid table.",
+        )
+    df = parsed_sheet
 
     try:
         rows = parse_section_grid(df, year=year)
     except Exception as e:
+
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Failed to parse file: {e}",
@@ -463,11 +471,13 @@ def clear_roll_mappings(
     current_admin: AdminUser = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> dict:
-    deleted_count = db.execute(
-        delete(RollNumberMapping).where(RollNumberMapping.academic_year == academic_year)
+    deleted_count = cast(
+        CursorResult[Any],
+        db.execute(delete(RollNumberMapping).where(RollNumberMapping.academic_year == academic_year)),
     ).rowcount
     db.commit()
     return {
         "status": "success",
         "deleted_count": deleted_count,
     }
+

@@ -6,12 +6,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
+_secret = os.getenv("SECRET_KEY")
+if not _secret:
     if os.getenv("CI") == "true" or os.getenv("TESTING") == "true":
-        SECRET_KEY = "ci-testing-secret-key-fallback"
+        _secret = "ci-testing-secret-key-fallback"
     else:
         raise RuntimeError("SECRET_KEY is not set — check your .env file")
+SECRET_KEY: str = _secret
+
 
 ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours, tunable

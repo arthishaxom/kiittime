@@ -13,8 +13,11 @@ dependencies = [
     "deltalake>=0.25.0",
     "duckdb>=1.2.0",
     "prefect>=3.2.0",
+    "python-dotenv>=1.2.0",
     "pydantic-settings>=2.8.0",
     "pyarrow>=15.0.0",
+    "psycopg[binary]>=3.3.4",
+    "sqlalchemy>=2.0.51",
 ]
 
 [build-system]
@@ -23,6 +26,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.39.10",
     "pytest>=9.1.1",
     "ruff>=0.15.21",
 ]
@@ -39,4 +43,11 @@ filterwarnings = [
     "ignore:Logger 'prefect.task_runs' attempted to send logs:UserWarning",
 ]
 
-
+[tool.basedpyright]
+typeCheckingMode = "standard"
+include = ["src"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+reportUninitializedInstanceVariable = "none"
+reportMissingTypeArgument = "none"

@@ -53,12 +53,13 @@ def parse_cell(raw: str) -> tuple[str, str | None, str]:
 
 
 def _row_to_session(row: pd.Series) -> SessionRow:
-    period_number, start_time = parse_period_column(row["Period"])
-    course_code, faculty_name, room_number = parse_cell(row["Cell"])
+    period_number, start_time = parse_period_column(str(row["Period"]))
+    course_code, faculty_name, room_number = parse_cell(str(row["Cell"]))
     return SessionRow(
-        year=row["Year"],
-        section=row["Section"],
-        day=row["Day"],
+        year=int(str(row["Year"])),
+        section=str(row["Section"]),
+
+        day=str(row["Day"]),
         period_number=period_number,
         start_time=start_time,
         course_code=course_code,
@@ -69,7 +70,8 @@ def _row_to_session(row: pd.Series) -> SessionRow:
 
 def parse_section_grid(df: pd.DataFrame, year: int) -> list[SessionRow]:
     """Parse a wide-format section grid sheet into a list of SessionRow."""
-    is_title_row = ~df["Day"].isin(WEEKDAYS)
+    is_title_row = ~df["Day"].isin(list(WEEKDAYS))
+
     df_clean = df[~is_title_row].reset_index(drop=True)
 
     period_cols = [c for c in df_clean.columns if c not in ("Section", "Day")]
