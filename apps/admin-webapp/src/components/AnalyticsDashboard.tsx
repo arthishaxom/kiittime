@@ -59,6 +59,15 @@ export interface SectionTrendItem {
 	search_volume: number;
 }
 
+export interface AnalyticsDashboardResponse {
+	usage: DailyUsageItem[];
+	endpoint_health: EndpointHealthItem[];
+	section_trends: SectionTrendItem[];
+	data_as_of: string;
+	synced_at: string;
+	stale: boolean;
+}
+
 type RangePreset = "7D" | "30D" | "90D" | "1Y" | "Custom";
 
 const PIE_COLORS = [
@@ -75,71 +84,40 @@ export function AnalyticsDashboard() {
 	const [preset, setPreset] = useState<RangePreset>("30D");
 	const [customDays, setCustomDays] = useState<number>(30);
 
-	// Compute days for each endpoint based on shared range preset
-	const { usageDays, endpointDays, sectionDays } = useMemo(() => {
+	// Single consolidated range (days) for GET /admin/analytics/dashboard
+	const days = useMemo(() => {
 		switch (preset) {
 			case "7D":
-				return { usageDays: 7, endpointDays: 7, sectionDays: 7 };
+				return 7;
 			case "30D":
-				return { usageDays: 30, endpointDays: 30, sectionDays: 7 };
+				return 30;
 			case "90D":
-				return { usageDays: 90, endpointDays: 90, sectionDays: 90 };
+				return 90;
 			case "1Y":
-				return { usageDays: 365, endpointDays: 365, sectionDays: 365 };
+				return 365;
 			case "Custom":
-				const validDays = Math.max(1, Math.min(365, customDays || 1));
-				return {
-					usageDays: validDays,
-					endpointDays: validDays,
-					sectionDays: validDays,
-				};
+				return Math.max(1, Math.min(365, customDays || 1));
 		}
 	}, [preset, customDays]);
 
-	// Usage Overview Query
-	const usageQuery = useQuery<DailyUsageItem[]>({
-		queryKey: ["admin", "analytics", "usage", usageDays],
+	// Consolidated dashboard query (PostgreSQL Analytics Serving Snapshot)
+	const dashboardQuery = useQuery<AnalyticsDashboardResponse>({
+		queryKey: ["admin", "analytics", "dashboard", days],
 		queryFn: async () => {
 			const res = await apiFetch(
-				`/admin/analytics/usage?days=${usageDays}`,
+				`/admin/analytics/dashboard?days=${days}`,
 				{},
 				auth.token ?? undefined,
 			);
-			if (!res.ok) throw new Error("Failed to fetch usage metrics");
+			if (!res.ok) throw new Error("Failed to load dashboard");
 			return res.json();
 		},
 		staleTime: 1000 * 60 * 5,
 	});
 
-	// Endpoint Health Query
-	const healthQuery = useQuery<EndpointHealthItem[]>({
-		queryKey: ["admin", "analytics", "endpoint-health", endpointDays],
-		queryFn: async () => {
-			const res = await apiFetch(
-				`/admin/analytics/endpoint-health?days=${endpointDays}`,
-				{},
-				auth.token ?? undefined,
-			);
-			if (!res.ok) throw new Error("Failed to fetch endpoint health metrics");
-			return res.json();
-		},
-		staleTime: 1000 * 60 * 5,
-	});
-
-	// Section Trends Query
-	const trendsQuery = useQuery<SectionTrendItem[]>({
-		queryKey: ["admin", "analytics", "section-trends", sectionDays],
-		queryFn: async () => {
-			const res = await apiFetch(
-				`/admin/analytics/section-trends?days=${sectionDays}`,
-				{},
-				auth.token ?? undefined,
-			);
-			if (!res.ok) throw new Error("Failed to fetch section trends metrics");
-			return res.json();
-		},
-		staleTime: 1000 * 60 * 5,
-	});
+	const usageData = dashboardQuery.data?.usage;
+	const healthData = dashboardQuery.data?.endpoint_health;
+	const trendsData = dashboardQuery.data?.section_trends;
 
 	return (
 		<div className="mx-auto max-w-7xl p-6 flex flex-col gap-8">
@@ -150,8 +128,14 @@ export function AnalyticsDashboard() {
 						Analytics Dashboard
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						System performance and usage trends from R2 Gold Delta tables
+						System performance and usage trends from PostgreSQL serving snapshot
 					</p>
+					{dashboardQuery.data && (
+						<p className="text-xs text-muted-foreground mt-1">
+							Data as of {dashboardQuery.data.data_as_of} · Synced{" "}
+							{dashboardQuery.data.synced_at}
+						</p>
+					)}
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
 					<span className="text-xs font-medium text-muted-foreground mr-1">
@@ -183,22 +167,50 @@ export function AnalyticsDashboard() {
 				</div>
 			</div>
 
+			{dashboardQuery.isError && (
+				<Alert variant="destructive">
+					<AlertDescription>
+						{dashboardQuery.error instanceof Error
+							? dashboardQuery.error.message
+							: "Failed to load dashboard"}
+					</AlertDescription>
+				</Alert>
+			)}
+
+			{dashboardQuery.data?.stale && !dashboardQuery.isLoading && (
+				<Alert>
+					<AlertDescription>
+						Stale snapshot — latest source interval not yet published. Showing
+						last complete snapshot.
+					</AlertDescription>
+				</Alert>
+			)}
+
 			{/* Panel 1: Usage Overview */}
 			<UsageOverviewPanel
-				query={usageQuery}
-				days={usageDays}
+				data={usageData}
+				isLoading={dashboardQuery.isLoading}
+				isError={dashboardQuery.isError}
+				error={dashboardQuery.error}
+				days={days}
 			/>
 
 			{/* Panel 2: Endpoint Health */}
 			<EndpointHealthPanel
-				query={healthQuery}
-				days={endpointDays}
+				data={healthData}
+				isLoading={dashboardQuery.isLoading}
+				isError={dashboardQuery.isError}
+				error={dashboardQuery.error}
+				days={days}
 			/>
 
 			{/* Panel 3: Section Trends */}
 			<SectionTrendsPanel
-				query={trendsQuery}
-				days={sectionDays}
+				data={trendsData}
+				isLoading={dashboardQuery.isLoading}
+				isError={dashboardQuery.isError}
+				error={dashboardQuery.error}
+				days={days}
 			/>
 		</div>
 	);
@@ -208,12 +220,14 @@ export function AnalyticsDashboard() {
    USAGE OVERVIEW PANEL
    ========================================================================= */
 interface UsagePanelProps {
-	query: ReturnType<typeof useQuery<DailyUsageItem[]>>;
+	data: DailyUsageItem[] | undefined;
+	isLoading: boolean;
+	isError: boolean;
+	error: Error | null;
 	days: number;
 }
 
-function UsageOverviewPanel({ query, days }: UsagePanelProps) {
-	const { data, isLoading, isError, error } = query;
+function UsageOverviewPanel({ data, isLoading, isError, error, days }: UsagePanelProps) {
 
 	const { latestDau, totalApiCalls, totalSearches } = useMemo(() => {
 		if (!data || data.length === 0) {
@@ -371,14 +385,16 @@ function UsageOverviewPanel({ query, days }: UsagePanelProps) {
    ENDPOINT HEALTH PANEL
    ========================================================================= */
 interface HealthPanelProps {
-	query: ReturnType<typeof useQuery<EndpointHealthItem[]>>;
+	data: EndpointHealthItem[] | undefined;
+	isLoading: boolean;
+	isError: boolean;
+	error: Error | null;
 	days: number;
 }
 
 type HealthSortField = "endpoint" | "total_calls" | "p95_latency_ms" | "error_rate";
 
-function EndpointHealthPanel({ query, days }: HealthPanelProps) {
-	const { data, isLoading, isError, error } = query;
+function EndpointHealthPanel({ data, isLoading, isError, error, days }: HealthPanelProps) {
 	const [sortField, setSortField] = useState<HealthSortField>("total_calls");
 	const [sortAsc, setSortAsc] = useState<boolean>(false);
 
@@ -606,12 +622,14 @@ function EndpointHealthPanel({ query, days }: HealthPanelProps) {
    SECTION TRENDS PANEL
    ========================================================================= */
 interface TrendsPanelProps {
-	query: ReturnType<typeof useQuery<SectionTrendItem[]>>;
+	data: SectionTrendItem[] | undefined;
+	isLoading: boolean;
+	isError: boolean;
+	error: Error | null;
 	days: number;
 }
 
-function SectionTrendsPanel({ query, days }: TrendsPanelProps) {
-	const { data, isLoading, isError, error } = query;
+function SectionTrendsPanel({ data, isLoading, isError, error, days }: TrendsPanelProps) {
 
 	// Top 10 sections by search volume
 	const top10Sections = useMemo(() => {

@@ -34,6 +34,39 @@ vi.mock("recharts", () => ({
 	Legend: () => null,
 }));
 
+interface ConsolidatedPayload {
+	usage: Array<{ date: string; dau: number; total_api_calls: number; timetable_searches: number }>;
+	endpoint_health: Array<{
+		date: string;
+		endpoint: string;
+		total_calls: number;
+		p95_latency_ms: number;
+		error_rate: number;
+	}>;
+	section_trends: Array<{
+		date: string;
+		section_name: string;
+		section_year: number;
+		search_volume: number;
+	}>;
+	data_as_of: string;
+	synced_at: string;
+	stale: boolean;
+}
+
+const CONSOLIDATED_EMPTY: ConsolidatedPayload = {
+	usage: [],
+	endpoint_health: [],
+	section_trends: [],
+	data_as_of: "2026-08-02T00:00:00Z",
+	synced_at: "2026-08-03T00:00:00Z",
+	stale: false,
+};
+
+function consolidatedResponse(overrides: Partial<ConsolidatedPayload> = {}) {
+	return { ...CONSOLIDATED_EMPTY, ...overrides };
+}
+
 describe("Analytics Dashboard Component", () => {
 	let queryClient: QueryClient;
 	let mockApiFetch: MockInstance;
@@ -50,7 +83,7 @@ describe("Analytics Dashboard Component", () => {
 
 		mockApiFetch = vi.spyOn(ApiModule, "apiFetch").mockResolvedValue({
 			ok: true,
-			json: async () => [],
+			json: async () => consolidatedResponse(),
 		} as Response);
 
 		queryClient = new QueryClient({
@@ -86,7 +119,29 @@ describe("Analytics Dashboard Component", () => {
 		expect(screen.getByRole("button", { name: "Custom" })).toBeDefined();
 	});
 
-	it("handles graceful empty states when endpoints return empty array []", async () => {
+	it("loads all panels from the consolidated dashboard endpoint", async () => {
+		renderComponent();
+
+		await waitFor(() => {
+			expect(mockApiFetch).toHaveBeenCalled();
+		});
+		const paths = mockApiFetch.mock.calls.map((c) => String(c[0]));
+		expect(paths.length).toBeGreaterThan(0);
+		for (const p of paths) {
+			expect(p).toContain("/admin/analytics/dashboard");
+		}
+		expect(paths.some((p) => p.includes("/admin/analytics/usage"))).toBe(false);
+		expect(paths.some((p) => p.includes("/admin/analytics/endpoint-health"))).toBe(
+			false,
+		);
+		expect(paths.some((p) => p.includes("/admin/analytics/section-trends"))).toBe(
+			false,
+		);
+		// Default 30D preset
+		expect(paths.some((p) => p.includes("days=30"))).toBe(true);
+	});
+
+	it("handles graceful empty states when consolidated endpoint returns empty arrays", async () => {
 		renderComponent();
 
 		await waitFor(() => {
@@ -97,17 +152,17 @@ describe("Analytics Dashboard Component", () => {
 				screen.getByText(/No endpoint health data available for the last 30 days/),
 			).toBeDefined();
 			expect(
-				screen.getByText(/No section trend data available for the last 7 days/),
+				screen.getByText(/No section trend data available for the last 30 days/),
 			).toBeDefined();
 		});
 	});
 
 	it("renders usage KPI stats and charts when data is available", async () => {
-		mockApiFetch.mockImplementation(async (path: string) => {
-			if (path.includes("/admin/analytics/usage")) {
-				return {
-					ok: true,
-					json: async () => [
+		mockApiFetch.mockResolvedValue({
+			ok: true,
+			json: async () =>
+				consolidatedResponse({
+					usage: [
 						{
 							date: "2026-08-01",
 							dau: 150,
@@ -121,10 +176,8 @@ describe("Analytics Dashboard Component", () => {
 							timetable_searches: 450,
 						},
 					],
-				} as unknown as Response;
-			}
-			return { ok: true, json: async () => [] } as unknown as Response;
-		});
+				}),
+		} as unknown as Response);
 
 		renderComponent();
 
@@ -137,11 +190,11 @@ describe("Analytics Dashboard Component", () => {
 	});
 
 	it("renders and sorts endpoint health table", async () => {
-		mockApiFetch.mockImplementation(async (path: string) => {
-			if (path.includes("/admin/analytics/endpoint-health")) {
-				return {
-					ok: true,
-					json: async () => [
+		mockApiFetch.mockResolvedValue({
+			ok: true,
+			json: async () =>
+				consolidatedResponse({
+					endpoint_health: [
 						{
 							date: "2026-08-01",
 							endpoint: "/api/search",
@@ -157,10 +210,8 @@ describe("Analytics Dashboard Component", () => {
 							error_rate: 0.001,
 						},
 					],
-				} as unknown as Response;
-			}
-			return { ok: true, json: async () => [] } as unknown as Response;
-		});
+				}),
+		} as unknown as Response);
 
 		renderComponent();
 
@@ -173,6 +224,130 @@ describe("Analytics Dashboard Component", () => {
 		const totalCallsHeader = screen.getByText(/Total Calls/);
 		fireEvent.click(totalCallsHeader);
 		fireEvent.click(totalCallsHeader);
+	});
+
+	it("shows freshness metadata and stale banner when snapshot is stale", async () => {
+		mockApiFetch.mockResolvedValue({
+			ok: true,
+			json: async () =>
+				consolidatedResponse({
+					usage: [
+						{
+							date: "2026-08-01",
+							dau: 150,
+							total_api_calls: 1200,
+							timetable_searches: 300,
+						},
+					],
+					stale: true,
+				}),
+		} as unknown as Response);
+
+		renderComponent();
+
+		await waitFor(() => {
+			expect(screen.getByText(/Data as of/)).toBeDefined();
+			expect(screen.getByText(/Stale snapshot/)).toBeDefined();
+		});
+	});
+
+	it("shows freshness metadata when snapshot is fresh", async () => {
+		renderComponent();
+
+		await waitFor(() => {
+			expect(screen.getByText(/Data as of/)).toBeDefined();
+			expect(screen.queryByText(/Stale snapshot/)).toBeNull();
+		});
+	});
+
+	it("renders loading skeletons while consolidated endpoint is pending", async () => {
+		mockApiFetch.mockImplementation(() => new Promise<Response>(() => {}));
+
+		const { container } = renderComponent();
+
+		await waitFor(() => {
+			expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+		});
+	});
+
+	it("renders confirmed empty days with zero values", async () => {
+		mockApiFetch.mockResolvedValue({
+			ok: true,
+			json: async () =>
+				consolidatedResponse({
+					usage: [
+						{
+							date: "2026-08-01",
+							dau: 0,
+							total_api_calls: 0,
+							timetable_searches: 0,
+						},
+					],
+				}),
+		} as unknown as Response);
+
+		renderComponent();
+
+		await waitFor(() => {
+			expect(screen.getByText(/Usage Overview/)).toBeDefined();
+			// Zero DAU renders (at least one zero KPI), and no empty-state text
+			expect(screen.getAllByText("0").length).toBeGreaterThan(0);
+			expect(screen.queryByText(/No usage data available/)).toBeNull();
+		});
+	});
+
+	it("renders error state when consolidated endpoint fails", async () => {
+		mockApiFetch.mockResolvedValue({
+			ok: false,
+			status: 503,
+			json: async () => ({ detail: "Analytics temporarily unavailable" }),
+		} as unknown as Response);
+
+		renderComponent();
+
+		await waitFor(() => {
+			expect(screen.getAllByText(/Failed to load dashboard/).length).toBeGreaterThan(
+				0,
+			);
+		});
+	});
+
+	it("preserves 90D/1Y/custom range behavior", async () => {
+		renderComponent();
+
+		await waitFor(() => {
+			expect(
+				screen.getByText(/No usage data available for the last 30 days/),
+			).toBeDefined();
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "90D" }));
+		await waitFor(() => {
+			expect(
+				screen.getByText(/No usage data available for the last 90 days/),
+			).toBeDefined();
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "1Y" }));
+		await waitFor(() => {
+			expect(
+				screen.getByText(/No usage data available for the last 365 days/),
+			).toBeDefined();
+		});
+
+		fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+		const daysInput = screen.getByRole("spinbutton");
+		fireEvent.change(daysInput, { target: { value: "45" } });
+		await waitFor(() => {
+			expect(
+				screen.getByText(/No usage data available for the last 45 days/),
+			).toBeDefined();
+		});
+
+		const paths = mockApiFetch.mock.calls.map((c) => String(c[0]));
+		expect(paths.some((p) => p.includes("days=90"))).toBe(true);
+		expect(paths.some((p) => p.includes("days=365"))).toBe(true);
+		expect(paths.some((p) => p.includes("days=45"))).toBe(true);
 	});
 
 	it("updates range preset when button clicked", async () => {
@@ -192,5 +367,7 @@ describe("Analytics Dashboard Component", () => {
 				screen.getByText(/No usage data available for the last 7 days/),
 			).toBeDefined();
 		});
+		const paths = mockApiFetch.mock.calls.map((c) => String(c[0]));
+		expect(paths.some((p) => p.includes("days=7"))).toBe(true);
 	});
 });
