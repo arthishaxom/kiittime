@@ -54,6 +54,7 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
     repository = PostgresServingRepository(settings)
     try:
         dates = get_pending_dates(conn, control_path, target_date)
+        pending_dates: list[date] = []
         for current_date in dates:
             axiom_available = stage_succeeded(conn, control_path, current_date, "axiom", "bronze")
             if not axiom_available:
@@ -106,8 +107,22 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
                     "pending",
                     delivery.file_count,
                 )
-                repository.mark_pending(current_date)
-                return current_date
+                pending_age = (target_date - current_date).days
+                if pending_age > settings.POSTHOG_PENDING_MAX_DAYS:
+                    mark_stage(
+                        conn,
+                        control_path,
+                        current_date,
+                        None,
+                        "serving",
+                        "skipped",
+                        reason=(
+                            f"auto-abandoned after {pending_age} days pending (no PostHog export)"
+                        ),
+                    )
+                    continue
+                pending_dates.append(current_date)
+                continue
             if delivery.state is SourceState.FAILED:
                 error = RuntimeError(delivery.detail or "PostHog delivery failed")
                 mark_stage(conn, control_path, current_date, "posthog", "bronze", "failed")
@@ -152,6 +167,10 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
                     raise
     finally:
         conn.close()
+    if pending_dates:
+        pending = max(pending_dates)
+        repository.mark_pending(pending)
+        return pending
     return target_date
 
 

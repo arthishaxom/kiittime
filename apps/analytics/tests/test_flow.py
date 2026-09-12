@@ -15,6 +15,7 @@ def _settings() -> SimpleNamespace:
         ANALYTICS_DATABASE_URL="",
         DATABASE_URL="",
         ANALYTICS_POOL_SIZE=4,
+        POSTHOG_PENDING_MAX_DAYS=7,
     )
 
 
@@ -87,3 +88,61 @@ def test_nightly_etl_flow_marks_failed_delivery_operator_visible():
             raise AssertionError("failed delivery must fail the flow")
 
     repository.mark_failed.assert_called_once()
+
+
+def test_nightly_etl_flow_continues_past_pending_to_newer_dates():
+    older = date(2026, 8, 5)
+    newer = date(2026, 8, 6)
+    repository = MagicMock()
+
+    def delivery(*, target_date: date, **_: object) -> PostHogDelivery:
+        if target_date == older:
+            return PostHogDelivery(SourceState.PENDING, detail="export has not arrived")
+        return PostHogDelivery(SourceState.DATA, file_count=1, row_count=3)
+
+    with (
+        patch("analytics.flows.nightly_etl.get_settings", return_value=_settings()),
+        patch("analytics.flows.nightly_etl.get_duckdb_conn", return_value=MagicMock()),
+        patch("analytics.flows.nightly_etl.PostgresServingRepository", return_value=repository),
+        patch("analytics.flows.nightly_etl.get_pending_dates", return_value=[older, newer]),
+        patch("analytics.flows.nightly_etl.stage_succeeded", return_value=False),
+        patch("analytics.flows.nightly_etl.mark_stage"),
+        patch("analytics.flows.nightly_etl.pull_axiom_logs", return_value=None),
+        patch("analytics.flows.nightly_etl.check_posthog_files", side_effect=delivery),
+        patch("analytics.flows.nightly_etl.transform_silver_to_gold"),
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
+    ):
+        result = nightly_etl_flow.fn(target_date=newer)
+
+    assert result == older
+    sync.assert_called_once()
+    assert sync.call_args.kwargs["target_date"] == newer
+    repository.mark_pending.assert_called_once_with(older)
+
+
+def test_nightly_etl_flow_auto_abandons_stale_pending_date():
+    stale = date(2026, 8, 5)
+    target = date(2026, 8, 20)
+    repository = MagicMock()
+    delivery = PostHogDelivery(SourceState.PENDING, detail="export has not arrived")
+
+    with (
+        patch("analytics.flows.nightly_etl.get_settings", return_value=_settings()),
+        patch("analytics.flows.nightly_etl.get_duckdb_conn", return_value=MagicMock()),
+        patch("analytics.flows.nightly_etl.PostgresServingRepository", return_value=repository),
+        patch("analytics.flows.nightly_etl.get_pending_dates", return_value=[stale]),
+        patch("analytics.flows.nightly_etl.stage_succeeded", return_value=False),
+        patch("analytics.flows.nightly_etl.mark_stage") as mark_stage,
+        patch("analytics.flows.nightly_etl.pull_axiom_logs", return_value=None),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery),
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
+    ):
+        result = nightly_etl_flow.fn(target_date=target)
+
+    assert result == target
+    sync.assert_not_called()
+    repository.mark_pending.assert_not_called()
+    assert any(
+        len(call.args) >= 6 and call.args[4] == "serving" and call.args[5] == "skipped"
+        for call in mark_stage.call_args_list
+    )

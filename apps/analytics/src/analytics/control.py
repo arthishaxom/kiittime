@@ -6,7 +6,7 @@ import duckdb
 
 CONTROL_SCHEMA = """
     date DATE, source VARCHAR, stage VARCHAR, status VARCHAR,
-    processed_at TIMESTAMP, file_count INTEGER
+    processed_at TIMESTAMP, file_count INTEGER, reason VARCHAR
 """
 
 
@@ -23,6 +23,7 @@ def _ensure_table(conn: duckdb.DuckDBPyConnection, path: str) -> None:
         conn.execute(
             f"CREATE OR REPLACE TEMP TABLE pipeline_runs AS SELECT * FROM read_parquet('{path}')"
         )
+        conn.execute("ALTER TABLE pipeline_runs ADD COLUMN IF NOT EXISTS reason VARCHAR")
     else:
         conn.execute(f"CREATE OR REPLACE TEMP TABLE pipeline_runs ({CONTROL_SCHEMA})")
 
@@ -33,7 +34,8 @@ def get_pending_dates(conn: duckdb.DuckDBPyConnection, path: str, target_date: d
     rows = conn.execute(
         """SELECT date FROM pipeline_runs GROUP BY date
            HAVING NOT (COALESCE(BOOL_OR(stage = 'gold' AND status = 'success'), FALSE)
-                       AND COALESCE(BOOL_OR(stage = 'serving' AND status = 'success'), FALSE))
+                       AND COALESCE(BOOL_OR(stage = 'serving'
+                                            AND status IN ('success', 'skipped')), FALSE))
            ORDER BY date"""
     ).fetchall()
     dates = {row[0] for row in rows}
@@ -66,6 +68,7 @@ def mark_stage(
     stage: str,
     status: str,
     file_count: int | None = None,
+    reason: str | None = None,
 ) -> None:
     """Upsert a stage result and persist the complete control table."""
     _ensure_table(conn, path)
@@ -76,8 +79,8 @@ def mark_stage(
         [target_date, source, stage],
     )
     conn.execute(
-        "INSERT INTO pipeline_runs_next VALUES (?, ?, ?, ?, ?, ?)",
-        [target_date, source, stage, status, datetime.now(UTC), file_count],
+        "INSERT INTO pipeline_runs_next VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [target_date, source, stage, status, datetime.now(UTC), file_count, reason],
     )
     conn.execute(f"COPY pipeline_runs_next TO '{path}' (FORMAT PARQUET, OVERWRITE)")
     conn.execute("CREATE OR REPLACE TEMP TABLE pipeline_runs AS SELECT * FROM pipeline_runs_next")
