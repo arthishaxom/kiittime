@@ -18,6 +18,14 @@ Click on the ADR titles below to view the detailed records:
    Leverages `netinfo` to wire reconnect refetches, add offline UI cues, and extend TanStack cache lifespan to 7 days.
 4. **[0004: CI Pipeline](file:///C:/Users/ashis/kiittime/docs/adr/0004-ci-pipeline.md)** (Accepted)  
    Sets up path-filtered merge-gating CI workflows using GitHub Actions for backend, webapp, admin-webapp, and mobile.
+5. **[0005: Expo Updates OTA](file:///C:/Users/ashis/kiittime/docs/adr/0005-expo-updates-ota.md)** (Accepted)  
+   Configures Expo OTA updates for the mobile app.
+6. **[0006: Analytics Pipeline](file:///C:/Users/ashis/kiittime/docs/adr/0006-analytics-pipeline.md)** (Accepted, superseded in part by 0007)  
+   Defines data sources, Medallion storage, transforms, orchestration, and pipeline control.
+7. **[0007: PostgreSQL Analytics Serving Snapshot](file:///C:/Users/ashis/kiittime/docs/adr/0007-postgresql-analytics-serving-snapshot.md)** (Accepted, superseded in part by 0008)  
+   Moves the dashboard read path to a transactional PostgreSQL serving copy of the Gold data.
+8. **[0008: Analytics Control State: Derived Freshness + Postgres Gap Ledger](file:///C:/Users/ashis/kiittime/docs/adr/0008-analytics-derived-freshness-gap-ledger.md)** (Accepted)  
+   Drops `sync_metadata`; derives freshness from serving artifacts plus a durable Postgres terminal-gap ledger.
 
 ---
 

@@ -11,5 +11,8 @@
 - **Analytics API**: The authenticated FastAPI boundary that validates dashboard requests and returns analytics results. It is not the analytics compute engine.
 - **Gold Analytics Data**: Persisted, business-ready aggregates produced from analytical inputs for dashboard queries.
 - **Analytics Serving Snapshot**: A complete, read-optimized copy of Gold Analytics Data used to serve dashboard requests. It is derived from, but is not, the Analytics Source of Truth.
-- **Analytics Source Completeness**: The state of a source interval, distinguishing confirmed data, confirmed no-event activity, pending delivery, and failure.
-- **Data Freshness**: The age of the newest analytics date included in the current Analytics Serving Snapshot.
+- **Analytics Source Completeness**: The state of a source interval, distinguishing confirmed data, confirmed no-event activity, pending delivery, failure, and a Terminal Gap.
+- **Terminal Gap**: An analytics source interval that will not be delivered, recorded as an explicit decision so downstream treats the interval as complete without inventing data.
+- **Gap Ledger**: The durable record of Terminal Gap decisions, used by the pipeline to skip acknowledged gaps and to reopen a gap if its source arrives later.
+- **Accounted-for Date**: A calendar date the analytics pipeline has finished with, either included in the Analytics Serving Snapshot or recorded as a Terminal Gap.
+- **Data Freshness**: The age of the newest Accounted-for Date.
