@@ -1,5 +1,6 @@
 """Nightly Gold pipeline and PostgreSQL serving publication flow."""
 
+import logging
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -12,8 +13,9 @@ if src_path not in sys.path:
 
 from prefect import flow  # noqa: E402
 
-from analytics.config import get_duckdb_conn, get_settings  # noqa: E402
-from analytics.control import get_pending_dates, mark_stage, stage_succeeded  # noqa: E402
+from analytics.completeness import get_pending_dates  # noqa: E402
+from analytics.config import get_settings  # noqa: E402
+from analytics.gaps import POSTHOG_SOURCE, PostgresGapRepository  # noqa: E402
 from analytics.serving import PostgresServingRepository, sync_gold_to_postgres  # noqa: E402
 from analytics.tasks.axiom import pull_axiom_logs  # noqa: E402
 from analytics.tasks.posthog import (  # noqa: E402
@@ -27,6 +29,7 @@ from analytics.tasks.transform import (  # noqa: E402
 )
 
 IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
+logger = logging.getLogger(__name__)
 
 
 def _delivery_state(delivery: PostHogDelivery | bool) -> PostHogDelivery:
@@ -36,141 +39,99 @@ def _delivery_state(delivery: PostHogDelivery | bool) -> PostHogDelivery:
     return PostHogDelivery(SourceState.DATA if delivery else SourceState.PENDING)
 
 
+def _posthog_path(settings, current_date: date) -> str:
+    return (
+        f"s3://{settings.R2_BUCKET_NAME}/bronze/posthog/"
+        f"{current_date.year:04d}/{current_date.month:02d}/"
+        f"{current_date.day:02d}/*.parquet*"
+    )
+
+
+def _handle_pending_source(
+    current_date: date,
+    target_date: date,
+    settings,
+    gap_repository: PostgresGapRepository,
+) -> None:
+    """Warn while inside the lateness window; record one Terminal Gap past it."""
+    pending_age = (target_date - current_date).days
+    if pending_age >= settings.POSTHOG_ABANDON_AFTER_DAYS:
+        gap_repository.record_gap(
+            current_date,
+            POSTHOG_SOURCE,
+            (
+                f"auto-abandoned after {pending_age} days pending "
+                f"(no PostHog export; abandon threshold "
+                f"{settings.POSTHOG_ABANDON_AFTER_DAYS} days)"
+            ),
+        )
+        logger.warning(
+            "PostHog export missing: date=%s age=%sd, recorded terminal gap",
+            current_date,
+            pending_age,
+        )
+    elif pending_age >= settings.POSTHOG_WARN_AFTER_DAYS:
+        logger.warning(
+            "PostHog export missing: date=%s age=%sd, still retrying",
+            current_date,
+            pending_age,
+        )
+
+
 @flow(name="nightly-etl-flow")
 def nightly_etl_flow(target_date: date | None = None) -> date:
-    """Process incomplete dates oldest-first and publish only complete snapshots.
+    """Publish every unaccounted-for date whose sources are complete.
 
-    Returns the last attempted date. On PENDING the return is the pending
-    date (not the requested target); callers must check repository status
-    to distinguish stale vs published.
+    A date is done when it is in the serving snapshot or the Gap Ledger, so
+    those dates are never retried. A missing PostHog export warns while it is
+    inside the lateness window and is recorded once as a Terminal Gap past the
+    abandon threshold; either way it never blocks a newer date. Completion
+    comes from the artifacts rather than a per-stage status table, and the flow
+    records no pending or error pointer.
     """
     if target_date is None:
         now_ist = datetime.now(IST_TIMEZONE)
         target_date = (now_ist - timedelta(days=1)).date()
 
     settings = get_settings()
-    control_path = f"s3://{settings.R2_BUCKET_NAME}/_metadata/pipeline_runs.parquet"
-    conn = get_duckdb_conn(settings)
     repository = PostgresServingRepository(settings)
-    try:
-        dates = get_pending_dates(conn, control_path, target_date)
-        pending_dates: list[date] = []
-        for current_date in dates:
-            axiom_available = stage_succeeded(conn, control_path, current_date, "axiom", "bronze")
-            if not axiom_available:
-                try:
-                    result = pull_axiom_logs(target_date=current_date, settings=settings)
-                    axiom_available = result is not None
-                    mark_stage(
-                        conn,
-                        control_path,
-                        current_date,
-                        "axiom",
-                        "bronze",
-                        "success",
-                        1 if axiom_available else 0,
-                    )
-                except Exception as exc:
-                    mark_stage(conn, control_path, current_date, "axiom", "bronze", "failed")
-                    repository.mark_failed(current_date, exc)
-                    raise
+    gap_repository = PostgresGapRepository(settings)
 
-            if not stage_succeeded(conn, control_path, current_date, None, "silver"):
-                try:
-                    if axiom_available:
-                        transform_bronze_to_silver(target_date=current_date, settings=settings)
-                    mark_stage(conn, control_path, current_date, None, "silver", "success")
-                except Exception as exc:
-                    mark_stage(conn, control_path, current_date, None, "silver", "failed")
-                    repository.mark_failed(current_date, exc)
-                    raise
-
-            posthog_path = (
-                f"s3://{settings.R2_BUCKET_NAME}/bronze/posthog/"
-                f"{current_date.year:04d}/{current_date.month:02d}/"
-                f"{current_date.day:02d}/*.parquet*"
+    dates = get_pending_dates(
+        repository,
+        gap_repository,
+        target_date,
+        settings.POSTHOG_ABANDON_AFTER_DAYS,
+    )
+    for current_date in dates:
+        posthog_path = _posthog_path(settings, current_date)
+        delivery = _delivery_state(
+            check_posthog_files(
+                target_date=current_date,
+                path=posthog_path,
+                settings=settings,
             )
-            delivery = _delivery_state(
-                check_posthog_files(
-                    target_date=current_date,
-                    path=posthog_path,
-                    settings=settings,
-                )
-            )
-            if delivery.state is SourceState.PENDING:
-                mark_stage(
-                    conn,
-                    control_path,
-                    current_date,
-                    "posthog",
-                    "bronze",
-                    "pending",
-                    delivery.file_count,
-                )
-                pending_age = (target_date - current_date).days
-                if pending_age > settings.POSTHOG_PENDING_MAX_DAYS:
-                    mark_stage(
-                        conn,
-                        control_path,
-                        current_date,
-                        None,
-                        "serving",
-                        "skipped",
-                        reason=(
-                            f"auto-abandoned after {pending_age} days pending (no PostHog export)"
-                        ),
-                    )
-                    continue
-                pending_dates.append(current_date)
-                continue
-            if delivery.state is SourceState.FAILED:
-                error = RuntimeError(delivery.detail or "PostHog delivery failed")
-                mark_stage(conn, control_path, current_date, "posthog", "bronze", "failed")
-                repository.mark_failed(current_date, error)
-                raise error
+        )
+        if delivery.state is SourceState.PENDING:
+            _handle_pending_source(current_date, target_date, settings, gap_repository)
+            continue
+        if delivery.state is SourceState.FAILED:
+            raise RuntimeError(delivery.detail or "PostHog delivery failed")
 
-            mark_stage(
-                conn,
-                control_path,
-                current_date,
-                "posthog",
-                "bronze",
-                "success",
-                delivery.file_count,
-            )
-
-            if not stage_succeeded(conn, control_path, current_date, None, "gold"):
-                try:
-                    transform_silver_to_gold(
-                        target_date=current_date,
-                        settings=settings,
-                        posthog_bronze_path=posthog_path,
-                        posthog_status=delivery.state,
-                    )
-                    mark_stage(conn, control_path, current_date, None, "gold", "success")
-                except Exception as exc:
-                    mark_stage(conn, control_path, current_date, None, "gold", "failed")
-                    repository.mark_failed(current_date, exc)
-                    raise
-
-            if not stage_succeeded(conn, control_path, current_date, None, "serving"):
-                try:
-                    sync_gold_to_postgres(
-                        target_date=current_date,
-                        settings=settings,
-                        repository=repository,
-                    )
-                    mark_stage(conn, control_path, current_date, None, "serving", "success")
-                except Exception as exc:
-                    mark_stage(conn, control_path, current_date, None, "serving", "failed")
-                    repository.mark_failed(current_date, exc)
-                    raise
-    finally:
-        conn.close()
-    if pending_dates:
-        pending = max(pending_dates)
-        repository.mark_pending(pending)
-        return pending
+        axiom_available = pull_axiom_logs(target_date=current_date, settings=settings) is not None
+        if axiom_available:
+            transform_bronze_to_silver(target_date=current_date, settings=settings)
+        transform_silver_to_gold(
+            target_date=current_date,
+            settings=settings,
+            posthog_bronze_path=posthog_path,
+            posthog_status=delivery.state,
+        )
+        sync_gold_to_postgres(
+            target_date=current_date,
+            settings=settings,
+            repository=repository,
+        )
     return target_date
 
 

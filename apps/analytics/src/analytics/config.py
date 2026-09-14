@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     POSTHOG_PROJECT_ID: str = ""
     POSTHOG_HOST: str = "https://us.posthog.com"
     POSTHOG_EMPTY_DATES: str = ""
-    POSTHOG_PENDING_MAX_DAYS: int = 7
+    # Lateness policy for a missing PostHog export: warn while still retrying,
+    # then abandon the date (one Terminal Gap row) and stop retrying.
+    POSTHOG_WARN_AFTER_DAYS: int = 2
+    POSTHOG_ABANDON_AFTER_DAYS: int = 7
 
     model_config = SettingsConfigDict(
         env_file=".env",

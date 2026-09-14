@@ -160,6 +160,21 @@ class PostgresServingRepository:
             current is not None and current.status == "published" and current.data_as_of is not None
         )
 
+    def served_dates(self, start: date, end: date) -> set[date]:
+        """Gold dates present in the serving snapshot within ``[start, end]``."""
+        with self.engine.begin() as connection:
+            rows = connection.execute(
+                sa.select(gold_daily_usage.c.date).where(
+                    gold_daily_usage.c.date.between(start, end)
+                )
+            ).scalars()
+            return set(rows)
+
+    def oldest_served_date(self) -> date | None:
+        """Earliest date present in the serving snapshot, or ``None`` when empty."""
+        with self.engine.begin() as connection:
+            return connection.execute(sa.select(sa.func.min(gold_daily_usage.c.date))).scalar()
+
     def _metadata_upsert(
         self,
         connection,

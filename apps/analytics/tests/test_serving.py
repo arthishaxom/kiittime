@@ -246,6 +246,30 @@ def test_publish_records_synced_at(repository):
     assert synced_at >= before - timedelta(seconds=60)
 
 
+def test_served_dates_returns_gold_dates_in_range(repository):
+    day = date(2026, 8, 4)
+    newer = date(2026, 8, 6)
+    repository.publish(_snapshot(day), expected_date=day, data_as_of=day, replace_all=True)
+    repository.publish(_snapshot(newer), expected_date=newer, data_as_of=newer, replace_all=False)
+
+    assert repository.served_dates(date(2026, 8, 4), date(2026, 8, 5)) == {day}
+    assert repository.served_dates(date(2026, 8, 4), date(2026, 8, 6)) == {day, newer}
+    assert repository.served_dates(date(2026, 8, 7), date(2026, 8, 9)) == set()
+
+
+def test_oldest_served_date_is_none_without_gold_rows(repository):
+    assert repository.oldest_served_date() is None
+
+
+def test_oldest_served_date_tracks_earliest_gold_row(repository):
+    day = date(2026, 8, 4)
+    newer = date(2026, 8, 6)
+    repository.publish(_snapshot(newer), expected_date=newer, data_as_of=newer, replace_all=True)
+    repository.publish(_snapshot(day), expected_date=day, data_as_of=day, replace_all=False)
+
+    assert repository.oldest_served_date() == day
+
+
 def test_writer_requires_dedicated_url_in_prod(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     settings = Settings(
