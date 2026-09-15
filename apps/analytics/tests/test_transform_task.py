@@ -497,7 +497,8 @@ def test_transform_silver_to_gold_posthog_zst(tmp_path):
         {"distinct_id": "user-1", "event": "timetable_viewed"},
     ]
     conn.execute(
-        f"COPY (SELECT t.* FROM (SELECT unnest(?) AS t)) TO '{posthog_str}' (FORMAT PARQUET, CODEC 'ZSTD')",
+        f"COPY (SELECT t.* FROM (SELECT unnest(?) AS t)) "
+        f"TO '{posthog_str}' (FORMAT PARQUET, CODEC 'ZSTD')",
         [posthog_payload],
     )
     conn.close()

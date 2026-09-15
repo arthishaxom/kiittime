@@ -42,7 +42,9 @@ def clear_all(session: Session) -> ClearAllResult:
     courses_deleted = cast(CursorResult[Any], session.execute(delete(Course))).rowcount
     faculty_deleted = cast(CursorResult[Any], session.execute(delete(Faculty))).rowcount
     rooms_deleted = cast(CursorResult[Any], session.execute(delete(Room))).rowcount
-    bronze_snapshots_deleted = cast(CursorResult[Any], session.execute(delete(BronzeSnapshot))).rowcount
+    bronze_snapshots_deleted = cast(
+        CursorResult[Any], session.execute(delete(BronzeSnapshot))
+    ).rowcount
 
     session.flush()
     return ClearAllResult(

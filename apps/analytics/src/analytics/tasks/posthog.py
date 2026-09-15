@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
@@ -113,11 +114,12 @@ def _remote_files(path: str, settings: Settings) -> list[str]:
     return sorted(keys)
 
 
-def _count_rows(files: list[str | Path], settings: Settings) -> int:
+def _count_rows(files: Sequence[str | Path], settings: Settings) -> int:
     conn = duckdb.connect()
     try:
         paths = ", ".join("'" + str(path).replace("'", "''") + "'" for path in files)
-        return int(conn.execute(f"SELECT COUNT(*) FROM read_parquet([{paths}])").fetchone()[0])
+        row = conn.execute(f"SELECT COUNT(*) FROM read_parquet([{paths}])").fetchone()
+        return int(row[0]) if row else 0
     finally:
         conn.close()
 
@@ -138,7 +140,7 @@ def check_posthog_files(
     """Classify the target interval as data, empty, pending, or failed."""
     settings = settings or get_settings()
     try:
-        files: list[str | Path]
+        files: Sequence[str | Path]
         if path.startswith(("s3://", "r2://")):
             files = _remote_files(path, settings)
         else:

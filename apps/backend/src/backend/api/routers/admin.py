@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.orm import Session
 
-
 from backend.api.dao.announcement_dao import create_announcement, deactivate_current
 from backend.api.schemas import (
     AnnouncementOut,
@@ -473,7 +472,9 @@ def clear_roll_mappings(
 ) -> dict:
     deleted_count = cast(
         CursorResult[Any],
-        db.execute(delete(RollNumberMapping).where(RollNumberMapping.academic_year == academic_year)),
+        db.execute(
+            delete(RollNumberMapping).where(RollNumberMapping.academic_year == academic_year)
+        ),
     ).rowcount
     db.commit()
     return {
