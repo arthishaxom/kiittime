@@ -3,14 +3,16 @@
 A calendar date is done when it is present in the Analytics Serving Snapshot
 (``gold_daily_usage``) or recorded as a Terminal Gap in the Gap Ledger. The
 flow derives the dates still worth processing from those two artifacts; no
-per-stage status table is consulted.
+per-stage status table is consulted. A Terminal Gap is never reprocessed on
+its own, but it is re-checked for a late source arrival so it can be reopened
+when the export finally arrives.
 """
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 
-from analytics.gaps import POSTHOG_SOURCE, PostgresGapRepository
+from analytics.gaps import POSTHOG_SOURCE, GapRecord, PostgresGapRepository
 from analytics.serving import PostgresServingRepository
 
 
@@ -46,4 +48,21 @@ def get_pending_dates(
     gapped = {gap.date for gap in gaps if start <= gap.date <= target_date}
     return [
         day for day in _dates_between(start, target_date) if day not in served and day not in gapped
+    ]
+
+
+def get_reopen_candidates(
+    gap_repository: PostgresGapRepository,
+    target_date: date,
+    source: str = POSTHOG_SOURCE,
+) -> list[GapRecord]:
+    """Recorded Terminal Gaps at or before ``target_date``, oldest first.
+
+    A gapped date is terminal and never retried, but its source can arrive
+    late, so every gap stays a candidate for a re-check and possible reopen.
+    """
+    return [
+        gap
+        for gap in gap_repository.all_gaps()
+        if gap.source == source and gap.date <= target_date
     ]

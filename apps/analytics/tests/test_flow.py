@@ -101,19 +101,45 @@ def test_nightly_etl_flow_publishes_confirmed_empty_date():
     gap_repository.record_gap.assert_not_called()
 
 
-def test_nightly_etl_flow_skips_served_and_gapped_dates():
+def test_nightly_etl_flow_rechecks_gaps_without_reopening_absent_sources():
     target = _aug(7)
+    gapped = _aug(5)
     served = _days(date(2026, 7, 31), 5) | {_aug(6)}
     repository, gap_repository = _repos(
         oldest_served=date(2026, 7, 31),
         served=served,
-        gapped={_aug(5)},
+        gapped={gapped},
     )
+    delivery = PostHogDelivery(SourceState.PENDING, detail="export has not arrived")
+    with (
+        _patches(repository, gap_repository),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery) as check,
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
+    ):
+        result = nightly_etl_flow.fn(target_date=target)
+
+    assert result == target
+    assert [call.kwargs["target_date"] for call in check.call_args_list] == [target, gapped]
+    gap_repository.clear_gap.assert_not_called()
+    gap_repository.record_gap.assert_not_called()
+    sync.assert_not_called()
+
+
+def test_nightly_etl_flow_reopens_gap_and_publishes_on_late_source(caplog):
+    target = _aug(7)
+    gapped = _aug(5)
+    served = _days(date(2026, 7, 31), 5) | {_aug(6)}
+    repository, gap_repository = _repos(oldest_served=date(2026, 7, 31), served=served)
+    decided_at = datetime(2026, 8, 12, 2, 0, tzinfo=UTC)
+    gap_repository.all_gaps.return_value = [
+        GapRecord(gapped, POSTHOG_SOURCE, "no export arrived", decided_at)
+    ]
     delivery = PostHogDelivery(SourceState.DATA, file_count=1, row_count=3)
     with (
         _patches(repository, gap_repository),
+        caplog.at_level(logging.INFO, logger="analytics.flows.nightly_etl"),
         patch("analytics.flows.nightly_etl.pull_axiom_logs", return_value=target),
-        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery) as check,
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery),
         patch("analytics.flows.nightly_etl.transform_bronze_to_silver"),
         patch("analytics.flows.nightly_etl.transform_silver_to_gold"),
         patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
@@ -121,10 +147,116 @@ def test_nightly_etl_flow_skips_served_and_gapped_dates():
         result = nightly_etl_flow.fn(target_date=target)
 
     assert result == target
-    check.assert_called_once()
-    assert check.call_args.kwargs["target_date"] == target
-    sync.assert_called_once()
+    gap_repository.clear_gap.assert_called_once_with(gapped, POSTHOG_SOURCE)
+    published = {call.kwargs["target_date"] for call in sync.call_args_list}
+    assert published == {target, gapped}
+    messages = [record.getMessage() for record in caplog.records if record.levelno == logging.INFO]
+    assert any(
+        "2026-08-05" in message
+        and "no export arrived" in message
+        and "2026-08-12" in message
+        and "source_state=data" in message
+        for message in messages
+    )
+
+
+def test_nightly_etl_flow_sends_the_reopen_audit_to_the_run_logger():
+    target = _aug(7)
+    gapped = _aug(5)
+    served = _days(date(2026, 7, 31), 5) | {_aug(6)}
+    repository, gap_repository = _repos(oldest_served=date(2026, 7, 31), served=served)
+    gap_repository.all_gaps.return_value = [
+        GapRecord(gapped, POSTHOG_SOURCE, "no export", datetime.now(UTC))
+    ]
+    delivery = PostHogDelivery(SourceState.DATA, file_count=1, row_count=3)
+    with (
+        _patches(repository, gap_repository),
+        patch("analytics.flows.nightly_etl.get_run_logger") as run_logger,
+        patch("analytics.flows.nightly_etl.pull_axiom_logs", return_value=target),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery),
+        patch("analytics.flows.nightly_etl.transform_bronze_to_silver"),
+        patch("analytics.flows.nightly_etl.transform_silver_to_gold"),
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres"),
+    ):
+        nightly_etl_flow.fn(target_date=target)
+
+    run_logger.return_value.info.assert_called_once()
+    assert "Reopened terminal gap" in run_logger.return_value.info.call_args.args[0]
+
+
+def test_nightly_etl_flow_reopen_is_idempotent_once_served():
+    target = _aug(7)
+    gapped = _aug(5)
+    served = _days(date(2026, 7, 31), 5) | {_aug(6)}
+    repository, gap_repository = _repos(oldest_served=date(2026, 7, 31), served=served)
+    gap_repository.all_gaps.return_value = [
+        GapRecord(gapped, POSTHOG_SOURCE, "no export", datetime.now(UTC))
+    ]
+    delivery = PostHogDelivery(SourceState.DATA, file_count=1, row_count=3)
+    with (
+        _patches(repository, gap_repository),
+        patch("analytics.flows.nightly_etl.pull_axiom_logs", return_value=target),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery),
+        patch("analytics.flows.nightly_etl.transform_bronze_to_silver"),
+        patch("analytics.flows.nightly_etl.transform_silver_to_gold"),
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
+    ):
+        first = nightly_etl_flow.fn(target_date=target)
+        gap_repository.all_gaps.return_value = []
+        repository.served_dates.return_value = served | {gapped}
+        second = nightly_etl_flow.fn(target_date=target)
+
+    assert first == target
+    assert second == target
+    gap_repository.clear_gap.assert_called_once_with(gapped, POSTHOG_SOURCE)
     gap_repository.record_gap.assert_not_called()
+    published = [call.kwargs["target_date"] for call in sync.call_args_list]
+    assert published.count(gapped) == 1
+
+
+def test_nightly_etl_flow_raises_when_a_gap_recheck_fails():
+    target = _aug(5)
+    served = _days(date(2026, 7, 29), 7)
+    repository, gap_repository = _repos(
+        oldest_served=date(2026, 7, 29),
+        served=served,
+        gapped={target},
+    )
+    delivery = PostHogDelivery(SourceState.FAILED, detail="source error")
+    with (
+        _patches(repository, gap_repository),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery),
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
+    ):
+        try:
+            nightly_etl_flow.fn(target_date=target)
+        except RuntimeError as exc:
+            assert "source error" in str(exc)
+        else:
+            raise AssertionError("failed gap re-check must fail the flow")
+
+    gap_repository.clear_gap.assert_not_called()
+    sync.assert_not_called()
+
+
+def test_nightly_etl_flow_leaves_gaps_after_the_target_date_alone():
+    target = _aug(5)
+    served = _days(date(2026, 7, 29), 8)
+    repository, gap_repository = _repos(oldest_served=date(2026, 7, 29), served=served)
+    future_gap = GapRecord(_aug(9), POSTHOG_SOURCE, "no export", datetime.now(UTC))
+    gap_repository.all_gaps.return_value = [future_gap]
+    delivery = PostHogDelivery(SourceState.DATA, file_count=1, row_count=3)
+    with (
+        _patches(repository, gap_repository),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery) as check,
+        patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
+    ):
+        result = nightly_etl_flow.fn(target_date=target)
+
+    assert result == target
+    check.assert_not_called()
+    sync.assert_not_called()
+    gap_repository.clear_gap.assert_not_called()
 
 
 def test_nightly_etl_flow_does_nothing_when_all_dates_accounted():
@@ -183,7 +315,7 @@ def test_nightly_etl_flow_abandons_past_threshold_with_one_gap_row():
     delivery = PostHogDelivery(SourceState.PENDING, detail="export has not arrived")
     with (
         _patches(repository, gap_repository),
-        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery),
+        patch("analytics.flows.nightly_etl.check_posthog_files", return_value=delivery) as check,
         patch("analytics.flows.nightly_etl.sync_gold_to_postgres") as sync,
     ):
         result = nightly_etl_flow.fn(target_date=target)
@@ -194,6 +326,7 @@ def test_nightly_etl_flow_abandons_past_threshold_with_one_gap_row():
     assert day == abandoned
     assert source == POSTHOG_SOURCE
     assert "7 days" in reason
+    check.assert_called_once()  # the gap recorded this run is re-checked next run, not now
     sync.assert_not_called()
 
 
@@ -216,7 +349,7 @@ def test_nightly_etl_flow_does_not_rerecord_an_existing_gap():
     assert first == target
     assert second == target
     gap_repository.record_gap.assert_called_once()
-    assert check.call_count == 1
+    assert check.call_count == 2  # the second run only re-checks the gap for a late arrival
 
 
 def test_nightly_etl_flow_continues_past_pending_to_newer_dates():
