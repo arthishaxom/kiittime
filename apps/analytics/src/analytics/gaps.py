@@ -56,13 +56,19 @@ class PostgresGapRepository:
         self.settings = settings or get_settings()
         self.engine = engine or _make_engine(self.settings)
 
-    def record_gap(self, day: date, source: str, reason: str) -> None:
+    def record_gap(
+        self,
+        day: date,
+        source: str,
+        reason: str,
+        decided_at: datetime | None = None,
+    ) -> None:
         """Upsert a Terminal Gap; an existing decision is left untouched."""
         stmt = postgres_insert(pipeline_gaps).values(
             date=day,
             source=source,
             reason=reason,
-            decided_at=datetime.now(UTC),
+            decided_at=decided_at or datetime.now(UTC),
         )
         stmt = stmt.on_conflict_do_nothing(
             index_elements=[pipeline_gaps.c.date, pipeline_gaps.c.source]
