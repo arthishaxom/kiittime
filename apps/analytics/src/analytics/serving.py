@@ -262,8 +262,14 @@ def sync_gold_to_postgres(
     settings: Settings | None = None,
     repository: PostgresServingRepository | None = None,
     rebuild: bool | None = None,
+    authoritative_empty: bool = False,
 ) -> datetime:
-    """Publish complete Gold data or one reprocessed date to PostgreSQL."""
+    """Publish complete Gold data or one reprocessed date to PostgreSQL.
+
+    ``authoritative_empty`` marks a confirmed-empty reprocess: rows dated
+    ``target_date`` are removed from the health/trends serving tables when Gold
+    carries none for that date.
+    """
     settings = settings or get_settings()
     if target_date is None:
         target_date = (datetime.now(IST_TIMEZONE) - timedelta(days=1)).date()
@@ -275,4 +281,9 @@ def sync_gold_to_postgres(
     if not snapshot.daily_usage:
         raise RuntimeError(f"Gold daily usage has no complete row for {target_date}")
 
-    return repository.publish(snapshot, expected_date=target_date, rebuild=rebuild)
+    return repository.publish(
+        snapshot,
+        expected_date=target_date,
+        rebuild=rebuild,
+        authoritative_empty=authoritative_empty,
+    )

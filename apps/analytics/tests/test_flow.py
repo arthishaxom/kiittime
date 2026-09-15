@@ -78,6 +78,7 @@ def test_nightly_etl_flow_publishes_complete_date():
     assert gold.call_args.kwargs["posthog_status"] == SourceState.DATA
     sync.assert_called_once()
     assert sync.call_args.kwargs["target_date"] == target
+    assert sync.call_args.kwargs["authoritative_empty"] is False
     gap_repository.record_gap.assert_not_called()
 
 
@@ -98,6 +99,7 @@ def test_nightly_etl_flow_publishes_confirmed_empty_date():
     assert result == target
     assert gold.call_args.kwargs["posthog_status"] == SourceState.EMPTY
     sync.assert_called_once()
+    assert sync.call_args.kwargs["authoritative_empty"] is True
     gap_repository.record_gap.assert_not_called()
 
 

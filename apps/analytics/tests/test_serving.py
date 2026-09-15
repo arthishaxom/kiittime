@@ -278,6 +278,34 @@ def test_sync_gold_to_postgres_reads_only_target_date_when_gold_exists(repositor
     assert seen["target_date"] == date(2026, 8, 5)
 
 
+def test_sync_gold_to_postgres_wipes_stale_rows_for_authoritative_empty(repository, monkeypatch):
+    day = date(2026, 8, 4)
+    repository.publish(_snapshot(day), expected_date=day, replace_all=True)
+    empty = GoldSnapshot(
+        daily_usage=[{"date": day, "dau": 0, "total_api_calls": 0, "timetable_searches": 0}],
+        endpoint_health=[],
+        section_trends=[],
+    )
+    monkeypatch.setattr(
+        "analytics.serving.read_gold_snapshot", lambda settings, target_date: empty
+    )
+
+    sync_gold_to_postgres.fn(
+        target_date=day,
+        settings=repository.settings,
+        repository=repository,
+        authoritative_empty=True,
+    )
+
+    with repository.engine.begin() as conn:
+        health = conn.execute(sa.select(sa.func.count()).select_from(gold_endpoint_health)).scalar()
+        trends = conn.execute(sa.select(sa.func.count()).select_from(gold_section_trends)).scalar()
+        dau = conn.execute(
+            sa.select(gold_daily_usage.c.dau).where(gold_daily_usage.c.date == day)
+        ).scalar()
+    assert (health, trends, dau) == (0, 0, 0)
+
+
 def test_served_dates_returns_gold_dates_in_range(repository):
     day = date(2026, 8, 4)
     newer = date(2026, 8, 6)

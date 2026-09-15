@@ -84,6 +84,7 @@ def _process_date(
         target_date=current_date,
         settings=settings,
         repository=repository,
+        authoritative_empty=delivery.state is SourceState.EMPTY,
     )
 
 
