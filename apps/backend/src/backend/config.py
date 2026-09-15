@@ -1,6 +1,7 @@
 """Backend configuration and temporary local R2 reader connection factory."""
 
 import duckdb
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "dev"
     # Shared Aiven Free budget (20 conns): main 4 + reader 2 + worker 2 per process.
     ANALYTICS_POOL_SIZE: int = 2
+    # Hour (Asia/Kolkata) of the analytics deployment's nightly cron
+    # (prefect.yaml: "0 2 * * *"); drives derived staleness at read time.
+    ANALYTICS_PUBLISH_HOUR_IST: int = Field(default=2, ge=0, le=23)
     AXIOM_API_KEY: str = ""
     AXIOM_DATASET: str = "kiittime-backend-logs"
 

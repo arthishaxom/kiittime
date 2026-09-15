@@ -79,8 +79,6 @@ def test_nightly_etl_flow_publishes_complete_date():
     sync.assert_called_once()
     assert sync.call_args.kwargs["target_date"] == target
     gap_repository.record_gap.assert_not_called()
-    repository.mark_pending.assert_not_called()
-    repository.mark_failed.assert_not_called()
 
 
 def test_nightly_etl_flow_publishes_confirmed_empty_date():
@@ -249,7 +247,6 @@ def test_nightly_etl_flow_continues_past_pending_to_newer_dates():
     sync.assert_called_once()
     assert sync.call_args.kwargs["target_date"] == newer
     gap_repository.record_gap.assert_not_called()
-    repository.mark_pending.assert_not_called()
 
 
 def test_nightly_etl_flow_catches_up_every_unaccounted_date():
@@ -307,5 +304,4 @@ def test_nightly_etl_flow_raises_on_failed_delivery_without_recording_a_gap():
         else:
             raise AssertionError("failed delivery must fail the flow")
 
-    repository.mark_failed.assert_not_called()
     gap_repository.record_gap.assert_not_called()
