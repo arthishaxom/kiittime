@@ -49,12 +49,18 @@ def _posthog_path(settings, current_date: date) -> str:
     )
 
 
-def _delivery_for(current_date: date, settings) -> PostHogDelivery:
+def _delivery_for(
+    current_date: date,
+    settings,
+    *,
+    use_verifier: bool = True,
+) -> PostHogDelivery:
     return _delivery_state(
         check_posthog_files(
             target_date=current_date,
             path=_posthog_path(settings, current_date),
             settings=settings,
+            use_verifier=use_verifier,
         )
     )
 
@@ -153,8 +159,10 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
     those dates are never retried. A missing PostHog export warns while it is
     inside the lateness window and is recorded once as a Terminal Gap past the
     abandon threshold; either way it never blocks a newer date. Every recorded
-    gap is re-checked for a late source arrival: when the export is now
-    present, the gap is cleared (logged for audit) and the date is reprocessed
+    gap is re-checked for a late source arrival, reopening only on arrived
+    export files or an operator-attested empty date -- never on a file-less
+    source count, which cannot be told apart from aged-out retention. A
+    reopened gap is cleared (logged for audit) and the date is reprocessed
     through the normal idempotent path, ending served or re-gapped. Completion
     comes from the artifacts rather than a per-stage status table, and the flow
     records no pending or error pointer.
@@ -184,7 +192,7 @@ def nightly_etl_flow(target_date: date | None = None) -> date:
         _process_date(current_date, delivery, settings, repository)
 
     for gap in reopen_candidates:
-        delivery = _delivery_for(gap.date, settings)
+        delivery = _delivery_for(gap.date, settings, use_verifier=False)
         if delivery.state is SourceState.FAILED:
             raise RuntimeError(delivery.detail or "PostHog delivery failed")
         if delivery.state is SourceState.PENDING:

@@ -119,7 +119,13 @@ def test_nightly_etl_flow_rechecks_gaps_without_reopening_absent_sources():
         result = nightly_etl_flow.fn(target_date=target)
 
     assert result == target
-    assert [call.kwargs["target_date"] for call in check.call_args_list] == [target, gapped]
+    pending_check, gap_recheck = check.call_args_list
+    assert [pending_check.kwargs["target_date"], gap_recheck.kwargs["target_date"]] == [
+        target,
+        gapped,
+    ]
+    assert pending_check.kwargs["use_verifier"] is True
+    assert gap_recheck.kwargs["use_verifier"] is False
     gap_repository.clear_gap.assert_not_called()
     gap_repository.record_gap.assert_not_called()
     sync.assert_not_called()

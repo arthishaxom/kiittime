@@ -136,8 +136,15 @@ def check_posthog_files(
     path: str,
     settings: Settings | None = None,
     verifier: PostHogIntervalVerifier | None = None,
+    use_verifier: bool = True,
 ) -> PostHogDelivery:
-    """Classify the target interval as data, empty, pending, or failed."""
+    """Classify the target interval as data, empty, pending, or failed.
+
+    With ``use_verifier`` disabled, a file-less interval is pending without
+    querying the source. Terminal-gap re-checks use this: they reopen only on
+    arrived files or an attested-empty date, so a count that has aged out of
+    PostHog retention can never be mistaken for confirmed no-event activity.
+    """
     settings = settings or get_settings()
     try:
         files: Sequence[str | Path]
@@ -150,6 +157,10 @@ def check_posthog_files(
             if _configured_empty(target_date, settings):
                 return PostHogDelivery(
                     SourceState.EMPTY, detail="configured authoritative empty interval"
+                )
+            if not use_verifier:
+                return PostHogDelivery(
+                    SourceState.PENDING, detail="PostHog export has not arrived"
                 )
             verifier = verifier or PostHogIntervalVerifier(settings)
             source_count = verifier.count_events(target_date)
