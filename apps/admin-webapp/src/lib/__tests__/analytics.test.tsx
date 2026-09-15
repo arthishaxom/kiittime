@@ -226,6 +226,46 @@ describe("Analytics Dashboard Component", () => {
 		fireEvent.click(totalCallsHeader);
 	});
 
+	it("renders section trends charts when data is available", async () => {
+		mockApiFetch.mockResolvedValue({
+			ok: true,
+			json: async () =>
+				consolidatedResponse({
+					section_trends: [
+						{
+							date: "2026-08-01",
+							section_name: "22CSE1",
+							section_year: 2,
+							search_volume: 400,
+						},
+						{
+							date: "2026-08-02",
+							section_name: "22CSE1",
+							section_year: 2,
+							search_volume: 100,
+						},
+						{
+							date: "2026-08-01",
+							section_name: "23CSE1",
+							section_year: 1,
+							search_volume: 250,
+						},
+					],
+				}),
+		} as unknown as Response);
+
+		renderComponent();
+
+		await waitFor(() => {
+			expect(screen.getByText(/Section Trends \(30 Days\)/)).toBeDefined();
+			expect(screen.getByText("Top 10 Sections by Searches")).toBeDefined();
+			expect(screen.getByText("Searches by Academic Year")).toBeDefined();
+		});
+		expect(screen.queryByText(/No section trend data available/)).toBeNull();
+		expect(screen.getByTestId("bar-chart")).toBeDefined();
+		expect(screen.getByTestId("pie-chart")).toBeDefined();
+	});
+
 	it("shows freshness metadata and stale banner when snapshot is stale", async () => {
 		mockApiFetch.mockResolvedValue({
 			ok: true,
