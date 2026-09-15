@@ -26,13 +26,7 @@ def upgrade() -> None:
         "'Serving snapshot: worker=write via ANALYTICS_WRITER_DATABASE_URL, "
         "FastAPI=read-only via ANALYTICS_DATABASE_URL; shared 20-conn budget'"
     )
-    op.execute(
-        "COMMENT ON TABLE analytics.sync_metadata IS "
-        "'status IN (published,pending,failed); stale = status!=published "
-        "OR expected_date>data_as_of'"
-    )
 
 
 def downgrade() -> None:
-    op.execute("COMMENT ON TABLE analytics.sync_metadata IS NULL")
     op.execute("COMMENT ON SCHEMA analytics IS NULL")

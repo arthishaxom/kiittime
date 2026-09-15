@@ -1,7 +1,7 @@
 """Tests for admin analytics router endpoints (PostgreSQL serving snapshot)."""
 
 import os
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 
 import pytest
 import sqlalchemy as sa
@@ -12,12 +12,15 @@ from backend.analytics.tables import (
     gold_daily_usage,
     gold_endpoint_health,
     gold_section_trends,
-    sync_metadata,
+    pipeline_gaps,
 )
 from backend.auth.dependencies import get_current_admin
 from backend.db.models import AdminUser
 from backend.db.session import get_db
 from backend.main import app
+
+NOON_IST = datetime(2026, 9, 15, 6, 30, tzinfo=UTC)  # 12:00 IST on Sep 15
+AFTER_PUBLISH_IST = datetime(2026, 9, 14, 21, 30, tzinfo=UTC)  # 03:00 IST on Sep 15
 
 
 def _pg_url() -> str:
@@ -26,24 +29,26 @@ def _pg_url() -> str:
     return url
 
 
-def _seed_published(
-    day: date | None = None, status: str = "published", expected_date: date | None = None
-) -> date:
-    day = day or (datetime.now(UTC).date() - timedelta(days=2))
-    expected_date = expected_date or day
+def _seed_published(day: date | None = None) -> date:
+    day = day or date(2026, 9, 14)
+    published_at = datetime.now(UTC)
     engine = sa.create_engine(_pg_url())
     try:
         with engine.begin() as conn:
             for table in (
+                pipeline_gaps,
                 gold_endpoint_health,
                 gold_section_trends,
                 gold_daily_usage,
-                sync_metadata,
             ):
                 conn.execute(table.delete())
             conn.execute(
                 gold_daily_usage.insert().values(
-                    date=day, dau=10, total_api_calls=100, timetable_searches=40
+                    date=day,
+                    dau=10,
+                    total_api_calls=100,
+                    timetable_searches=40,
+                    published_at=published_at,
                 )
             )
             conn.execute(
@@ -53,20 +58,16 @@ def _seed_published(
                     total_calls=100,
                     p95_latency_ms=15.0,
                     error_rate=0.02,
+                    published_at=published_at,
                 )
             )
             conn.execute(
                 gold_section_trends.insert().values(
-                    date=day, section_name="22CSE1", section_year=2, search_volume=40
-                )
-            )
-            conn.execute(
-                sync_metadata.insert().values(
-                    id=1,
-                    data_as_of=day,
-                    synced_at=datetime.now(UTC),
-                    expected_date=expected_date,
-                    status=status,
+                    date=day,
+                    section_name="22CSE1",
+                    section_year=2,
+                    search_volume=40,
+                    published_at=published_at,
                 )
             )
     finally:
@@ -75,20 +76,41 @@ def _seed_published(
     return day
 
 
+def _seed_gap(day: date, source: str = "posthog") -> None:
+    engine = sa.create_engine(_pg_url())
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                pipeline_gaps.insert().values(
+                    date=day,
+                    source=source,
+                    reason="no export",
+                    decided_at=datetime.now(UTC),
+                )
+            )
+    finally:
+        engine.dispose()
+    reset_reader_cache()
+
+
 def _clear_snapshot() -> None:
     engine = sa.create_engine(_pg_url())
     try:
         with engine.begin() as conn:
             for table in (
+                pipeline_gaps,
                 gold_endpoint_health,
                 gold_section_trends,
                 gold_daily_usage,
-                sync_metadata,
             ):
                 conn.execute(table.delete())
     finally:
         engine.dispose()
     reset_reader_cache()
+
+
+def _freeze_clock(monkeypatch, instant: datetime) -> None:
+    monkeypatch.setattr("backend.analytics.reader._utcnow", lambda: instant)
 
 
 @pytest.fixture
@@ -127,8 +149,16 @@ def test_analytics_no_snapshot_returns_503(admin_client):
     assert admin_client.get("/admin/analytics/dashboard?days=30").status_code == 503
 
 
-def test_dashboard_published_snapshot(admin_client):
-    day = _seed_published()
+def test_analytics_gap_without_gold_returns_503(admin_client):
+    _clear_snapshot()
+    _seed_gap(date(2026, 9, 14))
+
+    assert admin_client.get("/admin/analytics/dashboard?days=30").status_code == 503
+
+
+def test_dashboard_published_snapshot(admin_client, monkeypatch):
+    _freeze_clock(monkeypatch, NOON_IST)
+    day = _seed_published(date(2026, 9, 14))
 
     res = admin_client.get("/admin/analytics/dashboard?days=30")
     assert res.status_code == 200
@@ -141,6 +171,29 @@ def test_dashboard_published_snapshot(admin_client):
     assert data["stale"] is False
     assert "data_as_of" in data
     assert "synced_at" in data
+
+
+def test_dashboard_stale_when_behind_schedule(admin_client, monkeypatch):
+    _freeze_clock(monkeypatch, AFTER_PUBLISH_IST)
+    _seed_published(date(2026, 9, 13))
+
+    res = admin_client.get("/admin/analytics/dashboard?days=30")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["stale"] is True
+    assert len(data["usage"]) == 1
+
+
+def test_dashboard_gap_advances_freshness(admin_client, monkeypatch):
+    _freeze_clock(monkeypatch, AFTER_PUBLISH_IST)
+    _seed_published(date(2026, 9, 13))
+    _seed_gap(date(2026, 9, 14))
+
+    res = admin_client.get("/admin/analytics/dashboard?days=30")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["stale"] is False
+    assert data["data_as_of"].startswith("2026-09-14")
 
 
 def test_removed_partial_endpoints_return_404_authenticated(admin_client):
@@ -157,44 +210,20 @@ def test_removed_partial_endpoints_return_404_unauthenticated(unauthenticated_cl
     assert unauthenticated_client.get("/admin/analytics/section-trends?days=7").status_code == 404
 
 
-def test_dashboard_pending_snapshot_is_stale(admin_client):
-    day = datetime.now(UTC).date() - timedelta(days=2)
-    _seed_published(day=day, status="pending", expected_date=day + timedelta(days=1))
-
-    res = admin_client.get("/admin/analytics/dashboard?days=30")
-    assert res.status_code == 200
-    data = res.json()
-    assert data["stale"] is True
-    assert len(data["usage"]) == 1
-
-
-def test_dashboard_days_filter(admin_client):
-    today = datetime.now(UTC).date()
-    old, recent = today - timedelta(days=10), today - timedelta(days=2)
+def test_dashboard_days_filter(admin_client, monkeypatch):
+    _freeze_clock(monkeypatch, NOON_IST)
+    old, recent = date(2026, 9, 5), date(2026, 9, 13)
+    _seed_published(recent)
     engine = sa.create_engine(_pg_url())
     try:
         with engine.begin() as conn:
-            for table in (
-                gold_endpoint_health,
-                gold_section_trends,
-                gold_daily_usage,
-                sync_metadata,
-            ):
-                conn.execute(table.delete())
             conn.execute(
-                gold_daily_usage.insert(),
-                [
-                    {"date": old, "dau": 5, "total_api_calls": 50, "timetable_searches": 10},
-                    {"date": recent, "dau": 20, "total_api_calls": 200, "timetable_searches": 100},
-                ],
-            )
-            conn.execute(
-                sync_metadata.insert().values(
-                    id=1,
-                    data_as_of=recent,
-                    synced_at=datetime.now(UTC),
-                    expected_date=recent,
-                    status="published",
+                gold_daily_usage.insert().values(
+                    date=old,
+                    dau=5,
+                    total_api_calls=50,
+                    timetable_searches=10,
+                    published_at=datetime.now(UTC),
                 )
             )
     finally:

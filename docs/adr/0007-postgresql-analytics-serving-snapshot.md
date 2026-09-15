@@ -4,7 +4,7 @@ Date: 2026-09-05
 
 ## Status
 
-Accepted — supersedes the analytics serving path in ADR-0006.
+Accepted — supersedes the analytics serving path in ADR-0006. Superseded in part by [ADR-0008](0008-analytics-derived-freshness-gap-ledger.md): the serving freshness-metadata contract (`sync_metadata`, the `data_as_of`/`synced_at`/`stale`/`503` definitions) is replaced by derived freshness. The PostgreSQL serving copy, schema, and credential split remain in force.
 
 ## Context
 

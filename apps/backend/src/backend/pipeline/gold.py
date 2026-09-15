@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from sqlalchemy import CursorResult, delete, insert, select
 from sqlalchemy.orm import Session
 
-
 from backend.db.models import ClassSession, Section
 from backend.pipeline.resolve import ResolvedSession
 from backend.pipeline.scope import UpsertScope

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
@@ -113,11 +114,12 @@ def _remote_files(path: str, settings: Settings) -> list[str]:
     return sorted(keys)
 
 
-def _count_rows(files: list[str | Path], settings: Settings) -> int:
+def _count_rows(files: Sequence[str | Path], settings: Settings) -> int:
     conn = duckdb.connect()
     try:
         paths = ", ".join("'" + str(path).replace("'", "''") + "'" for path in files)
-        return int(conn.execute(f"SELECT COUNT(*) FROM read_parquet([{paths}])").fetchone()[0])
+        row = conn.execute(f"SELECT COUNT(*) FROM read_parquet([{paths}])").fetchone()
+        return int(row[0]) if row else 0
     finally:
         conn.close()
 
@@ -134,11 +136,18 @@ def check_posthog_files(
     path: str,
     settings: Settings | None = None,
     verifier: PostHogIntervalVerifier | None = None,
+    use_verifier: bool = True,
 ) -> PostHogDelivery:
-    """Classify the target interval as data, empty, pending, or failed."""
+    """Classify the target interval as data, empty, pending, or failed.
+
+    With ``use_verifier`` disabled, a file-less interval is pending without
+    querying the source. Terminal-gap re-checks use this: they reopen only on
+    arrived files or an attested-empty date, so a count that has aged out of
+    PostHog retention can never be mistaken for confirmed no-event activity.
+    """
     settings = settings or get_settings()
     try:
-        files: list[str | Path]
+        files: Sequence[str | Path]
         if path.startswith(("s3://", "r2://")):
             files = _remote_files(path, settings)
         else:
@@ -148,6 +157,10 @@ def check_posthog_files(
             if _configured_empty(target_date, settings):
                 return PostHogDelivery(
                     SourceState.EMPTY, detail="configured authoritative empty interval"
+                )
+            if not use_verifier:
+                return PostHogDelivery(
+                    SourceState.PENDING, detail="PostHog export has not arrived"
                 )
             verifier = verifier or PostHogIntervalVerifier(settings)
             source_count = verifier.count_events(target_date)

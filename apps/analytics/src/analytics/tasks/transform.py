@@ -306,10 +306,8 @@ def transform_silver_to_gold(
                     if list(Path(posthog_bronze_path).parent.glob(Path(posthog_bronze_path).name))
                     else SourceState.PENDING
                 )
-        elif hasattr(posthog_status, "state"):
-            source_state = SourceState(posthog_status.state)
         else:
-            source_state = SourceState(posthog_status)
+            source_state = SourceState(getattr(posthog_status, "state", posthog_status))
 
         if source_state in {SourceState.PENDING, SourceState.FAILED}:
             raise SourceIncompleteError(

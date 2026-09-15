@@ -13,7 +13,8 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 import sqlalchemy as sa
 from deltalake import DeltaTable
@@ -21,12 +22,17 @@ from sqlalchemy.engine import Engine
 
 from backend.config import Settings, get_duckdb_conn, get_settings
 
-from .tables import gold_daily_usage, gold_endpoint_health, gold_section_trends, sync_metadata
+from .tables import (
+    SERVING_TABLES,
+    gold_daily_usage,
+    gold_endpoint_health,
+    gold_section_trends,
+    pipeline_gaps,
+)
 
 logger = logging.getLogger(__name__)
 _reader_instances: dict[tuple[str, str, int], Any] = {}
-
-SyncStatus = Literal["published", "pending", "failed"]
+IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
 
 
 def _is_prod_env(value: str | None) -> bool:
@@ -157,6 +163,24 @@ class _ConnectionPool:
             self._slots.release()
 
 
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+
+def scheduled_target(now: datetime, publish_hour_ist: int) -> date:
+    """Newest date the deployment's cron should have published by ``now``.
+
+    The nightly run fires at ``publish_hour_ist`` Asia/Kolkata and targets the
+    previous calendar day, so before today's run the newest expected date is
+    the day before yesterday.
+    """
+    local = now.astimezone(IST_TIMEZONE)
+    target = local.date() - timedelta(days=1)
+    if local.hour < publish_hour_ist:
+        target -= timedelta(days=1)
+    return target
+
+
 def _utc_midnight(value: date) -> datetime:
     return datetime(value.year, value.month, value.day, tzinfo=UTC)
 
@@ -195,28 +219,25 @@ class PostgresAnalyticsReader:
             )
 
     def dashboard(self, days: int) -> DashboardData:
-        cutoff = datetime.now(UTC).date() - timedelta(days=days)
+        now = _utcnow()
+        cutoff = now.date() - timedelta(days=days)
         with self.engine.begin() as connection:
-            metadata_row = (
-                connection.execute(
-                    sa.select(
-                        sync_metadata.c.data_as_of,
-                        sync_metadata.c.synced_at,
-                        sync_metadata.c.expected_date,
-                        sync_metadata.c.status,
-                    ).where(sync_metadata.c.id == 1)
-                )
-                .mappings()
-                .one_or_none()
-            )
+            newest_gold = connection.execute(
+                sa.select(sa.func.max(gold_daily_usage.c.date))
+            ).scalar()
+            if newest_gold is None:
+                raise AnalyticsSnapshotUnavailable("no analytics snapshot")
 
-            if metadata_row is None or metadata_row["data_as_of"] is None:
-                raise AnalyticsSnapshotUnavailable("no successful analytics snapshot")
+            newest_gap = connection.execute(
+                sa.select(sa.func.max(pipeline_gaps.c.date))
+            ).scalar()
+            data_as_of = max(newest_gold, newest_gap) if newest_gap is not None else newest_gold
 
-            data_as_of = metadata_row["data_as_of"]
-            synced_at = metadata_row["synced_at"]
-            if synced_at is None:
-                raise AnalyticsSnapshotUnavailable("analytics snapshot has no publication time")
+            published_at_values = [
+                connection.execute(sa.select(sa.func.max(table.c.published_at))).scalar()
+                for table in SERVING_TABLES
+            ]
+            synced_at = max(value for value in published_at_values if value is not None)
 
             usage_rows = connection.execute(
                 sa.select(
@@ -253,11 +274,9 @@ class PostgresAnalyticsReader:
                 .order_by(gold_section_trends.c.date, gold_section_trends.c.section_name)
             ).all()
 
-        # Any non-published status is stale, even when expected_date is old
-        # (old-date reprocess pending must not render as fresh).
-        stale = metadata_row["status"] != "published" or (
-            metadata_row["expected_date"] is not None and metadata_row["expected_date"] > data_as_of
-        )
+        # Clock-derived, so a stopped pipeline reports stale instead of fresh
+        # forever; a Gap Ledger date advances data_as_of, not the schedule.
+        stale = scheduled_target(now, self.settings.ANALYTICS_PUBLISH_HOUR_IST) > data_as_of
         return DashboardData(
             usage=[DailyUsageRecord(*row) for row in usage_rows],
             endpoint_health=[EndpointHealthRecord(*row) for row in health_rows],
