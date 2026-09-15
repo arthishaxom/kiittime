@@ -1,8 +1,8 @@
 # Analytics nightly ETL — deploy and verify runbook
 
 Rollout procedure for the artifact-derived completion + Gap Ledger + derived freshness
-change (analytics issues #146/#149). The repo-side code is merged; the steps below are
-the production steps an operator runs.
+change (analytics issues #146/#149). Once the change merges to `main`, the steps below
+are the production steps an operator runs.
 
 ## Required access
 
